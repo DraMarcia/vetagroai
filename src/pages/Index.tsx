@@ -9,6 +9,7 @@ import {
   Brain,
   ArrowRight 
 } from "lucide-react";
+import logo from "@/assets/logo.jpg";
 
 const categories = [
   {
@@ -59,6 +60,13 @@ const Index = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-12 text-center">
+        <div className="flex justify-center mb-6">
+          <img 
+            src={logo} 
+            alt="VetAGro Sustentável AI Logo" 
+            className="w-48 h-48 object-contain rounded-full shadow-lg"
+          />
+        </div>
         <h1 className="mb-4 text-4xl font-bold text-foreground">
           Suíte de Ferramentas de IA VetAgro
         </h1>
