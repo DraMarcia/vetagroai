@@ -26,6 +26,9 @@ import GeradorVideos from "./pages/GeradorVideos";
 import TranscritorNotas from "./pages/TranscritorNotas";
 import AssistenteVoz from "./pages/AssistenteVoz";
 import ModeladorCenarios from "./pages/ModeladorCenarios";
+import ProdutosServicos from "./pages/ProdutosServicos";
+import MeuPerfil from "./pages/MeuPerfil";
+import Blog from "./pages/Blog";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +67,9 @@ const App = () => (
                   <Route path="/transcritor-notas" element={<TranscritorNotas />} />
                   <Route path="/assistente-voz" element={<AssistenteVoz />} />
                   <Route path="/modelador-cenarios" element={<ModeladorCenarios />} />
+                  <Route path="/produtos-servicos" element={<ProdutosServicos />} />
+                  <Route path="/meu-perfil" element={<MeuPerfil />} />
+                  <Route path="/blog" element={<Blog />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>

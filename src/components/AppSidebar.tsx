@@ -16,7 +16,9 @@ import {
   Sparkles,
   Mic,
   MessageSquare,
-  Brain
+  Brain,
+  ShoppingBag,
+  User
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -87,6 +89,15 @@ const categories = [
     icon: Brain,
     items: [
       { title: "Modelador de Cenários", url: "/modelador-cenarios", icon: Brain },
+    ],
+  },
+  {
+    title: "Outros",
+    icon: Sparkles,
+    items: [
+      { title: "Produtos e Serviços", url: "/produtos-servicos", icon: ShoppingBag },
+      { title: "Meu Perfil", url: "/meu-perfil", icon: User },
+      { title: "Blog", url: "/blog", icon: BookOpen },
     ],
   },
 ];
