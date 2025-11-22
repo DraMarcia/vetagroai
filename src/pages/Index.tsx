@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { 
   Stethoscope, 
@@ -7,9 +9,11 @@ import {
   FileSearch, 
   Mic, 
   Brain,
-  ArrowRight 
+  ArrowRight,
+  LogIn
 } from "lucide-react";
 import logo from "@/assets/logo.jpg";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const categories = [
   {
@@ -57,6 +61,8 @@ const categories = [
 ];
 
 const Index = () => {
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-12 text-center">
@@ -70,11 +76,21 @@ const Index = () => {
         <h1 className="mb-4 text-4xl font-bold text-foreground">
           Suíte de Ferramentas de IA VetAgro
         </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
           Ferramentas especializadas de inteligência artificial para profissionais e tutores de pets. 
           Cada ferramenta é otimizada para auxiliar você a ser mais eficiente.
         </p>
+        <Button
+          size="lg"
+          onClick={() => setAuthDialogOpen(true)}
+          className="gap-2"
+        >
+          <LogIn className="h-5 w-5" />
+          Entrar
+        </Button>
       </div>
+
+      <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {categories.map((category) => (
