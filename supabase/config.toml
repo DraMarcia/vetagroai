@@ -1,1 +1,7 @@
 project_id = "jydcfkupbljpdyczxpbn"
+
+[functions.analyze-equine]
+verify_jwt = false
+
+[functions.veterinary-consultation]
+verify_jwt = false
