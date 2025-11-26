@@ -1,24 +1,23 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Cloud, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Leaf, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const CalculadoraGEE = () => {
+const AnaliseSustentabilidade = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [herdData, setHerdData] = useState("");
+  const [practices, setPractices] = useState("");
   const [result, setResult] = useState("");
 
-  const handleCalculate = async () => {
-    if (!herdData.trim()) {
+  const handleAnalyze = async () => {
+    if (!practices.trim()) {
       toast({
         title: "Campo obrigatório",
-        description: "Forneça os dados do rebanho.",
+        description: "Descreva suas práticas atuais.",
         variant: "destructive",
       });
       return;
@@ -28,18 +27,18 @@ const CalculadoraGEE = () => {
     try {
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
-          question: `Calcule as emissões de Gases de Efeito Estufa (GEE) e a pegada de carbono com base nos seguintes dados do rebanho:
+          question: `Analise as seguintes práticas de sustentabilidade na propriedade rural:
 
-${herdData}
+${practices}
 
 Forneça:
-1. Estimativa das emissões de metano (CH4) e outros GEE
-2. Cálculo da pegada de carbono da produção
-3. Estratégias práticas de mitigação
-4. Comparação com benchmarks do setor
-5. Recomendações para redução de emissões`,
+1. Avaliação do impacto ambiental atual
+2. Sugestões de melhorias práticas
+3. Informações sobre certificações relevantes (orgânico, bioeconomia, carbono neutro)
+4. Plano de ação para tornar a operação mais sustentável
+5. Indicadores de sustentabilidade a serem monitorados`,
           isProfessional: true,
-          context: "Cálculo de emissões de GEE e pegada de carbono",
+          context: "Análise de sustentabilidade na propriedade rural",
         },
       });
 
@@ -47,13 +46,13 @@ Forneça:
 
       setResult(data.answer);
       toast({
-        title: "Cálculo concluído!",
-        description: "Emissões estimadas com sucesso.",
+        title: "Análise concluída!",
+        description: "Recomendações de sustentabilidade geradas.",
       });
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao calcular",
+        title: "Erro ao analisar",
         description: error.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });
@@ -67,11 +66,11 @@ Forneça:
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-600 to-teal-600 flex items-center justify-center">
-            <Cloud className="h-6 w-6 text-white" />
+            <Leaf className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Calculadora de Emissões de GEE</h1>
-            <p className="text-muted-foreground">Estime emissões de GEE e descubra práticas de mitigação</p>
+            <h1 className="text-3xl font-bold text-foreground">Análise de Sustentabilidade</h1>
+            <p className="text-muted-foreground">Avalie e melhore práticas sustentáveis na propriedade rural</p>
           </div>
         </div>
       </div>
@@ -79,19 +78,19 @@ Forneça:
       <div className="grid gap-6 max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle>Dados do Rebanho</CardTitle>
+            <CardTitle>Práticas Atuais</CardTitle>
             <CardDescription>
-              Informe número de animais, categoria e sistema de produção
+              Descreva as práticas sustentáveis e objetivos da sua propriedade
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div>
-              <Label htmlFor="herdData">Dados do Rebanho *</Label>
+              <Label htmlFor="practices">Descrição das Práticas *</Label>
               <Textarea
-                id="herdData"
-                placeholder="Ex: 200 cabeças de gado de corte, sistema semi-intensivo, pastagem rotacionada, peso médio 450kg..."
-                value={herdData}
-                onChange={(e) => setHerdData(e.target.value)}
+                id="practices"
+                placeholder="Ex: Propriedade de 100 hectares com gado de corte, uso de rotação de pastagens, interesse em certificação orgânica..."
+                value={practices}
+                onChange={(e) => setPractices(e.target.value)}
                 className="min-h-[150px]"
               />
             </div>
@@ -99,7 +98,7 @@ Forneça:
         </Card>
 
         <Button
-          onClick={handleCalculate}
+          onClick={handleAnalyze}
           disabled={loading}
           size="lg"
           className="w-full"
@@ -107,12 +106,12 @@ Forneça:
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Calculando...
+              Analisando...
             </>
           ) : (
             <>
-              <Cloud className="mr-2 h-5 w-5" />
-              Calcular Emissões
+              <Leaf className="mr-2 h-5 w-5" />
+              Analisar Sustentabilidade
             </>
           )}
         </Button>
@@ -120,9 +119,9 @@ Forneça:
         {result && (
           <Card>
             <CardHeader>
-              <CardTitle>Resultado do Cálculo</CardTitle>
+              <CardTitle>Análise e Recomendações</CardTitle>
               <CardDescription>
-                Emissões estimadas e estratégias de mitigação
+                Plano de ação para sustentabilidade
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -139,4 +138,4 @@ Forneça:
   );
 };
 
-export default CalculadoraGEE;
+export default AnaliseSustentabilidade;

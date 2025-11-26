@@ -1,24 +1,23 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Cloud, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { TrendingUp, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const CalculadoraGEE = () => {
+const AnaliseProdutiva = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [herdData, setHerdData] = useState("");
+  const [productionData, setProductionData] = useState("");
   const [result, setResult] = useState("");
 
-  const handleCalculate = async () => {
-    if (!herdData.trim()) {
+  const handleAnalyze = async () => {
+    if (!productionData.trim()) {
       toast({
         title: "Campo obrigatório",
-        description: "Forneça os dados do rebanho.",
+        description: "Forneça os dados de produção.",
         variant: "destructive",
       });
       return;
@@ -28,18 +27,19 @@ const CalculadoraGEE = () => {
     try {
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
-          question: `Calcule as emissões de Gases de Efeito Estufa (GEE) e a pegada de carbono com base nos seguintes dados do rebanho:
+          question: `Analise a eficiência econômica e zootécnica com base nos seguintes dados de produção:
 
-${herdData}
+${productionData}
 
 Forneça:
-1. Estimativa das emissões de metano (CH4) e outros GEE
-2. Cálculo da pegada de carbono da produção
-3. Estratégias práticas de mitigação
-4. Comparação com benchmarks do setor
-5. Recomendações para redução de emissões`,
+1. Análise de KPIs (GMD, conversão alimentar, taxa de lotação, etc.)
+2. Avaliação de custos de produção
+3. Identificação de gargalos produtivos
+4. Sugestões para otimização de custos
+5. Estratégias para melhorar a produtividade geral do rebanho
+6. Comparação com padrões do setor`,
           isProfessional: true,
-          context: "Cálculo de emissões de GEE e pegada de carbono",
+          context: "Análise de eficiência produtiva e econômica",
         },
       });
 
@@ -47,13 +47,13 @@ Forneça:
 
       setResult(data.answer);
       toast({
-        title: "Cálculo concluído!",
-        description: "Emissões estimadas com sucesso.",
+        title: "Análise concluída!",
+        description: "Insights produtivos gerados.",
       });
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao calcular",
+        title: "Erro ao analisar",
         description: error.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });
@@ -66,12 +66,12 @@ Forneça:
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-600 to-teal-600 flex items-center justify-center">
-            <Cloud className="h-6 w-6 text-white" />
+          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+            <TrendingUp className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Calculadora de Emissões de GEE</h1>
-            <p className="text-muted-foreground">Estime emissões de GEE e descubra práticas de mitigação</p>
+            <h1 className="text-3xl font-bold text-foreground">Análise Produtiva</h1>
+            <p className="text-muted-foreground">Otimize eficiência econômica e zootécnica da propriedade</p>
           </div>
         </div>
       </div>
@@ -79,19 +79,19 @@ Forneça:
       <div className="grid gap-6 max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle>Dados do Rebanho</CardTitle>
+            <CardTitle>Dados de Produção</CardTitle>
             <CardDescription>
-              Informe número de animais, categoria e sistema de produção
+              Forneça métricas de desempenho e dados econômicos da propriedade
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div>
-              <Label htmlFor="herdData">Dados do Rebanho *</Label>
+              <Label htmlFor="productionData">Dados de Produção *</Label>
               <Textarea
-                id="herdData"
-                placeholder="Ex: 200 cabeças de gado de corte, sistema semi-intensivo, pastagem rotacionada, peso médio 450kg..."
-                value={herdData}
-                onChange={(e) => setHerdData(e.target.value)}
+                id="productionData"
+                placeholder="Ex: 300 animais em terminação, GMD de 0,8kg/dia, conversão alimentar 8:1, custo de produção R$ 12,00/kg, taxa de lotação 2 UA/ha..."
+                value={productionData}
+                onChange={(e) => setProductionData(e.target.value)}
                 className="min-h-[150px]"
               />
             </div>
@@ -99,7 +99,7 @@ Forneça:
         </Card>
 
         <Button
-          onClick={handleCalculate}
+          onClick={handleAnalyze}
           disabled={loading}
           size="lg"
           className="w-full"
@@ -107,12 +107,12 @@ Forneça:
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Calculando...
+              Analisando...
             </>
           ) : (
             <>
-              <Cloud className="mr-2 h-5 w-5" />
-              Calcular Emissões
+              <TrendingUp className="mr-2 h-5 w-5" />
+              Analisar Produção
             </>
           )}
         </Button>
@@ -120,9 +120,9 @@ Forneça:
         {result && (
           <Card>
             <CardHeader>
-              <CardTitle>Resultado do Cálculo</CardTitle>
+              <CardTitle>Análise Produtiva</CardTitle>
               <CardDescription>
-                Emissões estimadas e estratégias de mitigação
+                Insights e recomendações de melhoria
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -139,4 +139,4 @@ Forneça:
   );
 };
 
-export default CalculadoraGEE;
+export default AnaliseProdutiva;
