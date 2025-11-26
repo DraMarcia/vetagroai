@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -15,6 +16,12 @@ const CalculadoraRacao = () => {
   const [formulation, setFormulation] = useState("");
   const [result, setResult] = useState("");
 
+  const [species, setSpecies] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [weight, setWeight] = useState("");
+  const [age, setAge] = useState("");
+  const [ingredients, setIngredients] = useState("");
+
   const handleCalculate = async () => {
     if (!isProfessional) {
       toast({
@@ -25,10 +32,10 @@ const CalculadoraRacao = () => {
       return;
     }
 
-    if (!formulation.trim()) {
+    if (!species || !purpose || !weight) {
       toast({
-        title: "Campo obrigatório",
-        description: "Descreva a formulação de ração necessária.",
+        title: "Campos obrigatórios",
+        description: "Preencha espécie, finalidade e peso do animal.",
         variant: "destructive",
       });
       return;
@@ -38,7 +45,19 @@ const CalculadoraRacao = () => {
     try {
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
-          question: formulation,
+          question: `Calcule uma formulação de ração balanceada com base nos seguintes dados:
+
+Espécie: ${species}
+Finalidade: ${purpose}
+Peso: ${weight}
+Idade: ${age || 'Não informada'}
+Ingredientes disponíveis: ${ingredients || 'Ingredientes comuns disponíveis no mercado'}
+
+Forneça:
+1. Cálculo detalhado das quantidades de cada ingrediente
+2. Composição nutricional final
+3. Instruções de preparo e fornecimento
+4. Considerações importantes`,
           isProfessional: isProfessional === "sim",
           context: "Formulação de ração animal balanceada",
         },
@@ -101,23 +120,70 @@ const CalculadoraRacao = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Dados para Formulação</CardTitle>
+            <CardTitle>Dados do Animal</CardTitle>
             <CardDescription>
-              Descreva a espécie, objetivo produtivo e requisitos nutricionais
+              Informações básicas para formulação da ração
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="species">Espécie *</Label>
+              <Input
+                id="species"
+                placeholder="Ex: Bovino, Suíno, Equino, Aves, Piscicultura"
+                value={species}
+                onChange={(e) => setSpecies(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="purpose">Finalidade *</Label>
+              <Input
+                id="purpose"
+                placeholder="Ex: Crescimento, Manutenção, Engorda, Alevino, Poedeira, Corte"
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="weight">Peso *</Label>
+                <Input
+                  id="weight"
+                  placeholder="Ex: 450kg"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="age">Idade</Label>
+                <Input
+                  id="age"
+                  placeholder="Ex: 18 meses"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Ingredientes Disponíveis</CardTitle>
+            <CardDescription>
+              Liste os ingredientes que você tem disponível (opcional)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="formulation">Descrição da Formulação *</Label>
-                <Textarea
-                  id="formulation"
-                  placeholder="Ex: Preciso formular ração para bovinos de corte em fase de terminação, peso médio 450kg, ganho esperado de 1,2kg/dia..."
-                  value={formulation}
-                  onChange={(e) => setFormulation(e.target.value)}
-                  className="min-h-[120px]"
-                />
-              </div>
+            <div>
+              <Label htmlFor="ingredients">Ingredientes</Label>
+              <Textarea
+                id="ingredients"
+                placeholder="Ex: Farelo de soja, milho moído, sal mineral, ureia..."
+                value={ingredients}
+                onChange={(e) => setIngredients(e.target.value)}
+                className="min-h-[100px]"
+              />
             </div>
           </CardContent>
         </Card>
