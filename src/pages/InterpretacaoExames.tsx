@@ -5,12 +5,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Stethoscope, Loader2, Download } from "lucide-react";
+import { FileText, Loader2, Download, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 
-const DiagnosticoDiferencial = () => {
+const InterpretacaoExames = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isProfessional, setIsProfessional] = useState("");
@@ -18,9 +18,32 @@ const DiagnosticoDiferencial = () => {
   const [species, setSpecies] = useState("");
   const [age, setAge] = useState("");
   const [weight, setWeight] = useState("");
-  const [symptoms, setSymptoms] = useState("");
-  const [history, setHistory] = useState("");
+  const [examType, setExamType] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [clinicalData, setClinicalData] = useState("");
   const [result, setResult] = useState("");
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const fileArray = Array.from(files);
+    const imagePromises = fileArray.map((file) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(imagePromises).then((imageDataUrls) => {
+      setImages(imageDataUrls);
+      toast({
+        title: "Imagens carregadas!",
+        description: `${imageDataUrls.length} arquivo(s) carregado(s).`,
+      });
+    });
+  };
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF();
@@ -30,35 +53,29 @@ const DiagnosticoDiferencial = () => {
     let yPosition = 20;
 
     doc.setFontSize(16);
-    doc.text("Diagnóstico Diferencial Veterinário", margin, yPosition);
+    doc.text("Interpretação de Exames Veterinários", margin, yPosition);
     yPosition += 10;
 
     doc.setFontSize(10);
     doc.text(`Tipo de usuário: ${isProfessional === "sim" ? `Profissional - CRMV: ${crmv}` : "Tutor"}`, margin, yPosition);
     yPosition += 7;
     doc.text(`Espécie: ${species} | Idade: ${age} | Peso: ${weight}`, margin, yPosition);
+    yPosition += 7;
+    doc.text(`Tipo de exame: ${examType}`, margin, yPosition);
     yPosition += 10;
 
-    doc.setFontSize(12);
-    doc.text("Sinais Clínicos:", margin, yPosition);
-    yPosition += 7;
-    doc.setFontSize(10);
-    const symptomsLines = doc.splitTextToSize(symptoms, maxWidth);
-    doc.text(symptomsLines, margin, yPosition);
-    yPosition += symptomsLines.length * 5 + 5;
-
-    if (history) {
+    if (clinicalData) {
       doc.setFontSize(12);
-      doc.text("Histórico:", margin, yPosition);
+      doc.text("Dados Clínicos:", margin, yPosition);
       yPosition += 7;
       doc.setFontSize(10);
-      const historyLines = doc.splitTextToSize(history, maxWidth);
-      doc.text(historyLines, margin, yPosition);
-      yPosition += historyLines.length * 5 + 5;
+      const clinicalLines = doc.splitTextToSize(clinicalData, maxWidth);
+      doc.text(clinicalLines, margin, yPosition);
+      yPosition += clinicalLines.length * 5 + 5;
     }
 
     doc.setFontSize(12);
-    doc.text("Análise:", margin, yPosition);
+    doc.text("Interpretação:", margin, yPosition);
     yPosition += 7;
     doc.setFontSize(10);
     const resultLines = doc.splitTextToSize(result, maxWidth);
@@ -71,10 +88,10 @@ const DiagnosticoDiferencial = () => {
       yPosition += 5;
     });
 
-    doc.save("diagnostico-diferencial.pdf");
+    doc.save("interpretacao-exames.pdf");
     toast({
       title: "PDF gerado!",
-      description: "O diagnóstico foi baixado com sucesso.",
+      description: "A interpretação foi baixada com sucesso.",
     });
   };
 
@@ -97,10 +114,19 @@ const DiagnosticoDiferencial = () => {
       return;
     }
 
-    if (!species.trim() || !age.trim() || !weight.trim() || !symptoms.trim()) {
+    if (!species.trim() || !age.trim() || !weight.trim() || !examType.trim()) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha espécie, idade, peso e sinais clínicos.",
+        description: "Preencha espécie, idade, peso e tipo de exame.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (images.length === 0 && !clinicalData.trim()) {
+      toast({
+        title: "Dados insuficientes",
+        description: "Anexe imagens dos exames ou descreva os valores.",
         variant: "destructive",
       });
       return;
@@ -108,47 +134,29 @@ const DiagnosticoDiferencial = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
+      const { data, error } = await supabase.functions.invoke("analyze-equine", {
         body: {
-          question: `Realize um diagnóstico diferencial veterinário completo:
-
-DADOS DO ANIMAL:
-- Espécie: ${species}
-- Idade: ${age}
-- Peso: ${weight}
-
-SINAIS CLÍNICOS:
-${symptoms}
-
-${history ? `HISTÓRICO:\n${history}\n` : ""}
-
-Forneça:
-1. Diagnósticos diferenciais organizados por probabilidade (do mais ao menos provável)
-2. Exames complementares recomendados para cada suspeita
-3. Sinais de alerta que indicam urgência/emergência
-4. Recomendações de manejo imediato
-
-${isProfessional === "nao" 
-  ? "IMPORTANTE: Use linguagem simples e acessível para tutores. Sempre enfatize a necessidade de avaliação veterinária presencial. Explique conceitos técnicos de forma clara." 
-  : "Utilize linguagem técnica veterinária apropriada. Inclua DDx completos, protocolos diagnósticos e terapêuticos."}
-
-Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatura científica).`,
-          isProfessional: isProfessional === "sim",
-          context: "Diagnóstico diferencial veterinário",
+          images,
+          breed: species,
+          age,
+          purpose: `Interpretação de ${examType}. ${clinicalData ? `Dados clínicos: ${clinicalData}` : ""}`,
         },
       });
 
       if (error) throw error;
 
-      let finalAnswer = data.answer;
-      if (isProfessional === "nao") {
-        finalAnswer += "\n\n⚠️ ATENÇÃO: Esta análise tem caráter informativo. É fundamental procurar um médico veterinário para avaliação presencial, exame clínico completo e diagnóstico definitivo.";
+      let interpretation = data.review;
+
+      if (isProfessional === "sim") {
+        interpretation += "\n\nRecomendações técnicas:\n- Correlacione sempre com o quadro clínico\n- Considere exames complementares se necessário\n- Avalie evolução temporal dos parâmetros\n\nReferências:\n- Merck Veterinary Manual\n- Laboratórios de referência veterinária";
+      } else {
+        interpretation += "\n\n⚠️ ATENÇÃO: Esta interpretação tem caráter educativo. Consulte um médico veterinário para análise completa e conduta terapêutica.";
       }
 
-      setResult(finalAnswer);
+      setResult(interpretation);
       toast({
         title: "Análise concluída!",
-        description: "Diagnóstico diferencial gerado com sucesso.",
+        description: "Interpretação dos exames gerada.",
       });
     } catch (error: any) {
       console.error("Erro:", error);
@@ -166,12 +174,12 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-            <Stethoscope className="h-6 w-6 text-primary-foreground" />
+          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <FileText className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Diagnóstico Diferencial Inteligente</h1>
-            <p className="text-muted-foreground">Gere hipóteses diagnósticas com base em sinais clínicos</p>
+            <h1 className="text-3xl font-bold text-foreground">Interpretação de Exames</h1>
+            <p className="text-muted-foreground">Hemograma, bioquímica, imagem (RX, US) e outros</p>
           </div>
         </div>
       </div>
@@ -223,7 +231,7 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
                 <Label htmlFor="species">Espécie *</Label>
                 <Input
                   id="species"
-                  placeholder="Ex: Canina, Felina, Bovina, Equina..."
+                  placeholder="Ex: Canina, Felina, Bovina..."
                   value={species}
                   onChange={(e) => setSpecies(e.target.value)}
                 />
@@ -248,37 +256,52 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
                   />
                 </div>
               </div>
+              <div>
+                <Label htmlFor="examType">Tipo de Exame *</Label>
+                <Input
+                  id="examType"
+                  placeholder="Ex: Hemograma, Bioquímica, Raio-X, Ultrassom..."
+                  value={examType}
+                  onChange={(e) => setExamType(e.target.value)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Sinais Clínicos</CardTitle>
+            <CardTitle>Dados do Exame</CardTitle>
             <CardDescription>
-              Descreva detalhadamente os sinais observados no animal
+              Anexe imagens (PDF ou fotos) ou descreva os valores
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="symptoms">Descrição dos Sinais *</Label>
-                <Textarea
-                  id="symptoms"
-                  placeholder="Ex: Anorexia há 3 dias, apatia, vômitos frequentes, desidratação moderada, mucosas pálidas..."
-                  value={symptoms}
-                  onChange={(e) => setSymptoms(e.target.value)}
-                  className="min-h-[120px]"
+                <Label htmlFor="images">Imagens dos Exames (opcional)</Label>
+                <Input
+                  id="images"
+                  type="file"
+                  accept="image/*,.pdf"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="cursor-pointer"
                 />
+                {images.length > 0 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {images.length} arquivo(s) selecionado(s)
+                  </p>
+                )}
               </div>
               <div>
-                <Label htmlFor="history">Histórico (opcional)</Label>
+                <Label htmlFor="clinicalData">Valores/Dados Clínicos (opcional)</Label>
                 <Textarea
-                  id="history"
-                  placeholder="Ex: Vacinação em dia, castrado, sem histórico de doenças prévias..."
-                  value={history}
-                  onChange={(e) => setHistory(e.target.value)}
-                  className="min-h-[80px]"
+                  id="clinicalData"
+                  placeholder="Ex: Hemácias 5.2 milhões, Leucócitos 18.000, ALT 120 U/L..."
+                  value={clinicalData}
+                  onChange={(e) => setClinicalData(e.target.value)}
+                  className="min-h-[120px]"
                 />
               </div>
             </div>
@@ -298,8 +321,8 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
             </>
           ) : (
             <>
-              <Stethoscope className="mr-2 h-5 w-5" />
-              Gerar Diagnóstico Diferencial
+              <FileText className="mr-2 h-5 w-5" />
+              Interpretar Exames
             </>
           )}
         </Button>
@@ -307,9 +330,9 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
         {result && (
           <Card>
             <CardHeader>
-              <CardTitle>Diagnósticos Diferenciais</CardTitle>
+              <CardTitle>Interpretação dos Exames</CardTitle>
               <CardDescription>
-                Análise baseada nos sinais clínicos informados
+                Análise baseada nos dados fornecidos
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -336,4 +359,4 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
   );
 };
 
-export default DiagnosticoDiferencial;
+export default InterpretacaoExames;
