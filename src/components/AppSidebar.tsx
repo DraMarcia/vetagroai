@@ -69,13 +69,6 @@ const categories = [
     ],
   },
   {
-    title: "Modelagem Avançada",
-    icon: Brain,
-    items: [
-      { title: "Modelador de Cenários", url: "/modelador-cenarios", icon: Brain },
-    ],
-  },
-  {
     title: "Outros",
     icon: Sparkles,
     items: [
