@@ -17,14 +17,11 @@ import CalculadoraRacao from "./pages/CalculadoraRacao";
 import IdentificadorPlantas from "./pages/IdentificadorPlantas";
 import CalculadoraGEE from "./pages/CalculadoraGEE";
 import ConsultaGeoespacial from "./pages/ConsultaGeoespacial";
-import AnaliseArtigos from "./pages/AnaliseArtigos";
-import AnaliseImagens from "./pages/AnaliseImagens";
-import AnaliseVideos from "./pages/AnaliseVideos";
-import EditorImagens from "./pages/EditorImagens";
-import GeradorImagens from "./pages/GeradorImagens";
-import GeradorVideos from "./pages/GeradorVideos";
-import TranscritorNotas from "./pages/TranscritorNotas";
-import AssistenteVoz from "./pages/AssistenteVoz";
+import AnaliseSustentabilidade from "./pages/AnaliseSustentabilidade";
+import AnaliseClimatica from "./pages/AnaliseClimatica";
+import AnaliseProdutiva from "./pages/AnaliseProdutiva";
+import InterpretacaoExames from "./pages/InterpretacaoExames";
+import EscoreCorporal from "./pages/EscoreCorporal";
 import ModeladorCenarios from "./pages/ModeladorCenarios";
 import ProdutosServicos from "./pages/ProdutosServicos";
 import MeuPerfil from "./pages/MeuPerfil";
@@ -58,14 +55,11 @@ const App = () => (
                   <Route path="/identificador-plantas" element={<IdentificadorPlantas />} />
                   <Route path="/calculadora-gee" element={<CalculadoraGEE />} />
                   <Route path="/consulta-geoespacial" element={<ConsultaGeoespacial />} />
-                  <Route path="/analise-artigos" element={<AnaliseArtigos />} />
-                  <Route path="/analise-imagens" element={<AnaliseImagens />} />
-                  <Route path="/analise-videos" element={<AnaliseVideos />} />
-                  <Route path="/editor-imagens" element={<EditorImagens />} />
-                  <Route path="/gerador-imagens" element={<GeradorImagens />} />
-                  <Route path="/gerador-videos" element={<GeradorVideos />} />
-                  <Route path="/transcritor-notas" element={<TranscritorNotas />} />
-                  <Route path="/assistente-voz" element={<AssistenteVoz />} />
+                  <Route path="/analise-sustentabilidade" element={<AnaliseSustentabilidade />} />
+                  <Route path="/analise-climatica" element={<AnaliseClimatica />} />
+                  <Route path="/interpretacao-exames" element={<InterpretacaoExames />} />
+                  <Route path="/escore-corporal" element={<EscoreCorporal />} />
+                  <Route path="/analise-produtiva" element={<AnaliseProdutiva />} />
                   <Route path="/modelador-cenarios" element={<ModeladorCenarios />} />
                   <Route path="/produtos-servicos" element={<ProdutosServicos />} />
                   <Route path="/meu-perfil" element={<MeuPerfil />} />

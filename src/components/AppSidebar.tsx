@@ -9,16 +9,14 @@ import {
   Leaf,
   Cloud,
   MapPin,
-  FileSearch,
-  Image as ImageIcon,
-  Video,
-  Wand2,
   Sparkles,
-  Mic,
-  MessageSquare,
   Brain,
   ShoppingBag,
-  User
+  User,
+  FileSearch,
+  Activity,
+  TrendingUp,
+  Droplets
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -41,6 +39,7 @@ const categories = [
     icon: Stethoscope,
     items: [
       { title: "Diagnóstico Diferencial", url: "/diagnostico-diferencial", icon: Stethoscope },
+      { title: "Interpretação de Exames", url: "/interpretacao-exames", icon: FileSearch },
       { title: "Calculadora de Dose", url: "/calculadora-dose", icon: Calculator },
       { title: "Análise de Mucosa", url: "/analise-mucosa", icon: Eye },
       { title: "Resenha de Equinos", url: "/resenha-equinos", icon: FileText },
@@ -53,6 +52,8 @@ const categories = [
     icon: Wheat,
     items: [
       { title: "Calculadora de Ração", url: "/calculadora-racao", icon: Calculator },
+      { title: "Análise Produtiva", url: "/analise-produtiva", icon: TrendingUp },
+      { title: "Escore Corporal (ECC)", url: "/escore-corporal", icon: Activity },
     ],
   },
   {
@@ -62,26 +63,9 @@ const categories = [
       { title: "Identificador de Plantas", url: "/identificador-plantas", icon: Leaf },
       { title: "Calculadora de GEE", url: "/calculadora-gee", icon: Cloud },
       { title: "Consulta Geoespacial", url: "/consulta-geoespacial", icon: MapPin },
-    ],
-  },
-  {
-    title: "Comunicação e Conteúdo",
-    icon: FileSearch,
-    items: [
-      { title: "Análise de Artigos", url: "/analise-artigos", icon: FileSearch },
-      { title: "Análise de Imagens", url: "/analise-imagens", icon: ImageIcon },
-      { title: "Análise de Vídeos", url: "/analise-videos", icon: Video },
-      { title: "Editor de Imagens", url: "/editor-imagens", icon: Wand2 },
-      { title: "Gerador de Imagens", url: "/gerador-imagens", icon: Sparkles },
-      { title: "Gerador de Vídeos", url: "/gerador-videos", icon: Video },
-    ],
-  },
-  {
-    title: "Voz e Áudio",
-    icon: Mic,
-    items: [
-      { title: "Transcritor de Notas", url: "/transcritor-notas", icon: Mic },
-      { title: "Assistente de Voz", url: "/assistente-voz", icon: MessageSquare },
+      { title: "Análise de Sustentabilidade", url: "/analise-sustentabilidade", icon: Leaf },
+      { title: "Análise Climática", url: "/analise-climatica", icon: Cloud },
+      { title: "Calculadora de Metano", url: "/calculadora-gee", icon: Droplets },
     ],
   },
   {
