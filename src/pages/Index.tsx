@@ -13,6 +13,7 @@ import {
   LogIn
 } from "lucide-react";
 import logo from "@/assets/logo.jpg";
+import banner from "@/assets/banner.jpg";
 import { AuthDialog } from "@/components/AuthDialog";
 
 const categories = [
@@ -65,29 +66,44 @@ const Index = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-12 text-center">
-        <div className="flex justify-center mb-6">
+      <div className="mb-12 relative">
+        {/* Background Banner */}
+        <div className="relative w-full h-[500px] rounded-2xl overflow-hidden shadow-2xl">
           <img 
-            src={logo} 
-            alt="VetAGro Sustentável AI Logo" 
-            className="w-48 h-48 object-contain rounded-full shadow-lg"
+            src={banner} 
+            alt="Banner VetAgro Sustentável" 
+            className="w-full h-full object-cover"
           />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background/80" />
+          
+          {/* Content on top of banner */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+            {/* Animated Logo */}
+            <div className="mb-6 animate-[spin_20s_linear_infinite]">
+              <img 
+                src={logo} 
+                alt="VetAGro Sustentável AI Logo" 
+                className="w-48 h-48 object-contain rounded-full shadow-lg"
+              />
+            </div>
+            
+            <h1 className="mb-4 text-4xl font-bold text-foreground drop-shadow-lg">
+              Suíte de Ferramentas de IA VetAgro
+            </h1>
+            <p className="text-xl text-foreground/90 max-w-2xl mx-auto mb-6 drop-shadow-md">
+              Ferramentas especializadas de inteligência artificial para profissionais e tutores de pets. 
+              Cada ferramenta é otimizada para auxiliar você a ser mais eficiente.
+            </p>
+            <Button
+              size="lg"
+              onClick={() => setAuthDialogOpen(true)}
+              className="gap-2 shadow-lg"
+            >
+              <LogIn className="h-5 w-5" />
+              Entrar
+            </Button>
+          </div>
         </div>
-        <h1 className="mb-4 text-4xl font-bold text-foreground">
-          Suíte de Ferramentas de IA VetAgro
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
-          Ferramentas especializadas de inteligência artificial para profissionais e tutores de pets. 
-          Cada ferramenta é otimizada para auxiliar você a ser mais eficiente.
-        </p>
-        <Button
-          size="lg"
-          onClick={() => setAuthDialogOpen(true)}
-          className="gap-2"
-        >
-          <LogIn className="h-5 w-5" />
-          Entrar
-        </Button>
       </div>
 
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />

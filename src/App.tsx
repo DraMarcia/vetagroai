@@ -22,7 +22,6 @@ import AnaliseClimatica from "./pages/AnaliseClimatica";
 import AnaliseProdutiva from "./pages/AnaliseProdutiva";
 import InterpretacaoExames from "./pages/InterpretacaoExames";
 import EscoreCorporal from "./pages/EscoreCorporal";
-import ModeladorCenarios from "./pages/ModeladorCenarios";
 import ProdutosServicos from "./pages/ProdutosServicos";
 import MeuPerfil from "./pages/MeuPerfil";
 import Blog from "./pages/Blog";
@@ -60,7 +59,6 @@ const App = () => (
                   <Route path="/interpretacao-exames" element={<InterpretacaoExames />} />
                   <Route path="/escore-corporal" element={<EscoreCorporal />} />
                   <Route path="/analise-produtiva" element={<AnaliseProdutiva />} />
-                  <Route path="/modelador-cenarios" element={<ModeladorCenarios />} />
                   <Route path="/produtos-servicos" element={<ProdutosServicos />} />
                   <Route path="/meu-perfil" element={<MeuPerfil />} />
                   <Route path="/blog" element={<Blog />} />
