@@ -3,9 +3,9 @@ import { User, Linkedin, Instagram, Youtube, Facebook } from "lucide-react";
 
 const MeuPerfil = () => {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex flex-col items-center gap-3 mb-4 text-center">
           <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
             <User className="h-6 w-6 text-primary-foreground" />
           </div>
