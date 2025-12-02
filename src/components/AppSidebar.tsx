@@ -16,7 +16,9 @@ import {
   FileSearch,
   Activity,
   TrendingUp,
-  Droplets
+  Droplets,
+  Warehouse,
+  CreditCard
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -69,9 +71,18 @@ const categories = [
     ],
   },
   {
+    title: "Modelagem Avançada",
+    icon: Brain,
+    items: [
+      { title: "Simulador de Confinamento", url: "/simulador-confinamento", icon: Warehouse },
+      { title: "Modelador de Carbono", url: "/modelador-carbono", icon: Leaf },
+    ],
+  },
+  {
     title: "Outros",
     icon: Sparkles,
     items: [
+      { title: "Planos e Assinaturas", url: "/planos", icon: CreditCard },
       { title: "Produtos e Serviços", url: "/produtos-servicos", icon: ShoppingBag },
       { title: "Meu Perfil", url: "/meu-perfil", icon: User },
       { title: "Blog", url: "/blog", icon: BookOpen },
@@ -111,7 +122,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {category.items.map((item) => (
-                  <SidebarMenuItem key={item.url}>
+                  <SidebarMenuItem key={item.url + item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink to={item.url}>
                         <item.icon className="h-4 w-4" />

@@ -14,16 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          credits_reset_at: string | null
+          current_plan: Database["public"]["Enums"]["subscription_plan"] | null
+          daily_credits: number | null
+          full_name: string | null
+          id: string
+          is_admin: boolean | null
+          is_professional: boolean | null
+          plan_expires_at: string | null
+          professional_registry_number: string | null
+          professional_registry_type:
+            | Database["public"]["Enums"]["professional_registry_type"]
+            | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_reset_at?: string | null
+          current_plan?: Database["public"]["Enums"]["subscription_plan"] | null
+          daily_credits?: number | null
+          full_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          is_professional?: boolean | null
+          plan_expires_at?: string | null
+          professional_registry_number?: string | null
+          professional_registry_type?:
+            | Database["public"]["Enums"]["professional_registry_type"]
+            | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_reset_at?: string | null
+          current_plan?: Database["public"]["Enums"]["subscription_plan"] | null
+          daily_credits?: number | null
+          full_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          is_professional?: boolean | null
+          plan_expires_at?: string | null
+          professional_registry_number?: string | null
+          professional_registry_type?:
+            | Database["public"]["Enums"]["professional_registry_type"]
+            | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_credits: { Args: { p_user_id: string }; Returns: Json }
+      use_credit: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      professional_registry_type: "crmv" | "crea" | "crbio" | "other"
+      subscription_plan: "free" | "pro" | "enterprise"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +205,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      professional_registry_type: ["crmv", "crea", "crbio", "other"],
+      subscription_plan: ["free", "pro", "enterprise"],
+    },
   },
 } as const
