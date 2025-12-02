@@ -11,21 +11,122 @@ serve(async (req) => {
   }
 
   try {
-    const { question, isProfessional, context } = await req.json();
+    const requestBody = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY não configurado');
     }
 
-    console.log('Processando consulta:', { isProfessional, questionLength: question.length });
+    let systemPrompt = "";
+    let userPrompt = "";
 
-    const systemPrompt = isProfessional
-      ? `Você é um assistente veterinário especializado. Forneça respostas técnicas e detalhadas para profissionais da área veterinária. 
-      Use terminologia técnica apropriada e cite bases científicas quando relevante.`
-      : `Você é um assistente veterinário educacional. Forneça informações claras e acessíveis para tutores de animais.
-      Use linguagem simples e didática. IMPORTANTE: Ao final de cada resposta, sempre inclua o aviso:
-      "⚠️ Esta é uma orientação educacional. Recomendamos fortemente consultar um médico veterinário para diagnóstico e tratamento adequados."`;
+    // Check if it's a tool-based request (new format)
+    if (requestBody.tool) {
+      const { tool, plan, data } = requestBody;
+
+      if (tool === "consulta-geoespacial") {
+        systemPrompt = `Você é um especialista em sustentabilidade agropecuária e geoespacial do Brasil.
+Analise dados sobre biomas, produção agrícola e práticas sustentáveis.
+Forneça recomendações técnicas baseadas em evidências científicas.
+
+ESTRUTURA DA RESPOSTA:
+1. **SÍNTESE EXECUTIVA** - Resumo em 2-3 frases
+2. **ANÁLISE TÉCNICA** - Características do bioma, clima, solo e aptidão produtiva
+3. **RECOMENDAÇÕES SUSTENTÁVEIS** - Práticas recomendadas para a região
+4. **OPORTUNIDADES E INCENTIVOS** - PSA, créditos de carbono, certificações
+5. **MONITORAMENTO SUGERIDO** - Indicadores para acompanhamento
+
+${plan === "free" ? "IMPORTANTE: Este é um usuário do plano FREE. Forneça apenas a SÍNTESE EXECUTIVA e RECOMENDAÇÕES SUSTENTÁVEIS de forma resumida (máx 150 palavras total). Indique que análises detalhadas estão disponíveis nos planos Pro/Enterprise." : ""}
+${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todos os tópicos." : ""}
+${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise completa, detalhada e com recomendações estratégicas consultivas." : ""}
+
+Sempre cite referências confiáveis (Embrapa, IPCC, MAPA, INPE, etc.).`;
+
+        userPrompt = `Realize uma consulta geoespacial sustentável com os seguintes dados:
+
+**Bioma:** ${data.bioma}
+**Localização:** ${data.municipio}
+**Tipo de Produção:** ${data.tipoProducao}
+**Objetivo da Consulta:** ${data.objetivo}
+${data.informacoes ? `**Informações Adicionais:** ${data.informacoes}` : ""}
+
+Forneça análise técnica completa sobre sustentabilidade, riscos, oportunidades e recomendações para esta região e atividade.`;
+      } 
+      else if (tool === "simulador-confinamento") {
+        const ganhoTotal = data.pesoFinal - data.pesoInicial;
+        const diasNecessarios = Math.ceil(ganhoTotal / data.gmdEsperado);
+        const custoTotal = data.custoDiario * data.diasConfinamento;
+        const arrobasGanhas = ganhoTotal / 15;
+        const custoArroba = custoTotal / arrobasGanhas;
+
+        systemPrompt = `Você é um especialista em pecuária de corte sustentável e confinamento bovino.
+Analise dados de confinamento e forneça projeções técnicas sobre desempenho, custos e emissões.
+
+ESTRUTURA DA RESPOSTA:
+1. **SÍNTESE EXECUTIVA** - Resumo do cenário simulado
+2. **PROJEÇÕES ZOOTÉCNICAS**
+   - Peso projetado final
+   - GMD ajustado
+   - Conversão alimentar estimada
+3. **ANÁLISE ECONÔMICA**
+   - Custo por arroba
+   - Custo total por cabeça
+   - Ponto de equilíbrio
+4. **ANÁLISE DE EMISSÕES**
+   - CH₄ estimado (kg/animal)
+   - CO₂ equivalente
+   - Comparativo por nível de sustentabilidade
+5. **RECOMENDAÇÕES TÉCNICAS**
+   - Estratégias para eficiência
+   - Redução de metano
+   - Manejo sustentável
+
+${plan === "free" ? "IMPORTANTE: Este é um usuário do plano FREE. Forneça apenas SÍNTESE EXECUTIVA e valores básicos de custo/arroba e emissões (máx 150 palavras). Indique que análises detalhadas estão disponíveis nos planos Pro/Enterprise." : ""}
+${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todos os tópicos." : ""}
+${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise completa com modelagem comparativa entre cenários e recomendações estratégicas consultivas." : ""}
+
+Use referências técnicas (Embrapa, IPCC Tier 2, literatura científica).`;
+
+        userPrompt = `Simule um confinamento sustentável com os seguintes parâmetros:
+
+**Categoria Animal:** ${data.categoria}
+**Peso Inicial:** ${data.pesoInicial} kg
+**Peso Final Desejado:** ${data.pesoFinal} kg
+**Dias de Confinamento:** ${data.diasConfinamento} dias
+**GMD Esperado:** ${data.gmdEsperado} kg/dia
+**Custo Diário da Dieta:** R$ ${data.custoDiario}/cab
+**Mortalidade Esperada:** ${data.mortalidade}%
+**Nível de Sustentabilidade:** ${data.nivelSustentabilidade}
+
+**Cálculos preliminares:**
+- Ganho total necessário: ${ganhoTotal} kg
+- Dias necessários para atingir GMD: ${diasNecessarios} dias
+- Custo total estimado: R$ ${custoTotal.toFixed(2)}/cab
+- Arrobas ganhas: ${arrobasGanhas.toFixed(2)}@
+- Custo por arroba (estimado): R$ ${custoArroba.toFixed(2)}/@
+
+Forneça análise técnica completa sobre projeções de desempenho, custos, emissões e recomendações sustentáveis.`;
+      }
+      else {
+        throw new Error("Tool not supported: " + tool);
+      }
+    } 
+    // Legacy format (question-based)
+    else {
+      const { question, isProfessional, context } = requestBody;
+      
+      systemPrompt = isProfessional
+        ? `Você é um assistente veterinário especializado. Forneça respostas técnicas e detalhadas para profissionais da área veterinária. 
+        Use terminologia técnica apropriada e cite bases científicas quando relevante.`
+        : `Você é um assistente veterinário educacional. Forneça informações claras e acessíveis para tutores de animais.
+        Use linguagem simples e didática. IMPORTANTE: Ao final de cada resposta, sempre inclua o aviso:
+        "⚠️ Esta é uma orientação educacional. Recomendamos fortemente consultar um médico veterinário para diagnóstico e tratamento adequados."`;
+      
+      userPrompt = `${context ? `Contexto: ${context}\n\n` : ''}${question}`;
+    }
+
+    console.log('Processando consulta veterinária');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -37,7 +138,7 @@ serve(async (req) => {
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `${context ? `Contexto: ${context}\n\n` : ''}${question}` }
+          { role: 'user', content: userPrompt }
         ],
       }),
     });
@@ -55,15 +156,18 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      const errorText = await response.text();
+      console.error('AI gateway error:', response.status, errorText);
       throw new Error(`Erro na API: ${response.status}`);
     }
 
     const data = await response.json();
-    const answer = data.choices[0].message.content;
+    const answer = data.choices?.[0]?.message?.content || "Não foi possível gerar resposta.";
 
     console.log('Resposta gerada com sucesso');
 
-    return new Response(JSON.stringify({ answer }), {
+    // Return in format compatible with both old and new requests
+    return new Response(JSON.stringify({ answer, response: answer }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
