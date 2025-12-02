@@ -6,11 +6,11 @@ import {
   Stethoscope, 
   Wheat, 
   Leaf, 
-  FileSearch, 
-  Mic, 
   Brain,
   ArrowRight,
-  LogIn
+  LogIn,
+  Sparkles,
+  Crown
 } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 import banner from "@/assets/banner.jpg";
@@ -74,11 +74,16 @@ const Index = () => {
             </div>
             
             <h1 className="mb-4 text-4xl font-bold text-foreground drop-shadow-lg">
-              Suíte de Ferramentas de IA VetAgro
+              Bem-vindo à VetAgro IA
             </h1>
-            <p className="text-xl text-foreground/90 max-w-2xl mx-auto mb-6 drop-shadow-md">
-              Ferramentas especializadas de inteligência artificial para profissionais e tutores de pets. 
-              Cada ferramenta é otimizada para auxiliar você a ser mais eficiente.
+            <p className="text-lg text-foreground/90 max-w-3xl mx-auto mb-4 drop-shadow-md">
+              Sua suíte inteligente para eficiência produtiva e sustentabilidade no campo.
+              Aqui você acessa ferramentas avançadas para análise ambiental, modelagem agrícola, 
+              estimativa de emissões, consultoria geoespacial e simulação de confinamento sustentável.
+            </p>
+            <p className="text-md text-foreground/80 max-w-2xl mx-auto mb-6 drop-shadow-md">
+              Nossa missão é apoiar decisões embasadas, responsáveis e competitivas, 
+              reduzindo riscos, elevando resultados e promovendo práticas agropecuárias regenerativas.
             </p>
             <Button
               size="lg"
@@ -94,7 +99,17 @@ const Index = () => {
 
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {/* CTA Section */}
+      <div className="text-center mb-10">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <h2 className="text-2xl font-semibold text-foreground">Explore as ferramentas abaixo</h2>
+          <Sparkles className="h-5 w-5 text-primary" />
+        </div>
+        <p className="text-muted-foreground">Maximize seu potencial técnico com inteligência artificial aplicada</p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12">
         {categories.map((category) => (
           <Card 
             key={category.title} 
@@ -122,6 +137,28 @@ const Index = () => {
           </Card>
         ))}
       </div>
+
+      {/* Subscription Block */}
+      <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-primary/20">
+        <CardContent className="py-8">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Crown className="h-6 w-6 text-amber-500" />
+              <h3 className="text-xl font-semibold">Ferramentas avançadas exigem análise inteligente</h3>
+            </div>
+            <p className="text-muted-foreground mb-4 max-w-2xl mx-auto">
+              A versão gratuita oferece simulações básicas. Os planos <strong>Pro</strong> e <strong>Enterprise</strong> liberam 
+              relatórios técnicos, exportação, análises aprofundadas e inteligência aplicada.
+            </p>
+            <Link to="/planos">
+              <Button variant="default" className="gap-2">
+                <Crown className="h-4 w-4" />
+                Ver Planos e Assinaturas
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
