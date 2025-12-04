@@ -3,10 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Download, Loader2 } from "lucide-react";
+import { BookOpen, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import jsPDF from "jspdf";
+import { ReportExporter } from "@/components/ReportExporter";
 
 const Dicionario = () => {
   const { toast } = useToast();
@@ -67,31 +67,13 @@ Formate a resposta de forma técnica e estruturada.`,
     }
   };
 
-  const handleDownloadPDF = () => {
-    if (!result) return;
-
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
-
-    doc.setFontSize(16);
-    doc.text("DICIONÁRIO VETERINÁRIO", pageWidth / 2, 20, { align: "center" });
-    
-    doc.setFontSize(12);
-    doc.text(`Medicamento: ${medication}`, margin, 35);
-
-    doc.setFontSize(10);
-    const lines = doc.splitTextToSize(result, maxWidth);
-    doc.text(lines, margin, 45);
-
-    doc.save(`dicionario_${medication.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
-
-    toast({
-      title: "PDF baixado!",
-      description: "As informações foram salvas com sucesso.",
-    });
-  };
+  const dicionarioReferences = [
+    "Merck Veterinary Manual",
+    "MAPA - Ministério da Agricultura, Pecuária e Abastecimento",
+    "ANVISA - Agência Nacional de Vigilância Sanitária",
+    "USP - Farmacopeia Americana",
+    "PubMed - National Library of Medicine"
+  ];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -162,10 +144,14 @@ Formate a resposta de forma técnica e estruturada.`,
                   {result}
                 </div>
               </div>
-              <Button onClick={handleDownloadPDF} className="w-full">
-                <Download className="mr-2 h-5 w-5" />
-                Baixar PDF
-              </Button>
+              <ReportExporter
+                title={`Dicionário Veterinário - ${medication}`}
+                content={result}
+                toolName="Dicionário Veterinário VetAgro IA"
+                references={dicionarioReferences}
+                userInputs={{ "Medicamento Consultado": medication }}
+                className="w-full"
+              />
             </CardContent>
           </Card>
         )}

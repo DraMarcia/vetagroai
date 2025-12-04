@@ -10,8 +10,8 @@ import { Leaf, HelpCircle, TreePine, Factory, Coins, FileText, ChevronRight, Che
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend } from "recharts";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from "sonner";
-import { jsPDF } from "jspdf";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { ReportExporter } from "@/components/ReportExporter";
 
 type UserMode = "produtor" | "tecnico";
 type Step = "welcome" | "education" | "form" | "diagnosis" | "simulation" | "credits" | "results";
@@ -215,92 +215,14 @@ const ModeladorCarbono = () => {
     setResults(calculatedResults);
   };
 
-  const generatePDF = () => {
-    if (!isPremium) {
-      setShowUpgradeModal(true);
-      return;
-    }
+  const generateReportContent = (): string => {
+    if (!results) return "";
     
-    if (!results) return;
+    const selectedPraticasDetails = selectedPraticas.map(id => {
+      const pratica = praticasMitigadoras.find(p => p.id === id);
+      return pratica ? `• ${pratica.label} (-${pratica.reducao}%)` : "";
+    }).filter(Boolean).join("\n");
     
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    
-    // Header
-    doc.setFillColor(34, 197, 94);
-    doc.rect(0, 0, pageWidth, 40, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.text("Relatório de Carbono", pageWidth / 2, 20, { align: "center" });
-    doc.setFontSize(12);
-    doc.text("VetAgro IA - Modelador de Carbono", pageWidth / 2, 30, { align: "center" });
-    
-    // Reset colors
-    doc.setTextColor(0, 0, 0);
-    let yPos = 55;
-    
-    // Summary section
-    doc.setFontSize(16);
-    doc.text("Resumo da Situação", 20, yPos);
-    yPos += 10;
-    
-    doc.setFontSize(11);
-    doc.text(`Tipo de Produção: ${tiposProducao.find(t => t.value === formData.tipoProducao)?.label || "-"}`, 20, yPos);
-    yPos += 7;
-    doc.text(`Número de Animais: ${formData.numeroAnimais}`, 20, yPos);
-    yPos += 7;
-    doc.text(`Área de Pasto: ${formData.areaPasto} ha`, 20, yPos);
-    yPos += 7;
-    doc.text(`Área de Árvores: ${formData.areaArvores} ha`, 20, yPos);
-    yPos += 15;
-    
-    // Results section
-    doc.setFontSize(16);
-    doc.text("Diagnóstico de Emissões", 20, yPos);
-    yPos += 10;
-    
-    doc.setFontSize(11);
-    doc.text(`Emissões Totais: ${results.emissoes} tCO₂e/ano`, 20, yPos);
-    yPos += 7;
-    doc.text(`Sequestro de Carbono: ${results.sequestro} tCO₂e/ano`, 20, yPos);
-    yPos += 7;
-    doc.text(`Balanço de Carbono: ${results.balanco} tCO₂e/ano`, 20, yPos);
-    yPos += 15;
-    
-    // Potential section
-    doc.setFontSize(16);
-    doc.text("Potencial de Redução", 20, yPos);
-    yPos += 10;
-    
-    doc.setFontSize(11);
-    doc.text(`Redução Potencial: ${results.reducaoPotencial}%`, 20, yPos);
-    yPos += 7;
-    doc.text(`Receita Estimada: R$ ${results.receitaPotencial.toLocaleString("pt-BR")}/ano`, 20, yPos);
-    yPos += 15;
-    
-    // Practices section
-    if (selectedPraticas.length > 0) {
-      doc.setFontSize(16);
-      doc.text("Práticas Recomendadas", 20, yPos);
-      yPos += 10;
-      
-      doc.setFontSize(11);
-      selectedPraticas.forEach(praticaId => {
-        const pratica = praticasMitigadoras.find(p => p.id === praticaId);
-        if (pratica) {
-          doc.text(`• ${pratica.label} (-${pratica.reducao}%)`, 25, yPos);
-          yPos += 7;
-        }
-      });
-      yPos += 8;
-    }
-    
-    // Documentation section
-    doc.setFontSize(16);
-    doc.text("Documentação Necessária", 20, yPos);
-    yPos += 10;
-    
-    doc.setFontSize(11);
     const docs = [
       "CAR (Cadastro Ambiental Rural) atualizado",
       "Georreferenciamento da propriedade",
@@ -308,19 +230,59 @@ const ModeladorCarbono = () => {
       "Inventário de rebanho",
       "Comprovantes de tecnologias adotadas"
     ];
-    docs.forEach(d => {
-      doc.text(`• ${d}`, 25, yPos);
-      yPos += 7;
-    });
     
-    // Footer
-    doc.setFontSize(9);
-    doc.setTextColor(128, 128, 128);
-    doc.text(`Gerado em ${new Date().toLocaleDateString("pt-BR")} - VetAgro IA`, pageWidth / 2, 280, { align: "center" });
-    
-    doc.save("relatorio-carbono-vetagro.pdf");
-    toast.success("Relatório PDF gerado com sucesso!");
+    return `RESUMO DA SITUAÇÃO
+
+Tipo de Produção: ${tiposProducao.find(t => t.value === formData.tipoProducao)?.label || "-"}
+Número de Animais: ${formData.numeroAnimais}
+Área de Pasto: ${formData.areaPasto} ha
+Área de Árvores: ${formData.areaArvores} ha
+Área de APP: ${formData.areaAPP} ha
+Tipo de Manejo: ${tiposManejo.find(m => m.value === formData.tipoManejo)?.label || "-"}
+
+DIAGNÓSTICO DE EMISSÕES
+
+• Emissões Totais: ${results.emissoes.toFixed(1)} tCO₂e/ano
+• Sequestro de Carbono: ${results.sequestro.toFixed(1)} tCO₂e/ano
+• Balanço de Carbono: ${results.balanco.toFixed(1)} tCO₂e/ano
+
+POTENCIAL DE REDUÇÃO
+
+• Redução Potencial: ${results.reducaoPotencial}%
+• Receita Estimada: R$ ${results.receitaPotencial.toLocaleString("pt-BR")}/ano
+
+${selectedPraticas.length > 0 ? `PRÁTICAS MITIGADORAS SELECIONADAS
+
+${selectedPraticasDetails}` : ""}
+
+CENÁRIOS DE CRÉDITOS DE CARBONO
+
+Com base nas reduções simuladas:
+• Cenário Conservador (US$ 5/tCO₂e): R$ ${Math.round(results.reducaoPotencial * results.emissoes / 100 * 5 * 5.5).toLocaleString("pt-BR")}/ano
+• Cenário Realista (US$ 10/tCO₂e): R$ ${Math.round(results.reducaoPotencial * results.emissoes / 100 * 10 * 5.5).toLocaleString("pt-BR")}/ano
+• Cenário Otimista (US$ 15/tCO₂e): R$ ${Math.round(results.reducaoPotencial * results.emissoes / 100 * 15 * 5.5).toLocaleString("pt-BR")}/ano
+
+DOCUMENTAÇÃO NECESSÁRIA
+
+${docs.map(d => `• ${d}`).join("\n")}
+
+RECOMENDAÇÕES
+
+Para maximizar seu potencial de créditos de carbono:
+• Mantenha registros detalhados de todas as práticas sustentáveis implementadas
+• Realize inventário anual de emissões e sequestro
+• Considere certificações como ILPF, orgânico ou ABC+
+• Consulte um técnico especializado para validação dos cálculos
+• Monitore o mercado de carbono para melhores oportunidades de venda`;
   };
+
+  const carbonReferences = [
+    "IPCC - Intergovernmental Panel on Climate Change (2019)",
+    "EMBRAPA - Empresa Brasileira de Pesquisa Agropecuária",
+    "MAPA - Plano ABC+ (Agricultura de Baixa Emissão de Carbono)",
+    "FAO - Food and Agriculture Organization",
+    "GHG Protocol Agricultural Guidance"
+  ];
 
   const emissionChartData = results ? [
     { name: "Fermentação entérica", value: results.emissoes * 0.55, color: "#ef4444" },
@@ -880,10 +842,20 @@ const ModeladorCarbono = () => {
             </div>
             
             {isPremium ? (
-              <Button onClick={generatePDF} className="w-full" variant="outline">
-                <FileText className="h-4 w-4 mr-2" />
-                Gerar Relatório PDF
-              </Button>
+              <ReportExporter
+                title="Relatório de Carbono e Créditos Ambientais"
+                content={generateReportContent()}
+                toolName="Modelador de Carbono VetAgro IA"
+                references={carbonReferences}
+                userInputs={{
+                  "Tipo de Produção": tiposProducao.find(t => t.value === formData.tipoProducao)?.label || "-",
+                  "Número de Animais": formData.numeroAnimais,
+                  "Área de Pasto (ha)": formData.areaPasto,
+                  "Área de Árvores (ha)": formData.areaArvores
+                }}
+                className="w-full"
+                variant="outline"
+              />
             ) : (
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="text-sm text-amber-800 flex items-center gap-2">
