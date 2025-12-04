@@ -67,7 +67,6 @@ const categories = [
       { title: "Consulta Geoespacial", url: "/consulta-geoespacial", icon: MapPin },
       { title: "Análise de Sustentabilidade", url: "/analise-sustentabilidade", icon: Leaf },
       { title: "Análise Climática", url: "/analise-climatica", icon: Cloud },
-      { title: "Calculadora de Metano", url: "/calculadora-gee", icon: Droplets },
     ],
   },
   {
