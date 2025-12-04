@@ -4,10 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Pill, Download, Loader2 } from "lucide-react";
+import { Pill, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import jsPDF from "jspdf";
+import { ReportExporter } from "@/components/ReportExporter";
 
 const Receituario = () => {
   const { toast } = useToast();
@@ -70,28 +70,12 @@ Formate o receituário de forma profissional, incluindo todos os dados acima, a 
     }
   };
 
-  const handleDownloadPDF = () => {
-    if (!result) return;
-
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
-
-    doc.setFontSize(16);
-    doc.text("RECEITUÁRIO VETERINÁRIO", pageWidth / 2, 20, { align: "center" });
-
-    doc.setFontSize(10);
-    const lines = doc.splitTextToSize(result, maxWidth);
-    doc.text(lines, margin, 40);
-
-    doc.save(`receituario_${animalName}_${new Date().toISOString().split('T')[0]}.pdf`);
-
-    toast({
-      title: "PDF baixado!",
-      description: "O receituário foi salvo com sucesso.",
-    });
-  };
+  const receituarioReferences = [
+    "MAPA - Ministério da Agricultura, Pecuária e Abastecimento",
+    "CFMV - Conselho Federal de Medicina Veterinária",
+    "ANVISA - Agência Nacional de Vigilância Sanitária",
+    "Merck Veterinary Manual"
+  ];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -240,10 +224,21 @@ Formate o receituário de forma profissional, incluindo todos os dados acima, a 
                   {result}
                 </div>
               </div>
-              <Button onClick={handleDownloadPDF} className="w-full">
-                <Download className="mr-2 h-5 w-5" />
-                Baixar PDF
-              </Button>
+              <ReportExporter
+                title="Receituário Veterinário"
+                content={result}
+                toolName="Gerador de Receituário VetAgro IA"
+                references={receituarioReferences}
+                userInputs={{
+                  "Veterinário": vetName,
+                  "CRMV": crmv,
+                  "Animal": animalName,
+                  "Espécie": animalSpecies,
+                  "Raça": animalBreed || "Não informado",
+                  "Idade": animalAge || "Não informado"
+                }}
+                className="w-full"
+              />
             </CardContent>
           </Card>
         )}
