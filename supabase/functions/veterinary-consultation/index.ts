@@ -108,6 +108,82 @@ Use referências técnicas (Embrapa, IPCC Tier 2, literatura científica).`;
 
 Forneça análise técnica completa sobre projeções de desempenho, custos, emissões e recomendações sustentáveis.`;
       }
+      else if (tool === "analise-produtiva") {
+        systemPrompt = `Você é um consultor zootécnico especializado em eficiência produtiva e econômica de sistemas agropecuários.
+
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+
+1. SÍNTESE EXECUTIVA
+   - Resumo em 3-4 frases do cenário analisado
+
+2. DIAGNÓSTICO ZOOTÉCNICO
+   - Análise do GMD comparado a referências do setor
+   - Avaliação da conversão alimentar (ideal vs atual)
+   - Taxa de lotação (adequação à capacidade de suporte)
+   - Eficiência do sistema produtivo
+
+3. INDICADORES ECONÔMICOS
+   - ROI estimado (%)
+   - Margem por arroba/hectare (R$)
+   - Custo de produção por kg
+   - Ponto de equilíbrio
+
+4. GARGALOS IDENTIFICADOS
+   - Pontos críticos que limitam a eficiência
+   - Fatores de risco econômico
+   - Perdas potenciais identificadas
+
+5. CENÁRIOS DE OTIMIZAÇÃO
+   - Cenário Conservador: ajustes mínimos
+   - Cenário Realista: melhorias moderadas
+   - Cenário Otimista: investimentos significativos
+   - Para cada: "Se ajustar X, seu lucro sobe Y"
+
+6. RECOMENDAÇÕES ESTRATÉGICAS
+   - Plano de ação prioritário
+   - Estratégias de manejo, nutrição e gestão
+   - Cronograma sugerido de implementação
+
+7. REFERÊNCIAS TÉCNICAS
+   - Embrapa, ABIEC, FAO, CEPEA, literatura científica
+
+REGRAS DE FORMATAÇÃO:
+- NÃO use asteriscos (*) ou hashtags (#)
+- Use apenas marcadores simples: • ou -
+- Estruture em parágrafos claros
+- Números sempre com unidades (kg, R$, %, ha)
+- Tabelas quando apropriado para comparativos
+
+${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Forneça apenas SÍNTESE EXECUTIVA, DIAGNÓSTICO básico e 2 RECOMENDAÇÕES principais (máx 200 palavras total). Indique que análises completas com cenários de otimização estão disponíveis nos planos Pro/Enterprise." : ""}
+${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todos os 7 tópicos detalhados." : ""}
+${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise completa, detalhada, com modelagem comparativa avançada entre cenários, projeções financeiras de 12 meses e recomendações estratégicas consultivas de alto nível." : ""}`;
+
+        const sistemaLabel = data.tipoSistema || "Não especificado";
+        
+        userPrompt = `Realize uma análise produtiva e econômica completa com os seguintes dados:
+
+DADOS DO SISTEMA PRODUTIVO:
+- Tipo de Sistema: ${sistemaLabel}
+- Número de Animais: ${data.numeroAnimais || "Não informado"}
+- Área Total: ${data.areaTotal ? data.areaTotal + " hectares" : "Não informado"}
+- Taxa de Lotação: ${data.taxaLotacao ? data.taxaLotacao + " UA/ha" : "Não informado"}
+
+INDICADORES ZOOTÉCNICOS:
+- GMD (Ganho Médio Diário): ${data.gmd ? data.gmd + " kg/dia" : "Não informado"}
+- Conversão Alimentar: ${data.conversaoAlimentar ? data.conversaoAlimentar + ":1" : "Não informado"}
+
+INDICADORES ECONÔMICOS:
+- Custo por kg Produzido: ${data.custoPorKg ? "R$ " + data.custoPorKg : "Não informado"}
+- Preço de Venda: ${data.precoVenda ? "R$ " + data.precoVenda + "/@" : "Não informado"}
+
+DADOS ADICIONAIS:
+- Mortalidade: ${data.mortalidade ? data.mortalidade + "%" : "Não informado"}
+- Eficiência Reprodutiva: ${data.eficienciaReprodutiva ? data.eficienciaReprodutiva + "%" : "Não informado"}
+- Período do Lote: ${data.datasLote || "Não informado"}
+${data.observacoesAdicionais ? `- Observações: ${data.observacoesAdicionais}` : ""}
+
+Forneça diagnóstico técnico completo, identifique gargalos, calcule indicadores econômicos, projete cenários de otimização e recomende estratégias práticas para melhorar a rentabilidade.`;
+      }
       else {
         throw new Error("Tool not supported: " + tool);
       }

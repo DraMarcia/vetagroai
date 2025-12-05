@@ -54,7 +54,7 @@ const categories = [
     icon: Wheat,
     items: [
       { title: "Calculadora de Ração", url: "/calculadora-racao", icon: Calculator },
-      { title: "Análise Produtiva", url: "/analise-produtiva", icon: TrendingUp },
+      { title: "Planejador Produtivo", url: "/analise-produtiva", icon: TrendingUp },
       { title: "Escore Corporal (ECC)", url: "/escore-corporal", icon: Activity },
     ],
   },
