@@ -16,12 +16,14 @@ import {
   FileSearch,
   Activity,
   TrendingUp,
-  Droplets,
   Warehouse,
-  CreditCard
+  CreditCard,
+  Lightbulb,
+  Home
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { ToolSuggestionDialog } from "@/components/ToolSuggestionDialog";
+import { Button } from "@/components/ui/button";
 
 import {
   Sidebar,
@@ -32,6 +34,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -54,7 +57,7 @@ const categories = [
     icon: Wheat,
     items: [
       { title: "Calculadora de Ração", url: "/calculadora-racao", icon: Calculator },
-      { title: "Planejador Produtivo", url: "/analise-produtiva", icon: TrendingUp },
+      { title: "Painel de Inteligência Produtiva", url: "/analise-produtiva", icon: TrendingUp },
       { title: "Escore Corporal (ECC)", url: "/escore-corporal", icon: Activity },
     ],
   },
@@ -83,7 +86,7 @@ const categories = [
     items: [
       { title: "Planos e Assinaturas", url: "/planos", icon: CreditCard },
       { title: "Produtos e Serviços", url: "/produtos-servicos", icon: ShoppingBag },
-      { title: "Meu Perfil", url: "/meu-perfil", icon: User },
+      { title: "Meu Espaço Inteligente", url: "/meu-perfil", icon: User },
       { title: "Blog", url: "/blog", icon: BookOpen },
     ],
   },
@@ -91,19 +94,20 @@ const categories = [
 
 export function AppSidebar() {
   const { open } = useSidebar();
-  const location = useLocation();
 
   return (
     <Sidebar className={open ? "w-64" : "w-16"} collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-lg font-bold">VetAgro IA</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-lg font-bold text-primary">
+            VetAgro IA
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink to="/" end>
-                    <Sparkles className="h-5 w-5" />
+                    <Home className="h-5 w-5" />
                     <span>Início</span>
                   </NavLink>
                 </SidebarMenuButton>
@@ -114,8 +118,8 @@ export function AppSidebar() {
 
         {categories.map((category) => (
           <SidebarGroup key={category.title}>
-            <SidebarGroupLabel>
-              <category.icon className="h-4 w-4 mr-2" />
+            <SidebarGroupLabel className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+              <category.icon className="h-3.5 w-3.5" />
               {category.title}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -125,7 +129,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink to={item.url}>
                         <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
+                        <span className="truncate">{item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -135,6 +139,17 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+
+      <SidebarFooter className="p-4">
+        <ToolSuggestionDialog
+          trigger={
+            <Button variant="outline" size="sm" className="w-full gap-2 text-xs">
+              <Lightbulb className="h-3.5 w-3.5" />
+              {open && "Sugerir Ferramenta"}
+            </Button>
+          }
+        />
+      </SidebarFooter>
     </Sidebar>
   );
 }

@@ -68,6 +68,132 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_suggestions: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          status: string | null
+          suggestion: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          status?: string | null
+          suggestion: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          status?: string | null
+          suggestion?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_farm_metrics: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          metric_name: string
+          metric_unit: string | null
+          metric_value: number | null
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          metric_name: string
+          metric_unit?: string | null
+          metric_value?: number | null
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          metric_name?: string
+          metric_unit?: string | null
+          metric_value?: number | null
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          farm_name: string | null
+          id: string
+          preferred_segments: string[] | null
+          profile_photo_url: string | null
+          role_description: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          farm_name?: string | null
+          id?: string
+          preferred_segments?: string[] | null
+          profile_photo_url?: string | null
+          role_description?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          farm_name?: string | null
+          id?: string
+          preferred_segments?: string[] | null
+          profile_photo_url?: string | null
+          role_description?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_tool_history: {
+        Row: {
+          created_at: string
+          id: string
+          input_data: Json | null
+          output_summary: string | null
+          tool_name: string
+          tool_route: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_data?: Json | null
+          output_summary?: string | null
+          tool_name: string
+          tool_route: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_data?: Json | null
+          output_summary?: string | null
+          tool_name?: string
+          tool_route?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Upload, Download, Loader2 } from "lucide-react";
+import { FileText, Upload, Download, Loader2, Image as ImageIcon, X, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
@@ -16,43 +16,83 @@ const ResenhaEquinos = () => {
   const [breed, setBreed] = useState("");
   const [age, setAge] = useState("");
   const [purpose, setPurpose] = useState("");
-  const [images, setImages] = useState<string[]>([]);
+  const [horseName, setHorseName] = useState("");
+  const [sex, setSex] = useState("");
+  const [images, setImages] = useState<{ url: string; name: string }[]>([]);
   const [resenha, setResenha] = useState("");
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    if (files.length < 3 || files.length > 5) {
+    const fileArray = Array.from(files);
+    
+    if (fileArray.length < 3) {
       toast({
-        title: "Erro",
-        description: "Por favor, selecione entre 3 e 5 imagens.",
+        title: "Mínimo de imagens",
+        description: "Por favor, selecione pelo menos 3 imagens do equino.",
         variant: "destructive",
       });
       return;
     }
 
-    const imagePromises = Array.from(files).map((file) => {
-      return new Promise<string>((resolve) => {
+    if (fileArray.length > 5) {
+      toast({
+        title: "Máximo de imagens",
+        description: "Por favor, selecione no máximo 5 imagens.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const imagePromises = fileArray.map((file) => {
+      return new Promise<{ url: string; name: string }>((resolve) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
+        reader.onloadend = () => resolve({ 
+          url: reader.result as string, 
+          name: file.name 
+        });
         reader.readAsDataURL(file);
       });
     });
 
-    const imageDataUrls = await Promise.all(imagePromises);
-    setImages(imageDataUrls);
+    const loadedImages = await Promise.all(imagePromises);
+    setImages(loadedImages);
+    
     toast({
       title: "Imagens carregadas",
-      description: `${files.length} imagens prontas para análise.`,
+      description: `${loadedImages.length} imagens prontas para análise.`,
     });
   };
 
+  const removeImage = (index: number) => {
+    const newImages = images.filter((_, i) => i !== index);
+    setImages(newImages);
+  };
+
   const handleGenerate = async () => {
-    if (!crmv || !breed || !age || !purpose || images.length < 3) {
+    if (!crmv.trim()) {
+      toast({
+        title: "CRMV obrigatório",
+        description: "Informe seu número de registro no CRMV.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!breed.trim() || !age.trim() || !purpose.trim()) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha todos os campos e envie entre 3 e 5 imagens.",
+        description: "Preencha raça, idade e finalidade da resenha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (images.length < 3) {
+      toast({
+        title: "Imagens insuficientes",
+        description: `Envie entre 3 e 5 imagens. Você enviou ${images.length}.`,
         variant: "destructive",
       });
       return;
@@ -61,14 +101,29 @@ const ResenhaEquinos = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("analyze-equine", {
-        body: { images, breed, age, purpose },
+        body: { 
+          images: images.map(img => img.url), 
+          breed, 
+          age, 
+          purpose,
+          horseName,
+          sex
+        },
       });
 
       if (error) throw error;
 
-      setResenha(data.resenha);
+      // Limpar formatação indesejada
+      let cleanResenha = data.resenha
+        .replace(/\*\*/g, '')
+        .replace(/##/g, '')
+        .replace(/###/g, '')
+        .replace(/\*/g, '•')
+        .replace(/#+\s*/g, '');
+
+      setResenha(cleanResenha);
       toast({
-        title: "Resenha gerada!",
+        title: "Resenha gerada",
         description: "A análise do equino foi concluída com sucesso.",
       });
     } catch (error: any) {
@@ -88,41 +143,86 @@ const ResenhaEquinos = () => {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
     const maxWidth = pageWidth - 2 * margin;
+    let yPosition = 20;
 
     // Cabeçalho
     doc.setFontSize(18);
-    doc.text("RESENHA DE EQUINO", pageWidth / 2, 20, { align: "center" });
-    
-    doc.setFontSize(10);
-    doc.text(`CRMV: ${crmv}`, margin, 35);
-    doc.text(`Raça: ${breed}`, margin, 42);
-    doc.text(`Idade: ${age}`, margin, 49);
-    doc.text(`Finalidade: ${purpose}`, margin, 56);
-    
+    doc.setFont("helvetica", "bold");
+    doc.text("RESENHA DE EQUINO", pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 15;
+
+    // Linha separadora
     doc.setLineWidth(0.5);
-    doc.line(margin, 60, pageWidth - margin, 60);
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 10;
+
+    // Dados do documento
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("DADOS DO PROFISSIONAL", margin, yPosition);
+    yPosition += 7;
+    doc.setFont("helvetica", "normal");
+    doc.text(`CRMV: ${crmv}`, margin, yPosition);
+    doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, pageWidth - margin - 40, yPosition);
+    yPosition += 12;
+
+    // Dados do equino
+    doc.setFont("helvetica", "bold");
+    doc.text("DADOS DO EQUINO", margin, yPosition);
+    yPosition += 7;
+    doc.setFont("helvetica", "normal");
+    if (horseName) {
+      doc.text(`Nome: ${horseName}`, margin, yPosition);
+      yPosition += 6;
+    }
+    doc.text(`Raça: ${breed}`, margin, yPosition);
+    doc.text(`Idade: ${age}`, margin + 80, yPosition);
+    if (sex) {
+      doc.text(`Sexo: ${sex}`, margin + 130, yPosition);
+    }
+    yPosition += 6;
+    doc.text(`Finalidade: ${purpose}`, margin, yPosition);
+    yPosition += 10;
+
+    // Linha separadora
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 10;
 
     // Conteúdo da resenha
-    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("DESCRIÇÃO TÉCNICA", margin, yPosition);
+    yPosition += 8;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    
     const lines = doc.splitTextToSize(resenha, maxWidth);
-    doc.text(lines, margin, 70);
+    lines.forEach((line: string) => {
+      if (yPosition > pageHeight - 30) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      doc.text(line, margin, yPosition);
+      yPosition += 5;
+    });
 
-    // Rodapé
+    // Rodapé em todas as páginas
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
       doc.text(
-        `Gerado em ${new Date().toLocaleDateString("pt-BR")} - Página ${i} de ${pageCount}`,
+        `Documento gerado pelo VetAgro IA - Página ${i} de ${pageCount}`,
         pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 10,
+        pageHeight - 10,
         { align: "center" }
       );
     }
 
-    doc.save(`resenha-equino-${Date.now()}.pdf`);
+    doc.save(`resenha-equino-${horseName || 'sem-nome'}-${Date.now()}.pdf`);
     toast({
       title: "PDF baixado",
       description: "A resenha foi salva com sucesso.",
@@ -137,54 +237,76 @@ const ResenhaEquinos = () => {
             <FileText className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Gerador de Resenha de Equinos</h1>
-            <p className="text-muted-foreground">Gere resenhas técnicas a partir de fotos com exportação para PDF</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              Gerador de Resenha de Equinos
+            </h1>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Gere resenhas técnicas a partir de fotos com exportação para PDF
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid gap-6 max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle>Informações do Veterinário</CardTitle>
+            <CardTitle className="text-lg">Dados do Veterinário</CardTitle>
             <CardDescription>
               Esta ferramenta é exclusiva para veterinários registrados
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="crmv">Número do CRMV *</Label>
-                <Input
-                  id="crmv"
-                  placeholder="Ex: CRMV-SP 12345"
-                  value={crmv}
-                  onChange={(e) => setCrmv(e.target.value)}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="crmv">Número do CRMV *</Label>
+              <Input
+                id="crmv"
+                placeholder="Ex: CRMV-SP 12345"
+                value={crmv}
+                onChange={(e) => setCrmv(e.target.value)}
+              />
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Dados do Equino</CardTitle>
+            <CardTitle className="text-lg">Dados do Equino</CardTitle>
             <CardDescription>
               Preencha as informações do animal para análise
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="breed">Raça *</Label>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="horseName">Nome do Animal</Label>
                 <Input
-                  id="breed"
-                  placeholder="Ex: Mangalarga Marchador"
-                  value={breed}
-                  onChange={(e) => setBreed(e.target.value)}
+                  id="horseName"
+                  placeholder="Ex: Trovão"
+                  value={horseName}
+                  onChange={(e) => setHorseName(e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
+                <Label htmlFor="sex">Sexo</Label>
+                <Input
+                  id="sex"
+                  placeholder="Ex: Macho, Fêmea, Castrado"
+                  value={sex}
+                  onChange={(e) => setSex(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="breed">Raça *</Label>
+              <Input
+                id="breed"
+                placeholder="Ex: Mangalarga Marchador"
+                value={breed}
+                onChange={(e) => setBreed(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="age">Idade *</Label>
                 <Input
                   id="age"
@@ -193,8 +315,8 @@ const ResenhaEquinos = () => {
                   onChange={(e) => setAge(e.target.value)}
                 />
               </div>
-              <div>
-                <Label htmlFor="purpose">Finalidade da Resenha *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="purpose">Finalidade *</Label>
                 <Input
                   id="purpose"
                   placeholder="Ex: Registro, venda, documentação"
@@ -208,47 +330,79 @@ const ResenhaEquinos = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Imagens do Equino</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Imagens do Equino
+            </CardTitle>
             <CardDescription>
               Envie de 3 a 5 imagens do animal para análise completa
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="flex-1"
-                />
-                <Upload className="h-5 w-5 text-muted-foreground" />
-              </div>
-              {images.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {images.length} imagem(ns) carregada(s)
+          <CardContent className="space-y-4">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+              <Input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+                id="image-upload"
+              />
+              <label htmlFor="image-upload" className="cursor-pointer">
+                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm font-medium">Clique para selecionar imagens</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mínimo 3, máximo 5 imagens (JPG, PNG)
                 </p>
-              )}
+              </label>
             </div>
+
+            {images.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {images.length} imagem(ns) carregada(s)
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {images.map((img, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={img.url}
+                        alt={`Imagem ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-border"
+                      />
+                      <button
+                        onClick={() => removeImage(index)}
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                      <p className="text-xs text-muted-foreground truncate mt-1">
+                        {img.name}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Button
           onClick={handleGenerate}
-          disabled={loading}
+          disabled={loading || images.length < 3}
           size="lg"
           className="w-full"
         >
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Gerando resenha...
+              Analisando imagens...
             </>
           ) : (
             <>
               <FileText className="mr-2 h-5 w-5" />
-              Gerar Resenha
+              Gerar Resenha ({images.length}/3 imagens)
             </>
           )}
         </Button>
@@ -256,23 +410,21 @@ const ResenhaEquinos = () => {
         {resenha && (
           <Card>
             <CardHeader>
-              <CardTitle>Resenha Gerada</CardTitle>
+              <CardTitle className="text-lg">Resenha Gerada</CardTitle>
               <CardDescription>
                 Revise a resenha e faça o download em PDF
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Textarea
-                  value={resenha}
-                  onChange={(e) => setResenha(e.target.value)}
-                  className="min-h-[300px] font-mono text-sm"
-                />
-                <Button onClick={handleDownloadPDF} className="w-full">
-                  <Download className="mr-2 h-5 w-5" />
-                  Baixar PDF
-                </Button>
-              </div>
+            <CardContent className="space-y-4">
+              <Textarea
+                value={resenha}
+                onChange={(e) => setResenha(e.target.value)}
+                className="min-h-[300px] font-mono text-sm"
+              />
+              <Button onClick={handleDownloadPDF} className="w-full">
+                <Download className="mr-2 h-5 w-5" />
+                Baixar PDF
+              </Button>
             </CardContent>
           </Card>
         )}

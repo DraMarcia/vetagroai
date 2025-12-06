@@ -5,10 +5,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { FileText, Loader2, Download, Upload } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { FileText, Loader2, Download, Upload, Image as ImageIcon, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import jsPDF from "jspdf";
+import { ReportExporter } from "@/components/ReportExporter";
 
 const InterpretacaoExames = () => {
   const { toast } = useToast();
@@ -19,9 +26,34 @@ const InterpretacaoExames = () => {
   const [age, setAge] = useState("");
   const [weight, setWeight] = useState("");
   const [examType, setExamType] = useState("");
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<{ url: string; name: string }[]>([]);
   const [clinicalData, setClinicalData] = useState("");
   const [result, setResult] = useState("");
+
+  const speciesOptions = [
+    "Canina",
+    "Felina",
+    "Bovina",
+    "Equina",
+    "Suína",
+    "Ovina",
+    "Caprina",
+    "Aves",
+    "Outra"
+  ];
+
+  const examTypes = [
+    "Hemograma Completo",
+    "Bioquímica Sérica",
+    "Urinálise",
+    "Coproparasitológico",
+    "Raio-X",
+    "Ultrassonografia",
+    "Eletrocardiograma",
+    "Citologia",
+    "Histopatológico",
+    "Outro"
+  ];
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -29,70 +61,27 @@ const InterpretacaoExames = () => {
 
     const fileArray = Array.from(files);
     const imagePromises = fileArray.map((file) => {
-      return new Promise<string>((resolve) => {
+      return new Promise<{ url: string; name: string }>((resolve) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
+        reader.onloadend = () => resolve({
+          url: reader.result as string,
+          name: file.name
+        });
         reader.readAsDataURL(file);
       });
     });
 
-    Promise.all(imagePromises).then((imageDataUrls) => {
-      setImages(imageDataUrls);
+    Promise.all(imagePromises).then((loadedImages) => {
+      setImages(prev => [...prev, ...loadedImages]);
       toast({
-        title: "Imagens carregadas!",
-        description: `${imageDataUrls.length} arquivo(s) carregado(s).`,
+        title: "Imagens carregadas",
+        description: `${loadedImages.length} arquivo(s) adicionado(s).`,
       });
     });
   };
 
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    const maxWidth = pageWidth - 2 * margin;
-    let yPosition = 20;
-
-    doc.setFontSize(16);
-    doc.text("Interpretação de Exames Veterinários", margin, yPosition);
-    yPosition += 10;
-
-    doc.setFontSize(10);
-    doc.text(`Tipo de usuário: ${isProfessional === "sim" ? `Profissional - CRMV: ${crmv}` : "Tutor"}`, margin, yPosition);
-    yPosition += 7;
-    doc.text(`Espécie: ${species} | Idade: ${age} | Peso: ${weight}`, margin, yPosition);
-    yPosition += 7;
-    doc.text(`Tipo de exame: ${examType}`, margin, yPosition);
-    yPosition += 10;
-
-    if (clinicalData) {
-      doc.setFontSize(12);
-      doc.text("Dados Clínicos:", margin, yPosition);
-      yPosition += 7;
-      doc.setFontSize(10);
-      const clinicalLines = doc.splitTextToSize(clinicalData, maxWidth);
-      doc.text(clinicalLines, margin, yPosition);
-      yPosition += clinicalLines.length * 5 + 5;
-    }
-
-    doc.setFontSize(12);
-    doc.text("Interpretação:", margin, yPosition);
-    yPosition += 7;
-    doc.setFontSize(10);
-    const resultLines = doc.splitTextToSize(result, maxWidth);
-    resultLines.forEach((line: string) => {
-      if (yPosition > 270) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      doc.text(line, margin, yPosition);
-      yPosition += 5;
-    });
-
-    doc.save("interpretacao-exames.pdf");
-    toast({
-      title: "PDF gerado!",
-      description: "A interpretação foi baixada com sucesso.",
-    });
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleAnalyze = async () => {
@@ -114,7 +103,7 @@ const InterpretacaoExames = () => {
       return;
     }
 
-    if (!species.trim() || !age.trim() || !weight.trim() || !examType.trim()) {
+    if (!species || !age.trim() || !weight.trim() || !examType) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha espécie, idade, peso e tipo de exame.",
@@ -134,29 +123,99 @@ const InterpretacaoExames = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-equine", {
+      const userType = isProfessional === "sim" ? "profissional" : "tutor";
+      
+      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
-          images,
-          breed: species,
-          age,
-          purpose: `Interpretação de ${examType}. ${clinicalData ? `Dados clínicos: ${clinicalData}` : ""}`,
+          tool: "interpretacao-exames",
+          question: `Interprete os seguintes exames veterinários:
+
+DADOS DO PACIENTE:
+• Espécie: ${species}
+• Idade: ${age}
+• Peso: ${weight}
+• Tipo de exame: ${examType}
+
+DADOS CLÍNICOS/VALORES:
+${clinicalData || "Analisar a partir das imagens anexadas"}
+
+TIPO DE USUÁRIO: ${userType}
+${isProfessional === "sim" ? `CRMV: ${crmv}` : ""}
+
+INSTRUÇÕES:
+${isProfessional === "sim" ? `
+- Forneça uma interpretação TÉCNICA e DETALHADA
+- Inclua possíveis diagnósticos diferenciais
+- Sugira exames complementares se necessário
+- Indique condutas terapêuticas possíveis
+- Use terminologia técnica apropriada
+- Cite valores de referência quando aplicável
+` : `
+- Forneça uma explicação SIMPLES e COMPREENSÍVEL
+- Evite termos técnicos complexos ou explique-os
+- Foque no significado prático dos resultados
+- Indique claramente o que está normal e alterado
+- NÃO sugira tratamentos específicos
+`}
+
+Estruture a resposta em:
+1. Resumo Geral
+2. Análise dos Parâmetros
+3. ${isProfessional === "sim" ? "Diagnósticos Diferenciais" : "O que isso significa"}
+4. ${isProfessional === "sim" ? "Recomendações Técnicas" : "Próximos Passos Sugeridos"}
+5. Referências Científicas`,
+          isProfessional: isProfessional === "sim",
+          images: images.map(img => img.url),
+          context: `Interpretação de ${examType} - ${species}`,
         },
       });
 
       if (error) throw error;
 
-      let interpretation = data.review;
+      // Limpar formatação e adicionar disclaimers
+      let interpretation = data.answer
+        .replace(/\*\*/g, '')
+        .replace(/##/g, '')
+        .replace(/###/g, '')
+        .replace(/\*/g, '•')
+        .replace(/#+\s*/g, '');
 
       if (isProfessional === "sim") {
-        interpretation += "\n\nRecomendações técnicas:\n- Correlacione sempre com o quadro clínico\n- Considere exames complementares se necessário\n- Avalie evolução temporal dos parâmetros\n\nReferências:\n- Merck Veterinary Manual\n- Laboratórios de referência veterinária";
+        interpretation += `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NOTAS PROFISSIONAIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Correlacione sempre com o quadro clínico do paciente
+• Considere exames complementares conforme evolução
+• Avalie histórico e exames anteriores do paciente
+• A conduta final é de responsabilidade do profissional
+
+REFERÊNCIAS CONSULTADAS:
+• Merck Veterinary Manual (11th Edition)
+• Nelson & Couto - Medicina Interna de Pequenos Animais
+• Laboratórios de referência veterinária regionais
+• Thrall MA - Hematologia e Bioquímica Clínica Veterinária`;
       } else {
-        interpretation += "\n\n⚠️ ATENÇÃO: Esta interpretação tem caráter educativo. Consulte um médico veterinário para análise completa e conduta terapêutica.";
+        interpretation += `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTANTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Esta interpretação tem caráter EDUCATIVO e INFORMATIVO.
+
+Para diagnóstico definitivo, tratamento e acompanhamento, 
+consulte um médico veterinário presencialmente.
+
+Não inicie ou altere tratamentos sem orientação profissional.`;
       }
 
       setResult(interpretation);
       toast({
-        title: "Análise concluída!",
-        description: "Interpretação dos exames gerada.",
+        title: "Análise concluída",
+        description: "Interpretação dos exames gerada com sucesso.",
       });
     } catch (error: any) {
       console.error("Erro:", error);
@@ -178,8 +237,12 @@ const InterpretacaoExames = () => {
             <FileText className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Interpretação de Exames</h1>
-            <p className="text-muted-foreground">Hemograma, bioquímica, imagem (RX, US) e outros</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+              Interpretação de Exames
+            </h1>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Hemograma, bioquímica, imagem e outros exames veterinários
+            </p>
           </div>
         </div>
       </div>
@@ -187,25 +250,29 @@ const InterpretacaoExames = () => {
       <div className="grid gap-6 max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle>Identificação</CardTitle>
+            <CardTitle className="text-lg">Identificação</CardTitle>
             <CardDescription>
-              Informe se você é um profissional da área veterinária
+              A resposta será adaptada ao seu perfil
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <RadioGroup value={isProfessional} onValueChange={setIsProfessional}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="sim" id="prof-sim" />
-                <Label htmlFor="prof-sim">Sou profissional da área veterinária</Label>
+                <Label htmlFor="prof-sim">
+                  Sou profissional veterinário (resposta técnica)
+                </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="nao" id="prof-nao" />
-                <Label htmlFor="prof-nao">Não sou profissional (tutor/produtor)</Label>
+                <Label htmlFor="prof-nao">
+                  Sou tutor/produtor (resposta simplificada)
+                </Label>
               </div>
             </RadioGroup>
 
             {isProfessional === "sim" && (
-              <div className="mt-4">
+              <div className="space-y-2">
                 <Label htmlFor="crmv">CRMV *</Label>
                 <Input
                   id="crmv"
@@ -220,90 +287,126 @@ const InterpretacaoExames = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Dados do Animal</CardTitle>
+            <CardTitle className="text-lg">Dados do Paciente</CardTitle>
             <CardDescription>
-              Informações básicas sobre o paciente
+              Informações do animal para contextualização
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="species">Espécie *</Label>
+                <Select value={species} onValueChange={setSpecies}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {speciesOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="age">Idade *</Label>
                 <Input
-                  id="species"
-                  placeholder="Ex: Canina, Felina, Bovina..."
-                  value={species}
-                  onChange={(e) => setSpecies(e.target.value)}
+                  id="age"
+                  placeholder="Ex: 5 anos"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="age">Idade *</Label>
-                  <Input
-                    id="age"
-                    placeholder="Ex: 5 anos"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="weight">Peso *</Label>
-                  <Input
-                    id="weight"
-                    placeholder="Ex: 25 kg"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="examType">Tipo de Exame *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="weight">Peso *</Label>
                 <Input
-                  id="examType"
-                  placeholder="Ex: Hemograma, Bioquímica, Raio-X, Ultrassom..."
-                  value={examType}
-                  onChange={(e) => setExamType(e.target.value)}
+                  id="weight"
+                  placeholder="Ex: 25 kg"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="examType">Tipo de Exame *</Label>
+              <Select value={examType} onValueChange={setExamType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo de exame" />
+                </SelectTrigger>
+                <SelectContent>
+                  {examTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Dados do Exame</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Dados do Exame
+            </CardTitle>
             <CardDescription>
-              Anexe imagens (PDF ou fotos) ou descreva os valores
+              Anexe imagens ou descreva os valores do exame
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="images">Imagens dos Exames (opcional)</Label>
-                <Input
-                  id="images"
-                  type="file"
-                  accept="image/*,.pdf"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="cursor-pointer"
-                />
-                {images.length > 0 && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {images.length} arquivo(s) selecionado(s)
-                  </p>
-                )}
+          <CardContent className="space-y-4">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+              <Input
+                type="file"
+                accept="image/*,.pdf"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+                id="exam-images"
+              />
+              <label htmlFor="exam-images" className="cursor-pointer">
+                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm font-medium">Clique para anexar imagens</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Fotos do exame, laudos, resultados (JPG, PNG, PDF)
+                </p>
+              </label>
+            </div>
+
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {images.map((img, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={img.url}
+                      alt={`Exame ${index + 1}`}
+                      className="w-full h-20 object-cover rounded-lg border border-border"
+                    />
+                    <button
+                      onClick={() => removeImage(index)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
-              <div>
-                <Label htmlFor="clinicalData">Valores/Dados Clínicos (opcional)</Label>
-                <Textarea
-                  id="clinicalData"
-                  placeholder="Ex: Hemácias 5.2 milhões, Leucócitos 18.000, ALT 120 U/L..."
-                  value={clinicalData}
-                  onChange={(e) => setClinicalData(e.target.value)}
-                  className="min-h-[120px]"
-                />
-              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="clinicalData">Valores/Dados Clínicos</Label>
+              <Textarea
+                id="clinicalData"
+                placeholder="Ex: Hemácias 5.2 milhões/µL, Leucócitos 18.000/µL, ALT 120 U/L, Creatinina 1.8 mg/dL..."
+                value={clinicalData}
+                onChange={(e) => setClinicalData(e.target.value)}
+                className="min-h-[120px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Descreva os valores encontrados no exame para uma análise mais precisa
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -317,7 +420,7 @@ const InterpretacaoExames = () => {
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Analisando...
+              Analisando exames...
             </>
           ) : (
             <>
@@ -329,27 +432,26 @@ const InterpretacaoExames = () => {
 
         {result && (
           <Card>
-            <CardHeader>
-              <CardTitle>Interpretação dos Exames</CardTitle>
-              <CardDescription>
-                Análise baseada nos dados fornecidos
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Interpretação</CardTitle>
+                <CardDescription>
+                  {isProfessional === "sim" 
+                    ? "Análise técnica para profissional" 
+                    : "Explicação simplificada"}
+                </CardDescription>
+              </div>
+              <ReportExporter
+                title={`Interpretação de ${examType}`}
+                content={result}
+                filename={`interpretacao-${examType.toLowerCase().replace(/\s+/g, '-')}`}
+              />
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="prose prose-sm max-w-none">
-                  <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg">
-                    {result}
-                  </div>
+              <div className="prose prose-sm max-w-none">
+                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm">
+                  {result}
                 </div>
-                <Button
-                  onClick={handleDownloadPDF}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Baixar PDF
-                </Button>
               </div>
             </CardContent>
           </Card>
