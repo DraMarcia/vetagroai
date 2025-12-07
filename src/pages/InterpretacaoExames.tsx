@@ -444,7 +444,7 @@ Não inicie ou altere tratamentos sem orientação profissional.`;
               <ReportExporter
                 title={`Interpretação de ${examType}`}
                 content={result}
-                filename={`interpretacao-${examType.toLowerCase().replace(/\s+/g, '-')}`}
+                toolName="Interpretação de Exames"
               />
             </CardHeader>
             <CardContent>

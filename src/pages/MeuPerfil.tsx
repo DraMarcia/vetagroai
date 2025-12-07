@@ -1,256 +1,480 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   User, Linkedin, Instagram, Youtube, Facebook, 
-  Sparkles, Leaf, Lightbulb, Heart, Target, 
-  Settings, CheckCircle2, Quote
+  Sparkles, History, BarChart3, Lightbulb, 
+  Settings, Clock, ChevronRight, Save, Crown,
+  Leaf, Heart, Target
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { ToolSuggestionDialog } from "@/components/ToolSuggestionDialog";
+import { Link } from "react-router-dom";
+
+interface UserPreferences {
+  farm_name: string | null;
+  role_description: string | null;
+  preferred_segments: string[] | null;
+  profile_photo_url: string | null;
+}
+
+interface ToolHistory {
+  id: string;
+  tool_name: string;
+  tool_route: string;
+  created_at: string;
+}
+
+interface FarmMetric {
+  id: string;
+  metric_name: string;
+  metric_value: number | null;
+  metric_unit: string | null;
+  category: string | null;
+}
+
+const SEGMENTS = [
+  { id: "pecuaria", label: "Pecuária de Corte" },
+  { id: "leiteira", label: "Pecuária Leiteira" },
+  { id: "pequenos", label: "Pequenos Animais" },
+  { id: "equinos", label: "Equinos" },
+  { id: "caprinos", label: "Caprinos e Ovinos" },
+  { id: "aves", label: "Avicultura" },
+  { id: "suinos", label: "Suinocultura" },
+  { id: "gestao", label: "Gestão Rural" },
+];
 
 const MeuPerfil = () => {
-  const handleEditProfile = () => {
-    toast.info("Funcionalidade em breve!", {
-      description: "A edição de perfil e preferências estará disponível em uma próxima atualização."
-    });
+  const { user, plan, isProfessional } = useSubscription();
+  const [isEditing, setIsEditing] = useState(false);
+  const [userProfile, setUserProfile] = useState<{ full_name: string | null }>({ full_name: null });
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    farm_name: null,
+    role_description: null,
+    preferred_segments: [],
+    profile_photo_url: null,
+  });
+  const [toolHistory, setToolHistory] = useState<ToolHistory[]>([]);
+  const [farmMetrics, setFarmMetrics] = useState<FarmMetric[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const loadUserData = async () => {
+    if (!user) return;
+    
+    try {
+      // Load user profile
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profileData) {
+        setUserProfile({ full_name: profileData.full_name });
+      }
+
+      // Load preferences
+      const { data: prefsData } = await supabase
+        .from("user_preferences")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (prefsData) {
+        setPreferences({
+          farm_name: prefsData.farm_name,
+          role_description: prefsData.role_description,
+          preferred_segments: prefsData.preferred_segments,
+          profile_photo_url: prefsData.profile_photo_url,
+        });
+      }
+
+      // Load tool history
+      const { data: historyData } = await supabase
+        .from("user_tool_history")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (historyData) {
+        setToolHistory(historyData);
+      }
+
+      // Load farm metrics
+      const { data: metricsData } = await supabase
+        .from("user_farm_metrics")
+        .select("*")
+        .eq("user_id", user.id)
+        .limit(6);
+
+      if (metricsData) {
+        setFarmMetrics(metricsData);
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Header Principal */}
-      <div className="mb-10 text-center">
-        <div className="flex flex-col items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg">
-            <Sparkles className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-              ✨ Meu Perfil
-            </h1>
-            <p className="text-xl text-primary font-medium">
-              Bem-vindo ao seu espaço dentro da VetAgro AI
+  const handleSavePreferences = async () => {
+    if (!user) {
+      toast.error("Você precisa estar logado para salvar preferências");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("user_preferences")
+        .upsert({
+          user_id: user.id,
+          farm_name: preferences.farm_name,
+          role_description: preferences.role_description,
+          preferred_segments: preferences.preferred_segments,
+          profile_photo_url: preferences.profile_photo_url,
+        }, { onConflict: "user_id" });
+
+      if (error) throw error;
+
+      toast.success("Preferências salvas com sucesso!");
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error saving preferences:", error);
+      toast.error("Erro ao salvar preferências");
+    }
+  };
+
+  const toggleSegment = (segmentId: string) => {
+    const current = preferences.preferred_segments || [];
+    const updated = current.includes(segmentId)
+      ? current.filter((s) => s !== segmentId)
+      : [...current, segmentId];
+    setPreferences({ ...preferences, preferred_segments: updated });
+  };
+
+  const getPlanBadge = () => {
+    const currentPlan = plan || "free";
+    const colors: Record<string, string> = {
+      free: "bg-muted text-muted-foreground",
+      pro: "bg-primary/20 text-primary",
+      enterprise: "bg-amber-500/20 text-amber-600",
+    };
+    return (
+      <Badge className={colors[currentPlan] || colors.free}>
+        {currentPlan === "enterprise" && <Crown className="h-3 w-3 mr-1" />}
+        {currentPlan.toUpperCase()}
+      </Badge>
+    );
+  };
+
+  if (!user) {
+    return (
+      <div className="container mx-auto px-4 py-12 max-w-4xl">
+        <Card className="text-center py-12">
+          <CardContent>
+            <User className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Faça login para acessar</h2>
+            <p className="text-muted-foreground mb-6">
+              Acesse seu espaço inteligente para gerenciar preferências e histórico.
             </p>
+            <Link to="/">
+              <Button>Ir para Login</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-emerald-600 flex items-center justify-center shadow-lg">
+            <Sparkles className="h-6 w-6 text-primary-foreground" />
           </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+            Meu Espaço Inteligente
+          </h1>
         </div>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
-          Aqui você gerencia suas informações, preferências e acompanha sua jornada de evolução no agro inteligente.
+        <p className="text-muted-foreground max-w-xl mx-auto">
+          Gerencie suas informações, acompanhe seu histórico e personalize sua experiência no VetAgro AI.
         </p>
       </div>
 
-      {/* Card: Quem Somos */}
-      <Card className="mb-6 border-l-4 border-l-primary">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <Leaf className="h-6 w-6 text-primary" />
-            Quem Somos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 text-muted-foreground">
-          <p>
-            O <strong className="text-foreground">VetAgro Sustentável AI</strong> nasceu da união entre ciência aplicada, inteligência artificial e propósito.
-          </p>
-          <p>
-            Criamos este ambiente para que profissionais, produtores, tutores e pesquisadores tenham acesso a análises confiáveis, apoio à decisão técnica e ferramentas que transformam informação em impacto real — no campo, no laboratório, na clínica e na gestão.
-          </p>
-          <p>Somos movidos por um princípio simples:</p>
-          
-          {/* Blockquote destacado */}
-          <blockquote className="border-l-4 border-primary bg-muted/50 p-4 rounded-r-lg italic text-foreground">
-            <Quote className="h-5 w-5 text-primary mb-2" />
-            "Tecnologia deve servir às pessoas — não substituí-las."
-          </blockquote>
-        </CardContent>
-      </Card>
-
-      {/* Card: Nosso Propósito */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <Lightbulb className="h-6 w-6 text-amber-500" />
-            Nosso Propósito
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground">
-            Capacitar quem cuida da vida, oferecendo ferramentas que:
-          </p>
-          
-          <div className="grid gap-3 pl-2">
-            {[
-              "economizam tempo",
-              "melhoram decisões",
-              "reduzem erros",
-              "promovem bem-estar animal",
-              "fortalecem sustentabilidade ambiental"
-            ].map((item, index) => (
-              <div key={index} className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
-                <span className="text-foreground">{item}</span>
-              </div>
-            ))}
-          </div>
-          
-          <p className="text-muted-foreground pt-2 font-medium">
-            Tudo de forma simples, prática e ética.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Card: O Que Nos Guia */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <Heart className="h-6 w-6 text-rose-500" />
-            O Que Nos Guia
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground">
-            Cada função do app foi construída com base em três pilares:
-          </p>
-          
-          <div className="flex flex-wrap gap-3 py-2">
-            <Badge variant="secondary" className="px-4 py-2 text-sm bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
-              📌 Eficiência produtiva
-            </Badge>
-            <Badge variant="secondary" className="px-4 py-2 text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-              📌 Bem-estar animal
-            </Badge>
-            <Badge variant="secondary" className="px-4 py-2 text-sm bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-              📌 Responsabilidade ambiental
-            </Badge>
-          </div>
-          
-          <Separator className="my-4" />
-          
-          <p className="text-muted-foreground">
-            A IA aqui analisa, calcula, projeta e sugere —
-          </p>
-          <p className="text-foreground font-semibold">
-            mas você continua sendo o profissional que decide.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Card: Quem Está Por Trás */}
-      <Card className="mb-6 bg-gradient-to-br from-card to-muted/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <User className="h-6 w-6 text-indigo-500" />
-            Quem Está Por Trás
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-            <Avatar className="h-20 w-20 border-4 border-primary/20">
-              <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground text-2xl font-bold">
-                MS
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Profile Card */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="text-center pb-4">
+            <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-primary/20">
+              {preferences.profile_photo_url ? (
+                <AvatarImage src={preferences.profile_photo_url} alt="Foto de perfil" />
+              ) : null}
+              <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground text-2xl">
+                {userProfile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
-            
-            <div className="text-center sm:text-left">
-              <h3 className="text-xl font-bold text-foreground mb-1">
-                Márcia Salgado
-              </h3>
-              <p className="text-primary font-medium mb-3">
-                Médica Veterinária • Pesquisadora • Desenvolvedora da plataforma
-              </p>
-              <p className="text-muted-foreground">
-                Criadora apaixonada pela transformação sustentável do agro
-                e pelo poder das pessoas quando têm conhecimento acessível nas mãos.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            <CardTitle className="text-xl">{userProfile?.full_name || "Usuário"}</CardTitle>
+            <p className="text-sm text-muted-foreground">{user?.email}</p>
+            <div className="mt-2">{getPlanBadge()}</div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isEditing ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="farmName">Nome da Propriedade</Label>
+                  <Input
+                    id="farmName"
+                    value={preferences.farm_name || ""}
+                    onChange={(e) => setPreferences({ ...preferences, farm_name: e.target.value })}
+                    placeholder="Ex: Fazenda Boa Vista"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Função no Agro</Label>
+                  <Input
+                    id="role"
+                    value={preferences.role_description || ""}
+                    onChange={(e) => setPreferences({ ...preferences, role_description: e.target.value })}
+                    placeholder="Ex: Médico Veterinário"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleSavePreferences} className="flex-1 gap-2">
+                    <Save className="h-4 w-4" />
+                    Salvar
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsEditing(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Propriedade:</span>
+                    <span className="font-medium">{preferences.farm_name || "Não definido"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Função:</span>
+                    <span className="font-medium">{preferences.role_description || "Não definido"}</span>
+                  </div>
+                </div>
+                <Button variant="outline" onClick={() => setIsEditing(true)} className="w-full gap-2">
+                  <Settings className="h-4 w-4" />
+                  Editar Perfil
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Card: Conecte-se */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-xl">
-            📬 Conecte-se com a VetAgro AI
+        {/* Preferences & Quick Actions */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Segments */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Target className="h-5 w-5 text-primary" />
+                Meus Segmentos de Interesse
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {SEGMENTS.map((segment) => (
+                  <div
+                    key={segment.id}
+                    className="flex items-center space-x-2"
+                  >
+                    <Checkbox
+                      id={segment.id}
+                      checked={preferences.preferred_segments?.includes(segment.id) || false}
+                      onCheckedChange={() => toggleSegment(segment.id)}
+                    />
+                    <label
+                      htmlFor={segment.id}
+                      className="text-sm cursor-pointer leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {segment.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {isEditing && (
+                <p className="text-xs text-muted-foreground mt-3">
+                  Selecione seus segmentos para personalizar recomendações.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Tool History */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <History className="h-5 w-5 text-primary" />
+                Histórico de Ferramentas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {toolHistory.length > 0 ? (
+                <div className="space-y-2">
+                  {toolHistory.map((item) => (
+                    <Link
+                      key={item.id}
+                      to={item.tool_route}
+                      className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{item.tool_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm text-center py-4">
+                  Nenhuma ferramenta utilizada ainda.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Farm Metrics */}
+      {farmMetrics.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Métricas da Propriedade
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {farmMetrics.map((metric) => (
+                <div key={metric.id} className="text-center p-3 rounded-lg bg-muted/50">
+                  <p className="text-2xl font-bold text-primary">
+                    {metric.metric_value ?? "-"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{metric.metric_unit || ""}</p>
+                  <p className="text-sm font-medium mt-1">{metric.metric_name}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 sm:grid-cols-2 mt-6">
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="flex items-center gap-4 py-6">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Lightbulb className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">Sugerir Nova Ferramenta</h3>
+              <p className="text-sm text-muted-foreground">Ajude a evoluir o app</p>
+            </div>
+            <ToolSuggestionDialog />
+          </CardContent>
+        </Card>
+
+        {toolHistory.length > 0 && (
+          <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent">
+            <CardContent className="flex items-center gap-4 py-6">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                <History className="h-6 w-6 text-emerald-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold">Continuar de Onde Parei</h3>
+                <p className="text-sm text-muted-foreground">{toolHistory[0]?.tool_name}</p>
+              </div>
+              <Link to={toolHistory[0]?.tool_route || "/"}>
+                <Button variant="outline" size="sm">
+                  Continuar
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <Separator className="my-8" />
+
+      {/* Social Links */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Heart className="h-5 w-5 text-rose-500" />
+            Conecte-se com a VetAgro AI
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <a
-              href="https://www.linkedin.com/in/m%C3%A1rcia-salgado-212193344?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
+              href="https://www.linkedin.com/in/m%C3%A1rcia-salgado-212193344"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted transition-colors group"
+              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
             >
-              <Linkedin className="h-5 w-5 text-blue-600 group-hover:scale-110 transition-transform" />
-              <span className="text-foreground">💼 LinkedIn — Márcia Salgado</span>
+              <Linkedin className="h-5 w-5 text-blue-600" />
+              <span className="text-sm">LinkedIn</span>
             </a>
             <a
-              href="https://www.instagram.com/vetagrosustentavel?igsh=dTR0ZjJ1eHRpc3lv"
+              href="https://www.instagram.com/vetagrosustentavel"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted transition-colors group"
+              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
             >
-              <Instagram className="h-5 w-5 text-pink-600 group-hover:scale-110 transition-transform" />
-              <span className="text-foreground">📸 Instagram — @vetagrosustentavel</span>
+              <Instagram className="h-5 w-5 text-pink-600" />
+              <span className="text-sm">Instagram</span>
             </a>
             <a
-              href="https://youtube.com/@vetagrosustentavel?si=9Vi5YA4FKXwqZv4t"
+              href="https://youtube.com/@vetagrosustentavel"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted transition-colors group"
+              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
             >
-              <Youtube className="h-5 w-5 text-red-600 group-hover:scale-110 transition-transform" />
-              <span className="text-foreground">▶ YouTube — @vetagrosustentavel</span>
+              <Youtube className="h-5 w-5 text-red-600" />
+              <span className="text-sm">YouTube</span>
             </a>
             <a
               href="https://www.facebook.com/share/1Bn76mwVMx/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted transition-colors group"
+              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
             >
-              <Facebook className="h-5 w-5 text-blue-700 group-hover:scale-110 transition-transform" />
-              <span className="text-foreground">📘 Facebook — VetAgro Sustentável</span>
+              <Facebook className="h-5 w-5 text-blue-700" />
+              <span className="text-sm">Facebook</span>
             </a>
-          </div>
-          
-          <p className="text-muted-foreground text-center mt-4 italic">
-            Queremos estar perto de quem faz o agro acontecer.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Card: Seu Perfil, Seu Progresso */}
-      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <Target className="h-6 w-6 text-primary" />
-            ✨ Seu Perfil, Seu Progresso
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-muted-foreground">
-            Gerencie seus dados, acompanhe sua assinatura, personalize sua experiência
-            e mantenha seu painel atualizado com suas preferências.
-          </p>
-          
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <p className="text-foreground font-medium text-center">
-              Bem-vindo ao centro da sua jornada de inovação.
-            </p>
-            <p className="text-primary text-center mt-1">
-              Aqui, ciência, campo e futuro se encontram — com você no comando.
-            </p>
-          </div>
-          
-          <div className="flex justify-center pt-2">
-            <Button 
-              onClick={handleEditProfile}
-              className="gap-2"
-              size="lg"
-            >
-              <Settings className="h-4 w-4" />
-              Editar meu Perfil / Preferências
-            </Button>
           </div>
         </CardContent>
       </Card>

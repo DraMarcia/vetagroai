@@ -390,7 +390,7 @@ INSTRUÇÕES DE FORMATAÇÃO:
               <ReportExporter
                 title="Formulação de Ração"
                 content={result}
-                filename={`formulacao-racao-${species.toLowerCase().replace(/\s+/g, '-')}`}
+                toolName="Calculadora de Ração"
               />
             </CardHeader>
             <CardContent>
