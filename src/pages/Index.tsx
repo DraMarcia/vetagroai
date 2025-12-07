@@ -54,15 +54,16 @@ const Index = () => {
     <div className="min-h-screen">
       {/* Hero Section - Full Screen on Mobile */}
       <div className="relative min-h-[85vh] md:min-h-[70vh] flex flex-col">
-        {/* Background Image */}
+        {/* Background Image - Ultra HD without blur */}
         <div className="absolute inset-0">
           <img 
             src={banner} 
             alt="Banner VetAgro Sustentável" 
             className="w-full h-full object-cover"
+            loading="eager"
           />
-          {/* Overlay for readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/60 to-background/90 backdrop-blur-[2px]" />
+          {/* Soft overlay for text readability - maintains image sharpness */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background/85" />
         </div>
         
         {/* Hero Content - Centered */}
