@@ -30,6 +30,7 @@ import Blog from "./pages/Blog";
 import Planos from "./pages/Planos";
 import SimuladorConfinamento from "./pages/SimuladorConfinamento";
 import ModeladorCarbono from "./pages/ModeladorCarbono";
+import FAQ from "./pages/FAQ";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const App = () => (
                     <Route path="/planos" element={<Planos />} />
                     <Route path="/simulador-confinamento" element={<SimuladorConfinamento />} />
                     <Route path="/modelador-carbono" element={<ModeladorCarbono />} />
+                    <Route path="/faq" element={<FAQ />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

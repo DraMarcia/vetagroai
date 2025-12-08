@@ -19,7 +19,8 @@ import {
   Warehouse,
   CreditCard,
   Lightbulb,
-  Home
+  Home,
+  HelpCircle
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { ToolSuggestionDialog } from "@/components/ToolSuggestionDialog";
@@ -85,6 +86,7 @@ const categories = [
     icon: Sparkles,
     items: [
       { title: "Planos e Assinaturas", url: "/planos", icon: CreditCard },
+      { title: "FAQ – Perguntas Frequentes", url: "/faq", icon: HelpCircle },
       { title: "Produtos e Serviços", url: "/produtos-servicos", icon: ShoppingBag },
       { title: "Meu Espaço Inteligente", url: "/meu-perfil", icon: User },
       { title: "Blog", url: "/blog", icon: BookOpen },
