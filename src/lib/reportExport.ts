@@ -2,8 +2,9 @@ import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { cleanTextForPDF, parseReportSections } from "./textUtils";
 
-// ============= Text Processing & Cleaning =============
+// ============= Types =============
 
 export interface ReportData {
   title: string;
@@ -14,118 +15,6 @@ export interface ReportData {
   userInputs?: Record<string, string | number>;
 }
 
-/**
- * Clean and normalize text content
- * - Remove hashtags, asterisks, emojis
- * - Convert markdown lists to bullet points
- * - Preserve structure
- */
-export function cleanText(text: string): string {
-  let cleaned = text;
-  
-  // Remove markdown headers (# ## ###) but keep text
-  cleaned = cleaned.replace(/^#{1,6}\s+/gm, "");
-  
-  // Remove asterisks for bold/italic
-  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, "$1");
-  cleaned = cleaned.replace(/\*([^*]+)\*/g, "$1");
-  cleaned = cleaned.replace(/__([^_]+)__/g, "$1");
-  cleaned = cleaned.replace(/_([^_]+)_/g, "$1");
-  
-  // Convert markdown lists to bullet points
-  cleaned = cleaned.replace(/^[-*]\s+/gm, "• ");
-  cleaned = cleaned.replace(/^\d+\.\s+/gm, "• ");
-  
-  // Remove common emojis (basic set)
-  cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]/gu, "");
-  cleaned = cleaned.replace(/[\u{2600}-\u{26FF}]/gu, "");
-  cleaned = cleaned.replace(/[\u{2700}-\u{27BF}]/gu, "");
-  
-  // Remove backticks
-  cleaned = cleaned.replace(/`([^`]+)`/g, "$1");
-  cleaned = cleaned.replace(/```[\s\S]*?```/g, "");
-  
-  // Normalize whitespace
-  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
-  cleaned = cleaned.trim();
-  
-  return cleaned;
-}
-
-/**
- * Parse content into structured sections
- */
-export function parseContentSections(content: string): { title: string; body: string }[] {
-  const sections: { title: string; body: string }[] = [];
-  const lines = content.split("\n");
-  
-  let currentSection: { title: string; body: string } = { title: "", body: "" };
-  
-  for (const line of lines) {
-    // Detect section titles (lines in CAPS or ending with :)
-    const isSectionTitle = 
-      (line.trim().length > 0 && line.trim().length < 80 && line.trim() === line.trim().toUpperCase() && /[A-Z]/.test(line)) ||
-      (line.trim().endsWith(":") && line.trim().length < 60 && !line.trim().startsWith("•"));
-    
-    if (isSectionTitle && line.trim().length > 2) {
-      if (currentSection.title || currentSection.body) {
-        sections.push({ ...currentSection });
-      }
-      currentSection = { title: line.trim().replace(/:$/, ""), body: "" };
-    } else {
-      currentSection.body += line + "\n";
-    }
-  }
-  
-  if (currentSection.title || currentSection.body.trim()) {
-    sections.push(currentSection);
-  }
-  
-  return sections;
-}
-
-/**
- * Extract tables from content
- */
-export function extractTables(content: string): { headers: string[]; rows: string[][] }[] {
-  const tables: { headers: string[]; rows: string[][] }[] = [];
-  const lines = content.split("\n");
-  
-  let inTable = false;
-  let currentTable: { headers: string[]; rows: string[][] } = { headers: [], rows: [] };
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // Detect markdown table
-    if (line.startsWith("|") && line.endsWith("|")) {
-      const cells = line.split("|").filter(c => c.trim()).map(c => c.trim());
-      
-      if (!inTable) {
-        inTable = true;
-        currentTable = { headers: cells, rows: [] };
-      } else if (line.includes("---")) {
-        // Separator line, skip
-        continue;
-      } else {
-        currentTable.rows.push(cells);
-      }
-    } else if (inTable && line === "") {
-      if (currentTable.headers.length > 0) {
-        tables.push({ ...currentTable });
-      }
-      inTable = false;
-      currentTable = { headers: [], rows: [] };
-    }
-  }
-  
-  if (inTable && currentTable.headers.length > 0) {
-    tables.push(currentTable);
-  }
-  
-  return tables;
-}
-
 // ============= PDF Export =============
 
 export async function exportToPDF(data: ReportData): Promise<void> {
@@ -134,148 +23,266 @@ export async function exportToPDF(data: ReportData): Promise<void> {
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   const maxWidth = pageWidth - 2 * margin;
-  const lineHeight = 6;
+  const lineHeight = 5;
+  const titleLineHeight = 7;
   
   let yPosition = margin;
+  let currentPage = 1;
   
-  const addNewPageIfNeeded = (requiredSpace: number = 20) => {
-    if (yPosition + requiredSpace > pageHeight - margin) {
+  // Helper: Add new page if needed
+  const checkPageBreak = (requiredSpace: number = 15): boolean => {
+    if (yPosition + requiredSpace > pageHeight - 30) {
       doc.addPage();
+      currentPage++;
       yPosition = margin;
       return true;
     }
     return false;
   };
   
-  const addText = (text: string, fontSize: number, isBold: boolean = false, align: "left" | "center" = "left") => {
+  // Helper: Add text with automatic page breaks
+  const addText = (text: string, fontSize: number, isBold: boolean = false, isTitle: boolean = false) => {
     doc.setFontSize(fontSize);
     doc.setFont("helvetica", isBold ? "bold" : "normal");
     
     const lines = doc.splitTextToSize(text, maxWidth);
+    const currentLineHeight = isTitle ? titleLineHeight : lineHeight;
     
     for (const line of lines) {
-      addNewPageIfNeeded(lineHeight);
-      
-      if (align === "center") {
-        doc.text(line, pageWidth / 2, yPosition, { align: "center" });
-      } else {
-        doc.text(line, margin, yPosition);
-      }
-      yPosition += lineHeight;
+      checkPageBreak(currentLineHeight);
+      doc.text(line, margin, yPosition);
+      yPosition += currentLineHeight;
     }
   };
   
-  // Header with logo placeholder
-  doc.setFillColor(34, 139, 34);
-  doc.rect(0, 0, pageWidth, 15, "F");
+  // Helper: Add centered text
+  const addCenteredText = (text: string, fontSize: number, isBold: boolean = false) => {
+    doc.setFontSize(fontSize);
+    doc.setFont("helvetica", isBold ? "bold" : "normal");
+    checkPageBreak(10);
+    doc.text(text, pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 7;
+  };
+  
+  // ===== HEADER =====
+  doc.setFillColor(34, 100, 60); // Dark green
+  doc.rect(0, 0, pageWidth, 18, "F");
+  
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(10);
-  doc.text("VetAgro IA", pageWidth / 2, 10, { align: "center" });
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("VetAgro Sustentável AI", pageWidth / 2, 8, { align: "center" });
+  
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(data.toolName || "Relatório Técnico", pageWidth / 2, 14, { align: "center" });
+  
   doc.setTextColor(0, 0, 0);
-  yPosition = 25;
+  yPosition = 28;
   
-  // Title
-  addText(data.title, 18, true, "center");
-  yPosition += 5;
+  // ===== TITLE =====
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text(data.title, pageWidth / 2, yPosition, { align: "center" });
+  yPosition += 10;
   
-  // Date
+  // ===== DATE =====
   const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "long",
     year: "numeric"
   });
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
   doc.text(`Gerado em: ${dateStr}`, pageWidth / 2, yPosition, { align: "center" });
   doc.setTextColor(0, 0, 0);
-  yPosition += 10;
+  yPosition += 8;
   
-  // Tool name if provided
-  if (data.toolName) {
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
-    doc.text(`Ferramenta: ${data.toolName}`, margin, yPosition);
-    doc.setTextColor(0, 0, 0);
-    yPosition += 8;
-  }
-  
-  // Separator line
+  // ===== SEPARATOR =====
   doc.setDrawColor(200, 200, 200);
   doc.line(margin, yPosition, pageWidth - margin, yPosition);
   yPosition += 10;
   
-  // Clean and process content
-  const cleanedContent = cleanText(data.content);
-  const sections = parseContentSections(cleanedContent);
+  // ===== USER INPUTS (if provided) =====
+  if (data.userInputs && Object.keys(data.userInputs).length > 0) {
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("DADOS DO CASO:", margin, yPosition);
+    yPosition += 7;
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    
+    for (const [key, value] of Object.entries(data.userInputs)) {
+      checkPageBreak(6);
+      const text = `• ${key}: ${value}`;
+      const lines = doc.splitTextToSize(text, maxWidth);
+      for (const line of lines) {
+        doc.text(line, margin, yPosition);
+        yPosition += 5;
+      }
+    }
+    yPosition += 5;
+  }
   
-  // Content
+  // ===== MAIN CONTENT =====
+  const cleanedContent = cleanTextForPDF(data.content);
+  const sections = parseReportSections(cleanedContent);
+  
   for (const section of sections) {
+    // Section title
     if (section.title) {
-      addNewPageIfNeeded(20);
+      checkPageBreak(20);
       yPosition += 3;
-      addText(section.title, 12, true);
-      yPosition += 2;
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(34, 100, 60);
+      doc.text(section.title, margin, yPosition);
+      doc.setTextColor(0, 0, 0);
+      yPosition += 7;
     }
     
+    // Section body
     if (section.body.trim()) {
-      const paragraphs = section.body.split("\n\n").filter(p => p.trim());
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      
+      const paragraphs = section.body.split("\n").filter(p => p.trim());
       
       for (const para of paragraphs) {
-        const lines = para.split("\n").filter(l => l.trim());
+        const trimmedPara = para.trim();
+        if (!trimmedPara) continue;
         
-        for (const line of lines) {
-          addNewPageIfNeeded();
-          addText(line.trim(), 10);
+        checkPageBreak(6);
+        
+        // Handle bullet points
+        if (trimmedPara.startsWith("•") || trimmedPara.startsWith("-")) {
+          const bulletText = trimmedPara.replace(/^[•-]\s*/, "");
+          const lines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 5);
+          for (let i = 0; i < lines.length; i++) {
+            checkPageBreak(5);
+            doc.text(lines[i], margin + (i === 0 ? 0 : 3), yPosition);
+            yPosition += 5;
+          }
         }
-        yPosition += 3;
+        // Handle numbered items
+        else if (trimmedPara.match(/^\d+\./)) {
+          const lines = doc.splitTextToSize(trimmedPara, maxWidth - 5);
+          for (let i = 0; i < lines.length; i++) {
+            checkPageBreak(5);
+            doc.text(lines[i], margin + (i === 0 ? 0 : 5), yPosition);
+            yPosition += 5;
+          }
+        }
+        // Regular paragraph
+        else {
+          const lines = doc.splitTextToSize(trimmedPara, maxWidth);
+          for (const line of lines) {
+            checkPageBreak(5);
+            doc.text(line, margin, yPosition);
+            yPosition += 5;
+          }
+        }
       }
+      yPosition += 2;
     }
   }
   
-  // References section
+  // ===== REFERENCES =====
   if (data.references && data.references.length > 0) {
-    addNewPageIfNeeded(40);
-    yPosition += 10;
+    checkPageBreak(40);
+    yPosition += 8;
     
     doc.setDrawColor(200, 200, 200);
     doc.line(margin, yPosition, pageWidth - margin, yPosition);
     yPosition += 8;
     
-    addText("REFERÊNCIAS CONSULTADAS", 12, true);
-    yPosition += 3;
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(34, 100, 60);
+    doc.text("REFERÊNCIAS CONSULTADAS:", margin, yPosition);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 7;
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
     
     for (const ref of data.references) {
-      addNewPageIfNeeded();
-      addText(`• ${ref}`, 9);
+      checkPageBreak(5);
+      const cleanRef = ref.replace(/^[•-]\s*/, "").trim();
+      const lines = doc.splitTextToSize(`• ${cleanRef}`, maxWidth - 5);
+      for (const line of lines) {
+        doc.text(line, margin, yPosition);
+        yPosition += 4;
+      }
     }
   }
   
-  // Footer with page numbers
+  // ===== FOOTER ON ALL PAGES =====
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
+    
+    // Footer background
+    doc.setFillColor(245, 245, 245);
+    doc.rect(0, pageHeight - 20, pageWidth, 20, "F");
+    
+    // Footer line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+    
+    // Footer text
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
     doc.text(
-      `Página ${i} de ${totalPages} | VetAgro IA - Relatório gerado automaticamente`,
+      "Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade.",
       pageWidth / 2,
-      pageHeight - 10,
+      pageHeight - 12,
+      { align: "center" }
+    );
+    
+    doc.setFontSize(8);
+    doc.text(
+      `Página ${i} de ${totalPages}`,
+      pageWidth / 2,
+      pageHeight - 6,
       { align: "center" }
     );
   }
   
-  // Save
-  const fileName = `${data.title.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
+  // ===== SAVE =====
+  const fileName = `${data.title.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
   doc.save(fileName);
 }
 
 // ============= DOCX Export =============
 
 export async function exportToDocx(data: ReportData): Promise<void> {
-  const cleanedContent = cleanText(data.content);
-  const sections = parseContentSections(cleanedContent);
+  const cleanedContent = cleanTextForPDF(data.content);
+  const sections = parseReportSections(cleanedContent);
   
   const children: Paragraph[] = [];
+  
+  // Header
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "VetAgro Sustentável AI",
+          bold: true,
+          size: 24,
+          color: "226444"
+        }),
+        new TextRun({
+          text: data.toolName ? ` — ${data.toolName}` : "",
+          size: 24,
+          color: "666666"
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 }
+    })
+  );
   
   // Title
   children.push(
@@ -284,18 +291,22 @@ export async function exportToDocx(data: ReportData): Promise<void> {
         new TextRun({
           text: data.title,
           bold: true,
-          size: 36,
-          color: "228B22"
+          size: 32,
+          color: "226444"
         })
       ],
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
-      spacing: { after: 200 }
+      spacing: { after: 100 }
     })
   );
   
-  // Date and tool name
-  const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR");
+  // Date
+  const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
   children.push(
     new Paragraph({
       children: [
@@ -304,16 +315,42 @@ export async function exportToDocx(data: ReportData): Promise<void> {
           size: 20,
           color: "666666",
           italics: true
-        }),
-        ...(data.toolName ? [
-          new TextRun({ text: " | ", size: 20, color: "666666" }),
-          new TextRun({ text: `Ferramenta: ${data.toolName}`, size: 20, color: "666666", italics: true })
-        ] : [])
+        })
       ],
       alignment: AlignmentType.CENTER,
       spacing: { after: 400 }
     })
   );
+  
+  // User inputs
+  if (data.userInputs && Object.keys(data.userInputs).length > 0) {
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: "DADOS DO CASO",
+            bold: true,
+            size: 24,
+            color: "226444"
+          })
+        ],
+        spacing: { before: 200, after: 100 }
+      })
+    );
+    
+    for (const [key, value] of Object.entries(data.userInputs)) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: `${key}: `, bold: true, size: 20 }),
+            new TextRun({ text: String(value), size: 20 })
+          ],
+          bullet: { level: 0 },
+          spacing: { after: 50 }
+        })
+      );
+    }
+  }
   
   // Content sections
   for (const section of sections) {
@@ -324,7 +361,8 @@ export async function exportToDocx(data: ReportData): Promise<void> {
             new TextRun({
               text: section.title,
               bold: true,
-              size: 26
+              size: 24,
+              color: "226444"
             })
           ],
           heading: HeadingLevel.HEADING_1,
@@ -337,18 +375,22 @@ export async function exportToDocx(data: ReportData): Promise<void> {
       const paragraphs = section.body.split("\n").filter(p => p.trim());
       
       for (const para of paragraphs) {
-        const isBullet = para.trim().startsWith("•");
+        const trimmedPara = para.trim();
+        if (!trimmedPara) continue;
+        
+        const isBullet = trimmedPara.startsWith("•") || trimmedPara.startsWith("-");
+        const text = isBullet ? trimmedPara.replace(/^[•-]\s*/, "") : trimmedPara;
         
         children.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: isBullet ? para.trim().substring(1).trim() : para.trim(),
+                text: text,
                 size: 22
               })
             ],
             bullet: isBullet ? { level: 0 } : undefined,
-            spacing: { after: 100 }
+            spacing: { after: 80 }
           })
         );
       }
@@ -363,7 +405,8 @@ export async function exportToDocx(data: ReportData): Promise<void> {
           new TextRun({
             text: "REFERÊNCIAS CONSULTADAS",
             bold: true,
-            size: 26
+            size: 24,
+            color: "226444"
           })
         ],
         heading: HeadingLevel.HEADING_1,
@@ -375,15 +418,32 @@ export async function exportToDocx(data: ReportData): Promise<void> {
     );
     
     for (const ref of data.references) {
+      const cleanRef = ref.replace(/^[•-]\s*/, "").trim();
       children.push(
         new Paragraph({
-          children: [new TextRun({ text: ref, size: 20 })],
+          children: [new TextRun({ text: cleanRef, size: 20 })],
           bullet: { level: 0 },
           spacing: { after: 50 }
         })
       );
     }
   }
+  
+  // Footer
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade.",
+          size: 18,
+          color: "999999",
+          italics: true
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 400 }
+    })
+  );
   
   const doc = new Document({
     sections: [{
@@ -393,21 +453,21 @@ export async function exportToDocx(data: ReportData): Promise<void> {
   });
   
   const blob = await Packer.toBlob(doc);
-  const fileName = `${data.title.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.docx`;
+  const fileName = `${data.title.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.docx`;
   saveAs(blob, fileName);
 }
 
 // ============= XLSX Export =============
 
 export async function exportToXlsx(data: ReportData): Promise<void> {
-  const cleanedContent = cleanText(data.content);
-  const sections = parseContentSections(cleanedContent);
-  const tables = extractTables(data.content);
+  const cleanedContent = cleanTextForPDF(data.content);
+  const sections = parseReportSections(cleanedContent);
   
   const wb = XLSX.utils.book_new();
   
   // Main content sheet
   const mainData: string[][] = [];
+  mainData.push(["VetAgro Sustentável AI"]);
   mainData.push([data.title]);
   mainData.push([`Gerado em: ${(data.date || new Date()).toLocaleDateString("pt-BR")}`]);
   if (data.toolName) {
@@ -415,9 +475,19 @@ export async function exportToXlsx(data: ReportData): Promise<void> {
   }
   mainData.push([]);
   
+  // User inputs
+  if (data.userInputs && Object.keys(data.userInputs).length > 0) {
+    mainData.push(["DADOS DO CASO"]);
+    for (const [key, value] of Object.entries(data.userInputs)) {
+      mainData.push([`${key}: ${value}`]);
+    }
+    mainData.push([]);
+  }
+  
+  // Content
   for (const section of sections) {
     if (section.title) {
-      mainData.push([section.title.toUpperCase()]);
+      mainData.push([section.title]);
     }
     
     const lines = section.body.split("\n").filter(l => l.trim());
@@ -431,25 +501,21 @@ export async function exportToXlsx(data: ReportData): Promise<void> {
   if (data.references && data.references.length > 0) {
     mainData.push(["REFERÊNCIAS CONSULTADAS"]);
     for (const ref of data.references) {
-      mainData.push([`• ${ref}`]);
+      const cleanRef = ref.replace(/^[•-]\s*/, "").trim();
+      mainData.push([`• ${cleanRef}`]);
     }
   }
   
-  const mainWs = XLSX.utils.aoa_to_sheet(mainData);
+  // Footer
+  mainData.push([]);
+  mainData.push(["Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade."]);
   
-  // Set column width
-  mainWs["!cols"] = [{ wch: 100 }];
+  const mainWs = XLSX.utils.aoa_to_sheet(mainData);
+  mainWs["!cols"] = [{ wch: 120 }];
   
   XLSX.utils.book_append_sheet(wb, mainWs, "Relatório");
   
-  // Add tables as separate sheets if found
-  tables.forEach((table, index) => {
-    const tableData: string[][] = [table.headers, ...table.rows];
-    const tableWs = XLSX.utils.aoa_to_sheet(tableData);
-    XLSX.utils.book_append_sheet(wb, tableWs, `Tabela ${index + 1}`);
-  });
-  
-  // User inputs sheet if provided
+  // User inputs as separate sheet
   if (data.userInputs && Object.keys(data.userInputs).length > 0) {
     const inputsData: string[][] = [["Campo", "Valor"]];
     for (const [key, value] of Object.entries(data.userInputs)) {
@@ -459,18 +525,21 @@ export async function exportToXlsx(data: ReportData): Promise<void> {
     XLSX.utils.book_append_sheet(wb, inputsWs, "Dados de Entrada");
   }
   
-  const fileName = `${data.title.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`;
+  const fileName = `${data.title.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }
 
 // ============= EPUB Export =============
 
 export async function exportToEpub(data: ReportData): Promise<void> {
-  const cleanedContent = cleanText(data.content);
-  const sections = parseContentSections(cleanedContent);
+  const cleanedContent = cleanTextForPDF(data.content);
+  const sections = parseReportSections(cleanedContent);
   
-  // Create HTML content for EPUB (simplified as HTML file for download)
-  const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR");
+  const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
   
   let htmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
@@ -481,23 +550,42 @@ export async function exportToEpub(data: ReportData): Promise<void> {
   <style>
     body {
       font-family: Georgia, 'Times New Roman', serif;
-      line-height: 1.6;
+      line-height: 1.7;
       max-width: 800px;
       margin: 0 auto;
       padding: 20px;
       color: #333;
     }
-    h1 {
-      color: #228B22;
+    .header {
+      background-color: #226444;
+      color: white;
+      padding: 15px;
       text-align: center;
-      border-bottom: 2px solid #228B22;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 1.2em;
+    }
+    .header p {
+      margin: 5px 0 0 0;
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+    h1.title {
+      color: #226444;
+      text-align: center;
+      border-bottom: 2px solid #226444;
       padding-bottom: 10px;
+      margin-top: 0;
     }
     h2 {
-      color: #2F4F4F;
+      color: #226444;
       margin-top: 30px;
-      border-left: 4px solid #228B22;
+      border-left: 4px solid #226444;
       padding-left: 10px;
+      font-size: 1.1em;
     }
     .meta {
       text-align: center;
@@ -505,12 +593,28 @@ export async function exportToEpub(data: ReportData): Promise<void> {
       font-style: italic;
       margin-bottom: 30px;
     }
+    .case-data {
+      background-color: #f8f8f8;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .case-data h3 {
+      margin-top: 0;
+      color: #226444;
+    }
     .content p {
       text-align: justify;
       margin-bottom: 12px;
     }
     .bullet {
       padding-left: 20px;
+      position: relative;
+    }
+    .bullet::before {
+      content: "•";
+      position: absolute;
+      left: 5px;
     }
     .references {
       margin-top: 40px;
@@ -530,15 +634,38 @@ export async function exportToEpub(data: ReportData): Promise<void> {
       text-align: center;
       color: #999;
       font-size: 12px;
+      border-top: 1px solid #eee;
+      padding-top: 20px;
     }
   </style>
 </head>
 <body>
-  <h1>${data.title}</h1>
+  <div class="header">
+    <h1>VetAgro Sustentável AI</h1>
+    <p>${data.toolName || "Relatório Técnico"}</p>
+  </div>
+  
+  <h1 class="title">${data.title}</h1>
   <div class="meta">
     <p>Gerado em: ${dateStr}</p>
-    ${data.toolName ? `<p>Ferramenta: ${data.toolName}</p>` : ""}
-  </div>
+  </div>`;
+
+  // User inputs
+  if (data.userInputs && Object.keys(data.userInputs).length > 0) {
+    htmlContent += `
+  <div class="case-data">
+    <h3>Dados do Caso</h3>
+    <ul>`;
+    for (const [key, value] of Object.entries(data.userInputs)) {
+      htmlContent += `
+      <li><strong>${key}:</strong> ${value}</li>`;
+    }
+    htmlContent += `
+    </ul>
+  </div>`;
+  }
+
+  htmlContent += `
   <div class="content">`;
   
   for (const section of sections) {
@@ -549,12 +676,15 @@ export async function exportToEpub(data: ReportData): Promise<void> {
     
     const paragraphs = section.body.split("\n").filter(p => p.trim());
     for (const para of paragraphs) {
-      if (para.trim().startsWith("•")) {
+      const trimmedPara = para.trim();
+      if (!trimmedPara) continue;
+      
+      if (trimmedPara.startsWith("•") || trimmedPara.startsWith("-")) {
         htmlContent += `
-    <p class="bullet">${para.trim()}</p>`;
+    <p class="bullet">${trimmedPara.replace(/^[•-]\s*/, "")}</p>`;
       } else {
         htmlContent += `
-    <p>${para.trim()}</p>`;
+    <p>${trimmedPara}</p>`;
       }
     }
   }
@@ -566,8 +696,9 @@ export async function exportToEpub(data: ReportData): Promise<void> {
     <h2>Referências Consultadas</h2>
     <ul>`;
     for (const ref of data.references) {
+      const cleanRef = ref.replace(/^[•-]\s*/, "").trim();
       htmlContent += `
-      <li>${ref}</li>`;
+      <li>${cleanRef}</li>`;
     }
     htmlContent += `
     </ul>
@@ -579,25 +710,24 @@ export async function exportToEpub(data: ReportData): Promise<void> {
   
   htmlContent += `
   <div class="footer">
-    <p>VetAgro IA - Relatório gerado automaticamente</p>
+    <p>Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade.</p>
   </div>
 </body>
 </html>`;
   
-  // For EPUB, we'll create an HTML file that can be opened in e-readers
   const blob = new Blob([htmlContent], { type: "application/xhtml+xml" });
-  const fileName = `${data.title.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.html`;
+  const fileName = `${data.title.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.html`;
   saveAs(blob, fileName);
 }
 
 // ============= Default References =============
 
 export const defaultReferences = [
-  "FAO - Food and Agriculture Organization of the United Nations",
-  "IPCC - Intergovernmental Panel on Climate Change",
-  "OIE - World Organisation for Animal Health",
-  "EMBRAPA - Empresa Brasileira de Pesquisa Agropecuária",
-  "MAPA - Ministério da Agricultura, Pecuária e Abastecimento",
-  "Merck Veterinary Manual",
-  "PubMed - National Library of Medicine"
+  "Merck Veterinary Manual — Manual de Referência Veterinária",
+  "FAO — Food and Agriculture Organization of the United Nations",
+  "IPCC — Intergovernmental Panel on Climate Change",
+  "OIE — World Organisation for Animal Health",
+  "EMBRAPA — Empresa Brasileira de Pesquisa Agropecuária",
+  "MAPA — Ministério da Agricultura, Pecuária e Abastecimento",
+  "PubMed — National Library of Medicine"
 ];

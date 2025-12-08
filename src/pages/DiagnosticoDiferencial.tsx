@@ -5,10 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Stethoscope, Loader2, Download } from "lucide-react";
+import { Stethoscope, Loader2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import jsPDF from "jspdf";
+import { ReportExporter } from "@/components/ReportExporter";
+import { cleanTextForDisplay } from "@/lib/textUtils";
 
 const DiagnosticoDiferencial = () => {
   const { toast } = useToast();
@@ -22,70 +23,14 @@ const DiagnosticoDiferencial = () => {
   const [history, setHistory] = useState("");
   const [result, setResult] = useState("");
 
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    const maxWidth = pageWidth - 2 * margin;
-    let yPosition = 20;
-
-    doc.setFontSize(16);
-    doc.text("Diagnóstico Diferencial Veterinário", margin, yPosition);
-    yPosition += 10;
-
-    doc.setFontSize(10);
-    doc.text(`Tipo de usuário: ${isProfessional === "sim" ? `Profissional - CRMV: ${crmv}` : "Tutor"}`, margin, yPosition);
-    yPosition += 7;
-    doc.text(`Espécie: ${species} | Idade: ${age} | Peso: ${weight}`, margin, yPosition);
-    yPosition += 10;
-
-    doc.setFontSize(12);
-    doc.text("Sinais Clínicos:", margin, yPosition);
-    yPosition += 7;
-    doc.setFontSize(10);
-    const symptomsLines = doc.splitTextToSize(symptoms, maxWidth);
-    doc.text(symptomsLines, margin, yPosition);
-    yPosition += symptomsLines.length * 5 + 5;
-
-    if (history) {
-      doc.setFontSize(12);
-      doc.text("Histórico:", margin, yPosition);
-      yPosition += 7;
-      doc.setFontSize(10);
-      const historyLines = doc.splitTextToSize(history, maxWidth);
-      doc.text(historyLines, margin, yPosition);
-      yPosition += historyLines.length * 5 + 5;
-    }
-
-    doc.setFontSize(12);
-    doc.text("Análise:", margin, yPosition);
-    yPosition += 7;
-    doc.setFontSize(10);
-    const resultLines = doc.splitTextToSize(result, maxWidth);
-    resultLines.forEach((line: string) => {
-      if (yPosition > 270) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      doc.text(line, margin, yPosition);
-      yPosition += 5;
-    });
-
-    doc.save("diagnostico-diferencial.pdf");
-    toast({
-      title: "PDF gerado!",
-      description: "O diagnóstico foi baixado com sucesso.",
-    });
-  };
-
-  const handleAnalyze = async () => {
+  const validateInputs = (): boolean => {
     if (!isProfessional) {
       toast({
         title: "Campo obrigatório",
         description: "Informe se você é profissional da área.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     if (isProfessional === "sim" && !crmv.trim()) {
@@ -94,45 +39,118 @@ const DiagnosticoDiferencial = () => {
         description: "Informe seu número de CRMV.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
-    if (!species.trim() || !age.trim() || !weight.trim() || !symptoms.trim()) {
+    if (!species.trim()) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha espécie, idade, peso e sinais clínicos.",
+        title: "Dados incompletos",
+        description: "Informe a espécie do animal. Exemplo: Canina, Felina, Bovina, Equina.",
         variant: "destructive",
       });
-      return;
+      return false;
     }
+
+    if (!age.trim()) {
+      toast({
+        title: "Dados incompletos",
+        description: "Informe a idade do animal. Exemplo: 5 anos, 8 meses, filhote.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!weight.trim()) {
+      toast({
+        title: "Dados incompletos",
+        description: "Informe o peso do animal. Exemplo: 25 kg, 450 kg.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!symptoms.trim() || symptoms.trim().length < 20) {
+      toast({
+        title: "Sinais clínicos insuficientes",
+        description: "Descreva os sinais clínicos com mais detalhes. Exemplo: Anorexia há 3 dias, apatia, vômitos frequentes, desidratação moderada, mucosas pálidas.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleAnalyze = async () => {
+    if (!validateInputs()) return;
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          question: `Realize um diagnóstico diferencial veterinário completo:
+      const userType = isProfessional === "sim" ? "Profissional Veterinário" : "Tutor/Produtor";
+      
+      const prompt = `Você é um sistema especialista em diagnóstico veterinário. Analise o caso clínico abaixo e forneça um diagnóstico diferencial estruturado.
 
-DADOS DO ANIMAL:
+DADOS DO CASO:
+- Tipo de Usuário: ${userType}${isProfessional === "sim" ? ` (CRMV: ${crmv})` : ""}
 - Espécie: ${species}
 - Idade: ${age}
 - Peso: ${weight}
+- Sinais Clínicos: ${symptoms}
+${history ? `- Histórico: ${history}` : ""}
 
-SINAIS CLÍNICOS:
-${symptoms}
+INSTRUÇÕES DE FORMATAÇÃO (OBRIGATÓRIO):
+1. NÃO use hashtags (#), asteriscos (*), emojis ou símbolos markdown
+2. Use TÍTULOS EM MAIÚSCULAS seguidos de dois pontos para seções
+3. Use pontos (•) ou traços (–) para listas
+4. Mantenha parágrafos bem espaçados e organizados
 
-${history ? `HISTÓRICO:\n${history}\n` : ""}
+ESTRUTURA OBRIGATÓRIA DO RELATÓRIO:
 
-Forneça:
-1. Diagnósticos diferenciais organizados por probabilidade (do mais ao menos provável)
-2. Exames complementares recomendados para cada suspeita
-3. Sinais de alerta que indicam urgência/emergência
-4. Recomendações de manejo imediato
+IDENTIFICAÇÃO DO CASO:
+• Tipo de usuário: ${userType}
+• Espécie: ${species}
+• Idade: ${age}
+• Peso: ${weight}
+• Sinais clínicos principais: [resumo]
+• Histórico relevante: [se houver]
 
-${isProfessional === "nao" 
-  ? "IMPORTANTE: Use linguagem simples e acessível para tutores. Sempre enfatize a necessidade de avaliação veterinária presencial. Explique conceitos técnicos de forma clara." 
-  : "Utilize linguagem técnica veterinária apropriada. Inclua DDx completos, protocolos diagnósticos e terapêuticos."}
+ANÁLISE CLÍNICA:
+${isProfessional === "sim" 
+  ? "Forneça análise técnica detalhada dos sinais clínicos, correlacionando achados e mecanismos fisiopatológicos envolvidos."
+  : "Explique de forma clara e acessível o que os sinais observados podem indicar, usando linguagem simples."}
 
-Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatura científica).`,
+DIAGNÓSTICOS DIFERENCIAIS:
+Liste em ordem de probabilidade (do mais ao menos provável):
+1. [Diagnóstico mais provável] – [justificativa breve]
+2. [Segundo diagnóstico] – [justificativa breve]
+3. [Terceiro diagnóstico] – [justificativa breve]
+4. [Quarto diagnóstico, se aplicável] – [justificativa breve]
+
+EXAMES COMPLEMENTARES RECOMENDADOS:
+• [Exame 1] – [objetivo/justificativa]
+• [Exame 2] – [objetivo/justificativa]
+• [Exame 3] – [objetivo/justificativa]
+
+NÍVEIS DE URGÊNCIA E SINAIS CRÍTICOS:
+• Classificação de urgência: [Baixa/Moderada/Alta/Emergência]
+• Sinais de alerta que exigem atenção imediata: [listar]
+
+RECOMENDAÇÕES DE MANEJO:
+${isProfessional === "sim"
+  ? "• Condutas terapêuticas iniciais sugeridas\n• Monitoramento recomendado\n• Prognóstico preliminar"
+  : "• Cuidados imediatos que o tutor pode oferecer\n• O que observar nas próximas horas\n• Quando procurar atendimento urgente"}
+
+ALERTA LEGAL:
+Esta análise tem caráter orientativo e educacional. O diagnóstico definitivo requer avaliação clínica presencial por médico veterinário habilitado, com exame físico completo e exames complementares apropriados.
+
+REFERÊNCIAS:
+• Merck Veterinary Manual – [tópico específico consultado]
+• [Referência científica relevante ao caso, ex: JAVMA, Veterinary Clinics, etc.]
+• [Literatura técnica adicional se aplicável]`;
+
+      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
+        body: {
+          question: prompt,
           isProfessional: isProfessional === "sim",
           context: "Diagnóstico diferencial veterinário",
         },
@@ -140,12 +158,9 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
 
       if (error) throw error;
 
-      let finalAnswer = data.answer;
-      if (isProfessional === "nao") {
-        finalAnswer += "\n\n⚠️ ATENÇÃO: Esta análise tem caráter informativo. É fundamental procurar um médico veterinário para avaliação presencial, exame clínico completo e diagnóstico definitivo.";
-      }
-
-      setResult(finalAnswer);
+      const cleanedResult = cleanTextForDisplay(data.answer);
+      setResult(cleanedResult);
+      
       toast({
         title: "Análise concluída!",
         description: "Diagnóstico diferencial gerado com sucesso.",
@@ -161,6 +176,23 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
       setLoading(false);
     }
   };
+
+  const getUserInputs = () => ({
+    "Tipo de Usuário": isProfessional === "sim" ? `Profissional (CRMV: ${crmv})` : "Tutor/Produtor",
+    "Espécie": species,
+    "Idade": age,
+    "Peso": weight,
+    "Sinais Clínicos": symptoms,
+    ...(history && { "Histórico": history }),
+  });
+
+  const getReferences = () => [
+    "Merck Veterinary Manual — Diagnóstico Clínico Veterinário",
+    "Nelson, R.W. & Couto, C.G. — Medicina Interna de Pequenos Animais",
+    "Radostits, O.M. et al. — Clínica Veterinária: Tratado de Doenças",
+    "JAVMA — Journal of the American Veterinary Medical Association",
+    "Ettinger, S.J. & Feldman, E.C. — Textbook of Veterinary Internal Medicine",
+  ];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -270,6 +302,9 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
                   onChange={(e) => setSymptoms(e.target.value)}
                   className="min-h-[120px]"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Quanto mais detalhes você fornecer, mais precisa será a análise.
+                </p>
               </div>
               <div>
                 <Label htmlFor="history">Histórico (opcional)</Label>
@@ -315,18 +350,29 @@ Ao final, inclua referências bibliográficas (Merck Veterinary Manual, literatu
             <CardContent>
               <div className="space-y-4">
                 <div className="prose prose-sm max-w-none">
-                  <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg">
+                  <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
                     {result}
                   </div>
                 </div>
-                <Button
-                  onClick={handleDownloadPDF}
-                  variant="outline"
+
+                {isProfessional === "nao" && (
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      Esta análise tem caráter informativo. É fundamental procurar um médico veterinário para avaliação presencial e diagnóstico definitivo.
+                    </p>
+                  </div>
+                )}
+
+                <ReportExporter
+                  title="Diagnóstico Diferencial Veterinário"
+                  content={result}
+                  toolName="Diagnóstico Diferencial Inteligente"
+                  references={getReferences()}
+                  userInputs={getUserInputs()}
                   className="w-full"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Baixar PDF
-                </Button>
+                  variant="outline"
+                />
               </div>
             </CardContent>
           </Card>
