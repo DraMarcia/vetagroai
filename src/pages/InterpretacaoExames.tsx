@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -12,10 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, Loader2, Download, Upload, Image as ImageIcon, X } from "lucide-react";
+import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { ReportExporter } from "@/components/ReportExporter";
+import { cleanTextForDisplay } from "@/lib/textUtils";
 
 const InterpretacaoExames = () => {
   const { toast } = useToast();
@@ -84,6 +85,25 @@ const InterpretacaoExames = () => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  const getReferences = () => [
+    "Merck Veterinary Manual (11th Edition)",
+    "Nelson & Couto — Medicina Interna de Pequenos Animais",
+    "Ettinger & Feldman — Veterinary Internal Medicine",
+    "Thrall MA — Veterinary Diagnostic Imaging",
+    "Thrall MA — Hematologia e Bioquímica Clínica Veterinária"
+  ];
+
+  const getUserInputs = () => ({
+    "Tipo de Usuário": isProfessional === "sim" ? "Profissional Veterinário" : "Tutor/Produtor",
+    ...(isProfessional === "sim" && crmv ? { "CRMV": crmv } : {}),
+    "Espécie": species,
+    "Idade": age,
+    "Peso": weight,
+    "Tipo de Exame": examType,
+    "Imagens Anexadas": images.length > 0 ? `${images.length} imagem(ns)` : "Nenhuma",
+    ...(clinicalData ? { "Dados Clínicos": clinicalData.substring(0, 200) + (clinicalData.length > 200 ? "..." : "") } : {}),
+  });
+
   const handleAnalyze = async () => {
     if (!isProfessional) {
       toast({
@@ -115,7 +135,7 @@ const InterpretacaoExames = () => {
     if (images.length === 0 && !clinicalData.trim()) {
       toast({
         title: "Dados insuficientes",
-        description: "Anexe imagens dos exames ou descreva os valores.",
+        description: "Anexe imagens dos exames ou descreva os valores clínicos.",
         variant: "destructive",
       });
       return;
@@ -124,11 +144,67 @@ const InterpretacaoExames = () => {
     setLoading(true);
     try {
       const userType = isProfessional === "sim" ? "profissional" : "tutor";
+      const hasImages = images.length > 0;
       
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "interpretacao-exames",
-          question: `Interprete os seguintes exames veterinários:
+      const systemPrompt = `Você é a inteligência clínica da ferramenta Interpretação de Exames – VetAgro Sustentável AI.
+
+Sua função: analisar imagem (quando fornecida) + texto clínico e gerar um relatório estruturado, legível e técnico.
+
+${!hasImages ? `IMPORTANTE: Nenhuma imagem foi enviada — análise realizada apenas com as informações clínicas fornecidas.` : ""}
+
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA (use exatamente estes títulos em MAIÚSCULAS):
+
+IDENTIFICAÇÃO DO CASO
+• Espécie: ${species}
+• Idade: ${age}
+• Peso: ${weight}
+• Tipo de exame: ${examType}
+• Tipo de usuário: ${userType === "profissional" ? "Profissional veterinário" : "Tutor/Produtor"}
+
+AVALIAÇÃO CLÍNICA
+${userType === "profissional" 
+  ? "• Forneça análise técnica detalhada dos parâmetros\n• Inclua valores de referência\n• Use terminologia técnica apropriada"
+  : "• Explique de forma simples e acessível\n• Evite termos técnicos complexos\n• Foque no significado prático dos resultados"}
+
+ACHADOS NA IMAGEM
+${hasImages 
+  ? "• Descreva os achados visuais identificados na(s) imagem(ns)"
+  : "• Nenhuma imagem foi anexada para análise visual"}
+
+DIAGNÓSTICOS DIFERENCIAIS
+• Liste em ordem de probabilidade (mais provável primeiro)
+• Máximo de 4 diagnósticos principais
+• Justifique brevemente cada hipótese
+
+EXAMES COMPLEMENTARES RECOMENDADOS
+• Liste exames que ajudariam a confirmar/descartar diagnósticos
+• Priorize por relevância
+
+CLASSIFICAÇÃO DE URGÊNCIA
+• Indique o nível: BAIXO, MODERADO, ALTO ou URGÊNCIA
+• Descreva sinais de alerta que o tutor/profissional deve observar
+
+RECOMENDAÇÕES PRÁTICAS
+${userType === "profissional"
+  ? "• Condutas terapêuticas sugeridas\n• Manejo clínico recomendado\n• Monitoramento indicado"
+  : "• Orientações claras e acessíveis\n• Cuidados domiciliares quando apropriado\n• Sinais que indicam necessidade de atendimento urgente"}
+
+ALERTA LEGAL
+Esta análise tem caráter educativo e não substitui a consulta veterinária presencial.
+
+REFERÊNCIAS
+• Merck Veterinary Manual (11th Edition)
+• Nelson & Couto — Medicina Interna de Pequenos Animais
+• Ettinger & Feldman — Veterinary Internal Medicine
+• Thrall MA — Veterinary Diagnostic Imaging
+
+REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:
+- NUNCA use hashtags (#), asteriscos (*) ou emojis
+- Use apenas marcadores simples: • ou –
+- Mantenha títulos das seções em MAIÚSCULAS
+- Estruture em parágrafos claros e organizados`;
+
+      const userPrompt = `Interprete os seguintes exames veterinários:
 
 DADOS DO PACIENTE:
 • Espécie: ${species}
@@ -137,82 +213,72 @@ DADOS DO PACIENTE:
 • Tipo de exame: ${examType}
 
 DADOS CLÍNICOS/VALORES:
-${clinicalData || "Analisar a partir das imagens anexadas"}
+${clinicalData || "Não foram fornecidos dados clínicos textuais."}
+
+${hasImages ? `IMAGENS: ${images.length} imagem(ns) anexada(s) para análise.` : "IMAGENS: Nenhuma imagem foi anexada."}
 
 TIPO DE USUÁRIO: ${userType}
 ${isProfessional === "sim" ? `CRMV: ${crmv}` : ""}
 
-INSTRUÇÕES:
-${isProfessional === "sim" ? `
-- Forneça uma interpretação TÉCNICA e DETALHADA
-- Inclua possíveis diagnósticos diferenciais
-- Sugira exames complementares se necessário
-- Indique condutas terapêuticas possíveis
-- Use terminologia técnica apropriada
-- Cite valores de referência quando aplicável
-` : `
-- Forneça uma explicação SIMPLES e COMPREENSÍVEL
-- Evite termos técnicos complexos ou explique-os
-- Foque no significado prático dos resultados
-- Indique claramente o que está normal e alterado
-- NÃO sugira tratamentos específicos
-`}
+Gere o relatório estruturado conforme as instruções do sistema.`;
 
-Estruture a resposta em:
-1. Resumo Geral
-2. Análise dos Parâmetros
-3. ${isProfessional === "sim" ? "Diagnósticos Diferenciais" : "O que isso significa"}
-4. ${isProfessional === "sim" ? "Recomendações Técnicas" : "Próximos Passos Sugeridos"}
-5. Referências Científicas`,
-          isProfessional: isProfessional === "sim",
-          images: images.map(img => img.url),
-          context: `Interpretação de ${examType} - ${species}`,
-        },
-      });
+      // Build messages array with multimodal support
+      const messages: any[] = [
+        { role: "system", content: systemPrompt }
+      ];
 
-      if (error) throw error;
-
-      // Limpar formatação e adicionar disclaimers
-      let interpretation = data.answer
-        .replace(/\*\*/g, '')
-        .replace(/##/g, '')
-        .replace(/###/g, '')
-        .replace(/\*/g, '•')
-        .replace(/#+\s*/g, '');
-
-      if (isProfessional === "sim") {
-        interpretation += `
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-NOTAS PROFISSIONAIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-• Correlacione sempre com o quadro clínico do paciente
-• Considere exames complementares conforme evolução
-• Avalie histórico e exames anteriores do paciente
-• A conduta final é de responsabilidade do profissional
-
-REFERÊNCIAS CONSULTADAS:
-• Merck Veterinary Manual (11th Edition)
-• Nelson & Couto - Medicina Interna de Pequenos Animais
-• Laboratórios de referência veterinária regionais
-• Thrall MA - Hematologia e Bioquímica Clínica Veterinária`;
+      // If images are present, use multimodal content
+      if (hasImages) {
+        const userContent: any[] = [
+          { type: "text", text: userPrompt }
+        ];
+        
+        // Add each image to the content
+        for (const img of images) {
+          userContent.push({
+            type: "image_url",
+            image_url: { url: img.url }
+          });
+        }
+        
+        messages.push({ role: "user", content: userContent });
       } else {
-        interpretation += `
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-IMPORTANTE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Esta interpretação tem caráter EDUCATIVO e INFORMATIVO.
-
-Para diagnóstico definitivo, tratamento e acompanhamento, 
-consulte um médico veterinário presencialmente.
-
-Não inicie ou altere tratamentos sem orientação profissional.`;
+        // Text-only request
+        messages.push({ role: "user", content: userPrompt });
       }
 
-      setResult(interpretation);
+      // Call Lovable AI Gateway directly (no Edge Function dependency)
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: messages,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error("Limite de requisições excedido. Tente novamente em alguns minutos.");
+        }
+        if (response.status === 402) {
+          throw new Error("Créditos insuficientes. Atualize seu plano para continuar.");
+        }
+        const errorText = await response.text();
+        console.error("AI gateway error:", response.status, errorText);
+        throw new Error(`Erro ao processar análise: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const answer = data.choices?.[0]?.message?.content || "Não foi possível gerar a interpretação.";
+
+      // Clean and format the response
+      const cleanedResult = cleanTextForDisplay(answer);
+
+      setResult(cleanedResult);
       toast({
         title: "Análise concluída",
         description: "Interpretação dos exames gerada com sucesso.",
@@ -281,6 +347,15 @@ Não inicie ou altere tratamentos sem orientação profissional.`;
                   onChange={(e) => setCrmv(e.target.value)}
                 />
               </div>
+            )}
+
+            {isProfessional === "nao" && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  A resposta será simplificada. Para diagnóstico e tratamento, consulte um médico veterinário.
+                </AlertDescription>
+              </Alert>
             )}
           </CardContent>
         </Card>
@@ -353,14 +428,14 @@ Não inicie ou altere tratamentos sem orientação profissional.`;
               Dados do Exame
             </CardTitle>
             <CardDescription>
-              Anexe imagens ou descreva os valores do exame
+              Anexe imagens e/ou descreva os valores do exame. A análise funciona com texto, imagem ou ambos.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
               <Input
                 type="file"
-                accept="image/*,.pdf"
+                accept="image/*"
                 multiple
                 onChange={handleImageUpload}
                 className="hidden"
@@ -370,33 +445,38 @@ Não inicie ou altere tratamentos sem orientação profissional.`;
                 <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-sm font-medium">Clique para anexar imagens</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Fotos do exame, laudos, resultados (JPG, PNG, PDF)
+                  Fotos do exame, laudos, resultados (JPG, PNG)
                 </p>
               </label>
             </div>
 
             {images.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {images.map((img, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={img.url}
-                      alt={`Exame ${index + 1}`}
-                      className="w-full h-20 object-cover rounded-lg border border-border"
-                    />
-                    <button
-                      onClick={() => removeImage(index)}
-                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-primary">
+                  {images.length} imagem(ns) carregada(s) ✓
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {images.map((img, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={img.url}
+                        alt={`Exame ${index + 1}`}
+                        className="w-full h-20 object-cover rounded-lg border border-border"
+                      />
+                      <button
+                        onClick={() => removeImage(index)}
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="clinicalData">Valores/Dados Clínicos</Label>
+              <Label htmlFor="clinicalData">Valores/Dados Clínicos (opcional se tiver imagens)</Label>
               <Textarea
                 id="clinicalData"
                 placeholder="Ex: Hemácias 5.2 milhões/µL, Leucócitos 18.000/µL, ALT 120 U/L, Creatinina 1.8 mg/dL..."
@@ -405,7 +485,7 @@ Não inicie ou altere tratamentos sem orientação profissional.`;
                 className="min-h-[120px]"
               />
               <p className="text-xs text-muted-foreground">
-                Descreva os valores encontrados no exame para uma análise mais precisa
+                Descreva os valores encontrados no exame. Se anexar imagens, este campo é opcional.
               </p>
             </div>
           </CardContent>
@@ -445,11 +525,14 @@ Não inicie ou altere tratamentos sem orientação profissional.`;
                 title={`Interpretação de ${examType}`}
                 content={result}
                 toolName="Interpretação de Exames"
+                references={getReferences()}
+                userInputs={getUserInputs()}
+                showAllFormats={true}
               />
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm">
+                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
                   {result}
                 </div>
               </div>
