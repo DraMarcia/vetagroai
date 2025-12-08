@@ -10,11 +10,13 @@ import {
   ArrowRight,
   LogIn,
   Sparkles,
-  Crown
+  Crown,
+  Info
 } from "lucide-react";
 import logo from "@/assets/logo.jpg";
 import banner from "@/assets/banner.jpg";
 import { AuthDialog } from "@/components/AuthDialog";
+import { AboutModal, useFirstVisitModal } from "@/components/AboutModal";
 
 const categories = [
   {
@@ -49,9 +51,23 @@ const categories = [
 
 const Index = () => {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [aboutModalOpen, setAboutModalOpen] = useState(false);
+  const { showModal: firstVisitModal, setShowModal: setFirstVisitModal } = useFirstVisitModal();
 
   return (
     <div className="min-h-screen">
+      {/* First Visit Modal */}
+      <AboutModal 
+        open={firstVisitModal} 
+        onOpenChange={setFirstVisitModal} 
+      />
+      
+      {/* About Modal (triggered by button) */}
+      <AboutModal 
+        open={aboutModalOpen} 
+        onOpenChange={setAboutModalOpen} 
+      />
+
       {/* Hero Section - Full Screen on Mobile */}
       <div className="relative min-h-[85vh] md:min-h-[70vh] flex flex-col">
         {/* Background Image - Ultra HD without blur */}
@@ -88,15 +104,26 @@ const Index = () => {
             Acesse ferramentas práticas para eficiência, bem-estar animal e decisões baseadas em dados.
           </p>
           
-          {/* CTA Button */}
-          <Button
-            size="lg"
-            onClick={() => setAuthDialogOpen(true)}
-            className="gap-2 shadow-xl text-base px-8 py-3 md:px-10 md:py-4"
-          >
-            <LogIn className="h-5 w-5" />
-            Entrar
-          </Button>
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              size="lg"
+              onClick={() => setAuthDialogOpen(true)}
+              className="gap-2 shadow-xl text-base px-8 py-3 md:px-10 md:py-4"
+            >
+              <LogIn className="h-5 w-5" />
+              Entrar
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => setAboutModalOpen(true)}
+              className="gap-2 shadow-lg text-base px-6 py-3 bg-background/80 backdrop-blur-sm"
+            >
+              <Info className="h-5 w-5" />
+              Sobre
+            </Button>
+          </div>
         </div>
 
         {/* Scroll Indicator - Peek of next section */}

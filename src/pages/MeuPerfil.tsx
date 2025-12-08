@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ToolSuggestionDialog } from "@/components/ToolSuggestionDialog";
+import { CreatorSection } from "@/components/CreatorSection";
 import { Link } from "react-router-dom";
 
 interface UserPreferences {
@@ -429,55 +430,8 @@ const MeuPerfil = () => {
 
       <Separator className="my-8" />
 
-      {/* Social Links */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Heart className="h-5 w-5 text-rose-500" />
-            Conecte-se com a VetAgro AI
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <a
-              href="https://www.linkedin.com/in/m%C3%A1rcia-salgado-212193344"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
-            >
-              <Linkedin className="h-5 w-5 text-blue-600" />
-              <span className="text-sm">LinkedIn</span>
-            </a>
-            <a
-              href="https://www.instagram.com/vetagrosustentavel"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
-            >
-              <Instagram className="h-5 w-5 text-pink-600" />
-              <span className="text-sm">Instagram</span>
-            </a>
-            <a
-              href="https://youtube.com/@vetagrosustentavel"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
-            >
-              <Youtube className="h-5 w-5 text-red-600" />
-              <span className="text-sm">YouTube</span>
-            </a>
-            <a
-              href="https://www.facebook.com/share/1Bn76mwVMx/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 p-3 rounded-lg border hover:bg-muted transition-colors"
-            >
-              <Facebook className="h-5 w-5 text-blue-700" />
-              <span className="text-sm">Facebook</span>
-            </a>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Creator Section - About the App */}
+      <CreatorSection />
     </div>
   );
 };
