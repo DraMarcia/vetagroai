@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, PageBreak } from "docx";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { cleanTextForPDF, parseReportSections } from "./textUtils";
@@ -13,7 +13,17 @@ export interface ReportData {
   toolName?: string;
   date?: Date;
   userInputs?: Record<string, string | number>;
+  caseId?: string;
 }
+
+// ============= Constants =============
+
+const BRAND_COLOR = { r: 34, g: 100, b: 60 }; // Dark green
+const BRAND_HEX = "226444";
+const WEBSITE_URL = "www.vetagroai.com.br";
+const DISCLAIMER = "Este relatório é informativo e não substitui avaliação clínica por médico veterinário habilitado.";
+const FOOTER_TEXT = "Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade.";
+const CTA_TEXT = "Deseja análise complementar? Envie novos dados ou imagens pelo app.";
 
 // ============= PDF Export =============
 
@@ -24,14 +34,20 @@ export async function exportToPDF(data: ReportData): Promise<void> {
   const margin = 20;
   const maxWidth = pageWidth - 2 * margin;
   const lineHeight = 5;
-  const titleLineHeight = 7;
   
   let yPosition = margin;
   let currentPage = 1;
   
-  // Helper: Add new page if needed
+  const caseId = data.caseId || `VET-${Date.now().toString(36).toUpperCase()}`;
+  const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
+  
+  // Helper: Check page break
   const checkPageBreak = (requiredSpace: number = 15): boolean => {
-    if (yPosition + requiredSpace > pageHeight - 30) {
+    if (yPosition + requiredSpace > pageHeight - 35) {
       doc.addPage();
       currentPage++;
       yPosition = margin;
@@ -39,107 +55,152 @@ export async function exportToPDF(data: ReportData): Promise<void> {
     }
     return false;
   };
+
+  // ===== COVER PAGE =====
   
-  // Helper: Add text with automatic page breaks
-  const addText = (text: string, fontSize: number, isBold: boolean = false, isTitle: boolean = false) => {
-    doc.setFontSize(fontSize);
-    doc.setFont("helvetica", isBold ? "bold" : "normal");
-    
-    const lines = doc.splitTextToSize(text, maxWidth);
-    const currentLineHeight = isTitle ? titleLineHeight : lineHeight;
-    
-    for (const line of lines) {
-      checkPageBreak(currentLineHeight);
-      doc.text(line, margin, yPosition);
-      yPosition += currentLineHeight;
-    }
-  };
+  // Header background
+  doc.setFillColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+  doc.rect(0, 0, pageWidth, 60, "F");
   
-  // Helper: Add centered text
-  const addCenteredText = (text: string, fontSize: number, isBold: boolean = false) => {
-    doc.setFontSize(fontSize);
-    doc.setFont("helvetica", isBold ? "bold" : "normal");
-    checkPageBreak(10);
-    doc.text(text, pageWidth / 2, yPosition, { align: "center" });
-    yPosition += 7;
-  };
-  
-  // ===== HEADER =====
-  doc.setFillColor(34, 100, 60); // Dark green
-  doc.rect(0, 0, pageWidth, 18, "F");
-  
+  // Brand name
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(12);
+  doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
-  doc.text("VetAgro Sustentável AI", pageWidth / 2, 8, { align: "center" });
+  doc.text("VetAgro Sustentável AI", pageWidth / 2, 28, { align: "center" });
   
-  doc.setFontSize(9);
+  // Tagline
+  doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text(data.toolName || "Relatório Técnico", pageWidth / 2, 14, { align: "center" });
+  doc.text("Inteligência aplicada à saúde, produção e bem-estar animal", pageWidth / 2, 40, { align: "center" });
+  
+  // Decorative line
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(0.5);
+  doc.line(60, 50, pageWidth - 60, 50);
   
   doc.setTextColor(0, 0, 0);
-  yPosition = 28;
   
-  // ===== TITLE =====
-  doc.setFontSize(16);
+  // Tool name box
+  yPosition = 80;
+  doc.setFillColor(245, 248, 245);
+  doc.roundedRect(margin, yPosition, maxWidth, 25, 3, 3, "F");
+  
+  doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
-  doc.text(data.title, pageWidth / 2, yPosition, { align: "center" });
-  yPosition += 10;
+  doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+  doc.text(data.toolName || "Relatório Técnico", pageWidth / 2, yPosition + 15, { align: "center" });
   
-  // ===== DATE =====
-  const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric"
-  });
-  doc.setFontSize(9);
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Gerado em: ${dateStr}`, pageWidth / 2, yPosition, { align: "center" });
+  // Report title
+  yPosition = 125;
+  doc.setFontSize(18);
   doc.setTextColor(0, 0, 0);
-  yPosition += 8;
+  const titleLines = doc.splitTextToSize(data.title, maxWidth - 20);
+  for (const line of titleLines) {
+    doc.text(line, pageWidth / 2, yPosition, { align: "center" });
+    yPosition += 10;
+  }
   
-  // ===== SEPARATOR =====
-  doc.setDrawColor(200, 200, 200);
-  doc.line(margin, yPosition, pageWidth - margin, yPosition);
-  yPosition += 10;
+  // Case info box
+  yPosition = 165;
+  doc.setFillColor(250, 250, 250);
+  doc.roundedRect(margin + 20, yPosition, maxWidth - 40, 35, 3, 3, "F");
+  doc.setDrawColor(220, 220, 220);
+  doc.roundedRect(margin + 20, yPosition, maxWidth - 40, 35, 3, 3, "S");
   
-  // ===== USER INPUTS (if provided) =====
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Data de Emissão: ${dateStr}`, pageWidth / 2, yPosition + 14, { align: "center" });
+  doc.text(`ID do Caso: ${caseId}`, pageWidth / 2, yPosition + 26, { align: "center" });
+  
+  // Disclaimer box
+  yPosition = 220;
+  doc.setFillColor(255, 250, 240);
+  doc.setDrawColor(255, 200, 100);
+  doc.roundedRect(margin, yPosition, maxWidth, 25, 3, 3, "FD");
+  
+  doc.setFontSize(9);
+  doc.setTextColor(150, 100, 50);
+  doc.setFont("helvetica", "bold");
+  doc.text("AVISO IMPORTANTE", pageWidth / 2, yPosition + 10, { align: "center" });
+  doc.setFont("helvetica", "normal");
+  doc.text(DISCLAIMER, pageWidth / 2, yPosition + 18, { align: "center" });
+  
+  // Footer on cover
+  doc.setTextColor(150, 150, 150);
+  doc.setFontSize(9);
+  doc.text(WEBSITE_URL, pageWidth / 2, pageHeight - 25, { align: "center" });
+  doc.text(`© VetAgro Sustentável AI - ${new Date().getFullYear()}`, pageWidth / 2, pageHeight - 18, { align: "center" });
+  
+  // ===== CONTENT PAGES =====
+  doc.addPage();
+  currentPage = 2;
+  yPosition = margin;
+  
+  // Page header
+  const addPageHeader = () => {
+    doc.setFillColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+    doc.rect(0, 0, pageWidth, 15, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("VetAgro Sustentável AI", 15, 10);
+    doc.setFont("helvetica", "normal");
+    doc.text(data.toolName || "Relatório", pageWidth - 15, 10, { align: "right" });
+    doc.setTextColor(0, 0, 0);
+  };
+  
+  addPageHeader();
+  yPosition = 25;
+  
+  // User inputs section
   if (data.userInputs && Object.keys(data.userInputs).length > 0) {
+    doc.setFillColor(248, 250, 248);
+    doc.roundedRect(margin, yPosition, maxWidth, 8 + Object.keys(data.userInputs).length * 6, 2, 2, "F");
+    
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("DADOS DO CASO:", margin, yPosition);
-    yPosition += 7;
+    doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+    doc.text("IDENTIFICAÇÃO DO CASO", margin + 5, yPosition + 6);
+    yPosition += 12;
     
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
+    doc.setTextColor(60, 60, 60);
     
     for (const [key, value] of Object.entries(data.userInputs)) {
-      checkPageBreak(6);
       const text = `• ${key}: ${value}`;
-      const lines = doc.splitTextToSize(text, maxWidth);
+      const lines = doc.splitTextToSize(text, maxWidth - 10);
       for (const line of lines) {
-        doc.text(line, margin, yPosition);
+        doc.text(line, margin + 5, yPosition);
         yPosition += 5;
       }
     }
-    yPosition += 5;
+    yPosition += 8;
   }
   
-  // ===== MAIN CONTENT =====
+  // Main content
   const cleanedContent = cleanTextForPDF(data.content);
   const sections = parseReportSections(cleanedContent);
   
   for (const section of sections) {
     // Section title
     if (section.title) {
-      checkPageBreak(20);
-      yPosition += 3;
+      if (checkPageBreak(25)) {
+        addPageHeader();
+        yPosition = 25;
+      }
+      
+      yPosition += 5;
+      doc.setFillColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+      doc.rect(margin, yPosition - 4, 3, 10, "F");
+      
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(34, 100, 60);
-      doc.text(section.title, margin, yPosition);
+      doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+      doc.text(section.title, margin + 6, yPosition + 3);
       doc.setTextColor(0, 0, 0);
-      yPosition += 7;
+      yPosition += 12;
     }
     
     // Section body
@@ -153,24 +214,46 @@ export async function exportToPDF(data: ReportData): Promise<void> {
         const trimmedPara = para.trim();
         if (!trimmedPara) continue;
         
-        checkPageBreak(6);
+        if (checkPageBreak(8)) {
+          addPageHeader();
+          yPosition = 25;
+        }
         
         // Handle bullet points
-        if (trimmedPara.startsWith("•") || trimmedPara.startsWith("-")) {
-          const bulletText = trimmedPara.replace(/^[•-]\s*/, "");
-          const lines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 5);
+        if (trimmedPara.startsWith("•") || trimmedPara.startsWith("-") || trimmedPara.startsWith("–")) {
+          const bulletText = trimmedPara.replace(/^[•\-–]\s*/, "");
+          const lines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 8);
           for (let i = 0; i < lines.length; i++) {
-            checkPageBreak(5);
-            doc.text(lines[i], margin + (i === 0 ? 0 : 3), yPosition);
+            if (checkPageBreak(6)) {
+              addPageHeader();
+              yPosition = 25;
+            }
+            doc.text(lines[i], margin + (i === 0 ? 3 : 6), yPosition);
             yPosition += 5;
           }
         }
         // Handle numbered items
         else if (trimmedPara.match(/^\d+\./)) {
-          const lines = doc.splitTextToSize(trimmedPara, maxWidth - 5);
+          const lines = doc.splitTextToSize(trimmedPara, maxWidth - 8);
           for (let i = 0; i < lines.length; i++) {
-            checkPageBreak(5);
-            doc.text(lines[i], margin + (i === 0 ? 0 : 5), yPosition);
+            if (checkPageBreak(6)) {
+              addPageHeader();
+              yPosition = 25;
+            }
+            doc.text(lines[i], margin + (i === 0 ? 3 : 8), yPosition);
+            yPosition += 5;
+          }
+        }
+        // Handle arrows
+        else if (trimmedPara.startsWith("→") || trimmedPara.startsWith("->")) {
+          const arrowText = trimmedPara.replace(/^(→|->)\s*/, "");
+          const lines = doc.splitTextToSize(`→ ${arrowText}`, maxWidth - 8);
+          for (let i = 0; i < lines.length; i++) {
+            if (checkPageBreak(6)) {
+              addPageHeader();
+              yPosition = 25;
+            }
+            doc.text(lines[i], margin + (i === 0 ? 5 : 8), yPosition);
             yPosition += 5;
           }
         }
@@ -178,79 +261,94 @@ export async function exportToPDF(data: ReportData): Promise<void> {
         else {
           const lines = doc.splitTextToSize(trimmedPara, maxWidth);
           for (const line of lines) {
-            checkPageBreak(5);
+            if (checkPageBreak(6)) {
+              addPageHeader();
+              yPosition = 25;
+            }
             doc.text(line, margin, yPosition);
             yPosition += 5;
           }
         }
       }
-      yPosition += 2;
+      yPosition += 3;
     }
   }
   
-  // ===== REFERENCES =====
+  // References section
   if (data.references && data.references.length > 0) {
-    checkPageBreak(40);
-    yPosition += 8;
+    if (checkPageBreak(50)) {
+      addPageHeader();
+      yPosition = 25;
+    }
     
+    yPosition += 10;
     doc.setDrawColor(200, 200, 200);
     doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 8;
+    yPosition += 10;
     
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(34, 100, 60);
-    doc.text("REFERÊNCIAS CONSULTADAS:", margin, yPosition);
+    doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+    doc.text("REFERÊNCIAS CONSULTADAS", margin, yPosition);
     doc.setTextColor(0, 0, 0);
-    yPosition += 7;
+    yPosition += 8;
     
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     
     for (const ref of data.references) {
-      checkPageBreak(5);
-      const cleanRef = ref.replace(/^[•-]\s*/, "").trim();
+      if (checkPageBreak(6)) {
+        addPageHeader();
+        yPosition = 25;
+      }
+      const cleanRef = ref.replace(/^[•\-–]\s*/, "").trim();
       const lines = doc.splitTextToSize(`• ${cleanRef}`, maxWidth - 5);
       for (const line of lines) {
-        doc.text(line, margin, yPosition);
+        doc.text(line, margin + 3, yPosition);
         yPosition += 4;
       }
     }
   }
   
-  // ===== FOOTER ON ALL PAGES =====
+  // CTA Section
+  if (checkPageBreak(30)) {
+    addPageHeader();
+    yPosition = 25;
+  }
+  yPosition += 15;
+  
+  doc.setFillColor(240, 248, 240);
+  doc.setDrawColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+  doc.roundedRect(margin, yPosition, maxWidth, 18, 3, 3, "FD");
+  
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+  doc.text(CTA_TEXT, pageWidth / 2, yPosition + 11, { align: "center" });
+  
+  // Footer on all pages
   const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
+  for (let i = 2; i <= totalPages; i++) {
     doc.setPage(i);
     
     // Footer background
-    doc.setFillColor(245, 245, 245);
-    doc.rect(0, pageHeight - 20, pageWidth, 20, "F");
+    doc.setFillColor(250, 250, 250);
+    doc.rect(0, pageHeight - 18, pageWidth, 18, "F");
     
     // Footer line
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+    doc.setDrawColor(220, 220, 220);
+    doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
     
     // Footer text
     doc.setFontSize(7);
-    doc.setTextColor(100, 100, 100);
-    doc.text(
-      "Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade.",
-      pageWidth / 2,
-      pageHeight - 12,
-      { align: "center" }
-    );
+    doc.setTextColor(120, 120, 120);
+    doc.text(FOOTER_TEXT, pageWidth / 2, pageHeight - 10, { align: "center" });
     
     doc.setFontSize(8);
-    doc.text(
-      `Página ${i} de ${totalPages}`,
-      pageWidth / 2,
-      pageHeight - 6,
-      { align: "center" }
-    );
+    doc.text(`Página ${i - 1} de ${totalPages - 1}`, pageWidth / 2, pageHeight - 5, { align: "center" });
   }
   
-  // ===== SAVE =====
+  // Save
   const fileName = `${data.title.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
   doc.save(fileName);
 }
@@ -261,64 +359,105 @@ export async function exportToDocx(data: ReportData): Promise<void> {
   const cleanedContent = cleanTextForPDF(data.content);
   const sections = parseReportSections(cleanedContent);
   
+  const caseId = data.caseId || `VET-${Date.now().toString(36).toUpperCase()}`;
+  const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  });
+  
   const children: Paragraph[] = [];
   
-  // Header
+  // Cover section
   children.push(
     new Paragraph({
       children: [
         new TextRun({
           text: "VetAgro Sustentável AI",
           bold: true,
-          size: 24,
-          color: "226444"
-        }),
-        new TextRun({
-          text: data.toolName ? ` — ${data.toolName}` : "",
-          size: 24,
-          color: "666666"
+          size: 48,
+          color: BRAND_HEX
         })
       ],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 200 }
-    })
-  );
-  
-  // Title
-  children.push(
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: data.title,
-          bold: true,
-          size: 32,
-          color: "226444"
-        })
-      ],
-      heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
       spacing: { after: 100 }
-    })
-  );
-  
-  // Date
-  const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric"
-  });
-  children.push(
+    }),
     new Paragraph({
       children: [
         new TextRun({
-          text: `Gerado em: ${dateStr}`,
-          size: 20,
+          text: "Inteligência aplicada à saúde, produção e bem-estar animal",
+          size: 22,
           color: "666666",
           italics: true
         })
       ],
       alignment: AlignmentType.CENTER,
       spacing: { after: 400 }
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: data.toolName || "Relatório Técnico",
+          bold: true,
+          size: 28,
+          color: BRAND_HEX
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 }
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: data.title,
+          bold: true,
+          size: 36
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 300 }
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `Data de Emissão: ${dateStr}`,
+          size: 20,
+          color: "666666"
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 50 }
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `ID do Caso: ${caseId}`,
+          size: 20,
+          color: "666666"
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 400 }
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "AVISO: ",
+          bold: true,
+          size: 18,
+          color: "996600"
+        }),
+        new TextRun({
+          text: DISCLAIMER,
+          size: 18,
+          color: "996600"
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 600 }
+    }),
+    new Paragraph({
+      children: [new PageBreak()]
     })
   );
   
@@ -328,13 +467,16 @@ export async function exportToDocx(data: ReportData): Promise<void> {
       new Paragraph({
         children: [
           new TextRun({
-            text: "DADOS DO CASO",
+            text: "IDENTIFICAÇÃO DO CASO",
             bold: true,
             size: 24,
-            color: "226444"
+            color: BRAND_HEX
           })
         ],
-        spacing: { before: 200, after: 100 }
+        spacing: { before: 200, after: 150 },
+        border: {
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: BRAND_HEX }
+        }
       })
     );
     
@@ -350,6 +492,8 @@ export async function exportToDocx(data: ReportData): Promise<void> {
         })
       );
     }
+    
+    children.push(new Paragraph({ spacing: { after: 200 } }));
   }
   
   // Content sections
@@ -362,11 +506,14 @@ export async function exportToDocx(data: ReportData): Promise<void> {
               text: section.title,
               bold: true,
               size: 24,
-              color: "226444"
+              color: BRAND_HEX
             })
           ],
           heading: HeadingLevel.HEADING_1,
-          spacing: { before: 300, after: 100 }
+          spacing: { before: 300, after: 150 },
+          border: {
+            left: { style: BorderStyle.SINGLE, size: 12, color: BRAND_HEX, space: 10 }
+          }
         })
       );
     }
@@ -378,8 +525,10 @@ export async function exportToDocx(data: ReportData): Promise<void> {
         const trimmedPara = para.trim();
         if (!trimmedPara) continue;
         
-        const isBullet = trimmedPara.startsWith("•") || trimmedPara.startsWith("-");
-        const text = isBullet ? trimmedPara.replace(/^[•-]\s*/, "") : trimmedPara;
+        const isBullet = trimmedPara.startsWith("•") || trimmedPara.startsWith("-") || trimmedPara.startsWith("–");
+        const isArrow = trimmedPara.startsWith("→") || trimmedPara.startsWith("->");
+        const text = isBullet ? trimmedPara.replace(/^[•\-–]\s*/, "") : 
+                     isArrow ? trimmedPara.replace(/^(→|->)\s*/, "→ ") : trimmedPara;
         
         children.push(
           new Paragraph({
@@ -406,7 +555,7 @@ export async function exportToDocx(data: ReportData): Promise<void> {
             text: "REFERÊNCIAS CONSULTADAS",
             bold: true,
             size: 24,
-            color: "226444"
+            color: BRAND_HEX
           })
         ],
         heading: HeadingLevel.HEADING_1,
@@ -418,7 +567,7 @@ export async function exportToDocx(data: ReportData): Promise<void> {
     );
     
     for (const ref of data.references) {
-      const cleanRef = ref.replace(/^[•-]\s*/, "").trim();
+      const cleanRef = ref.replace(/^[•\-–]\s*/, "").trim();
       children.push(
         new Paragraph({
           children: [new TextRun({ text: cleanRef, size: 20 })],
@@ -429,19 +578,46 @@ export async function exportToDocx(data: ReportData): Promise<void> {
     }
   }
   
+  // CTA
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: CTA_TEXT,
+          bold: true,
+          size: 20,
+          color: BRAND_HEX
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 400, after: 200 }
+    })
+  );
+  
   // Footer
   children.push(
     new Paragraph({
       children: [
         new TextRun({
-          text: "Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade.",
+          text: FOOTER_TEXT,
           size: 18,
           color: "999999",
           italics: true
         })
       ],
       alignment: AlignmentType.CENTER,
-      spacing: { before: 400 }
+      spacing: { before: 200 }
+    }),
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: `${WEBSITE_URL} | © VetAgro Sustentável AI ${new Date().getFullYear()}`,
+          size: 16,
+          color: "AAAAAA"
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 100 }
     })
   );
   
@@ -463,25 +639,30 @@ export async function exportToXlsx(data: ReportData): Promise<void> {
   const cleanedContent = cleanTextForPDF(data.content);
   const sections = parseReportSections(cleanedContent);
   
+  const caseId = data.caseId || `VET-${Date.now().toString(36).toUpperCase()}`;
+  
   const wb = XLSX.utils.book_new();
   
   // Main content sheet
   const mainData: string[][] = [];
   mainData.push(["VetAgro Sustentável AI"]);
+  mainData.push(["Inteligência aplicada à saúde, produção e bem-estar animal"]);
+  mainData.push([""]);
   mainData.push([data.title]);
-  mainData.push([`Gerado em: ${(data.date || new Date()).toLocaleDateString("pt-BR")}`]);
-  if (data.toolName) {
-    mainData.push([`Ferramenta: ${data.toolName}`]);
-  }
-  mainData.push([]);
+  mainData.push([`Ferramenta: ${data.toolName || "Relatório Técnico"}`]);
+  mainData.push([`Data: ${(data.date || new Date()).toLocaleDateString("pt-BR")}`]);
+  mainData.push([`ID do Caso: ${caseId}`]);
+  mainData.push([""]);
+  mainData.push([DISCLAIMER]);
+  mainData.push([""]);
   
   // User inputs
   if (data.userInputs && Object.keys(data.userInputs).length > 0) {
-    mainData.push(["DADOS DO CASO"]);
+    mainData.push(["IDENTIFICAÇÃO DO CASO"]);
     for (const [key, value] of Object.entries(data.userInputs)) {
       mainData.push([`${key}: ${value}`]);
     }
-    mainData.push([]);
+    mainData.push([""]);
   }
   
   // Content
@@ -494,21 +675,24 @@ export async function exportToXlsx(data: ReportData): Promise<void> {
     for (const line of lines) {
       mainData.push([line.trim()]);
     }
-    mainData.push([]);
+    mainData.push([""]);
   }
   
   // References
   if (data.references && data.references.length > 0) {
     mainData.push(["REFERÊNCIAS CONSULTADAS"]);
     for (const ref of data.references) {
-      const cleanRef = ref.replace(/^[•-]\s*/, "").trim();
+      const cleanRef = ref.replace(/^[•\-–]\s*/, "").trim();
       mainData.push([`• ${cleanRef}`]);
     }
   }
   
-  // Footer
-  mainData.push([]);
-  mainData.push(["Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade."]);
+  // CTA and Footer
+  mainData.push([""]);
+  mainData.push([CTA_TEXT]);
+  mainData.push([""]);
+  mainData.push([FOOTER_TEXT]);
+  mainData.push([`${WEBSITE_URL} | © VetAgro Sustentável AI ${new Date().getFullYear()}`]);
   
   const mainWs = XLSX.utils.aoa_to_sheet(mainData);
   mainWs["!cols"] = [{ wch: 120 }];
@@ -535,6 +719,7 @@ export async function exportToEpub(data: ReportData): Promise<void> {
   const cleanedContent = cleanTextForPDF(data.content);
   const sections = parseReportSections(cleanedContent);
   
+  const caseId = data.caseId || `VET-${Date.now().toString(36).toUpperCase()}`;
   const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "long",
@@ -549,59 +734,74 @@ export async function exportToEpub(data: ReportData): Promise<void> {
   <title>${data.title}</title>
   <style>
     body {
-      font-family: Georgia, 'Times New Roman', serif;
+      font-family: 'Open Sans', 'Roboto', Arial, sans-serif;
       line-height: 1.7;
       max-width: 800px;
       margin: 0 auto;
       padding: 20px;
       color: #333;
     }
-    .header {
-      background-color: #226444;
-      color: white;
-      padding: 15px;
+    .cover {
       text-align: center;
-      margin-bottom: 20px;
-      border-radius: 4px;
+      padding: 40px 20px;
+      border-bottom: 3px solid #226444;
+      margin-bottom: 30px;
     }
-    .header h1 {
-      margin: 0;
-      font-size: 1.2em;
-    }
-    .header p {
-      margin: 5px 0 0 0;
-      font-size: 0.9em;
-      opacity: 0.9;
-    }
-    h1.title {
+    .cover h1 {
       color: #226444;
+      margin: 0;
+      font-size: 2em;
+    }
+    .cover .tagline {
+      color: #666;
+      font-style: italic;
+      margin: 10px 0 30px 0;
+    }
+    .cover .tool-name {
+      background: #f0f8f0;
+      display: inline-block;
+      padding: 10px 25px;
+      border-radius: 5px;
+      color: #226444;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    .cover .title {
+      font-size: 1.4em;
+      margin: 25px 0;
+      font-weight: bold;
+    }
+    .cover .meta {
+      color: #888;
+      font-size: 0.9em;
+    }
+    .disclaimer {
+      background: #fff8e0;
+      border: 1px solid #ffd700;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
       text-align: center;
-      border-bottom: 2px solid #226444;
-      padding-bottom: 10px;
+      font-size: 0.9em;
+      color: #996600;
+    }
+    .case-data {
+      background-color: #f8f8f8;
+      padding: 20px;
+      border-radius: 5px;
+      margin-bottom: 25px;
+      border-left: 4px solid #226444;
+    }
+    .case-data h3 {
       margin-top: 0;
+      color: #226444;
     }
     h2 {
       color: #226444;
       margin-top: 30px;
       border-left: 4px solid #226444;
-      padding-left: 10px;
-      font-size: 1.1em;
-    }
-    .meta {
-      text-align: center;
-      color: #666;
-      font-style: italic;
-      margin-bottom: 30px;
-    }
-    .case-data {
-      background-color: #f8f8f8;
-      padding: 15px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-    .case-data h3 {
-      margin-top: 0;
-      color: #226444;
+      padding-left: 12px;
+      font-size: 1.2em;
     }
     .content p {
       text-align: justify;
@@ -610,16 +810,18 @@ export async function exportToEpub(data: ReportData): Promise<void> {
     .bullet {
       padding-left: 20px;
       position: relative;
+      margin-bottom: 8px;
     }
     .bullet::before {
       content: "•";
       position: absolute;
       left: 5px;
+      color: #226444;
     }
     .references {
       margin-top: 40px;
       padding-top: 20px;
-      border-top: 1px solid #ccc;
+      border-top: 2px solid #eee;
     }
     .references h2 {
       border-left: none;
@@ -628,6 +830,16 @@ export async function exportToEpub(data: ReportData): Promise<void> {
     .references ul {
       list-style-type: disc;
       padding-left: 25px;
+    }
+    .cta {
+      background: #f0f8f0;
+      border: 1px solid #226444;
+      padding: 15px;
+      border-radius: 5px;
+      text-align: center;
+      margin: 30px 0;
+      color: #226444;
+      font-weight: bold;
     }
     .footer {
       margin-top: 50px;
@@ -640,21 +852,24 @@ export async function exportToEpub(data: ReportData): Promise<void> {
   </style>
 </head>
 <body>
-  <div class="header">
+  <div class="cover">
     <h1>VetAgro Sustentável AI</h1>
-    <p>${data.toolName || "Relatório Técnico"}</p>
+    <p class="tagline">Inteligência aplicada à saúde, produção e bem-estar animal</p>
+    <div class="tool-name">${data.toolName || "Relatório Técnico"}</div>
+    <p class="title">${data.title}</p>
+    <p class="meta">Data de Emissão: ${dateStr}</p>
+    <p class="meta">ID do Caso: ${caseId}</p>
   </div>
   
-  <h1 class="title">${data.title}</h1>
-  <div class="meta">
-    <p>Gerado em: ${dateStr}</p>
+  <div class="disclaimer">
+    <strong>AVISO:</strong> ${DISCLAIMER}
   </div>`;
 
   // User inputs
   if (data.userInputs && Object.keys(data.userInputs).length > 0) {
     htmlContent += `
   <div class="case-data">
-    <h3>Dados do Caso</h3>
+    <h3>Identificação do Caso</h3>
     <ul>`;
     for (const [key, value] of Object.entries(data.userInputs)) {
       htmlContent += `
@@ -679,9 +894,9 @@ export async function exportToEpub(data: ReportData): Promise<void> {
       const trimmedPara = para.trim();
       if (!trimmedPara) continue;
       
-      if (trimmedPara.startsWith("•") || trimmedPara.startsWith("-")) {
+      if (trimmedPara.startsWith("•") || trimmedPara.startsWith("-") || trimmedPara.startsWith("–")) {
         htmlContent += `
-    <p class="bullet">${trimmedPara.replace(/^[•-]\s*/, "")}</p>`;
+    <p class="bullet">${trimmedPara.replace(/^[•\-–]\s*/, "")}</p>`;
       } else {
         htmlContent += `
     <p>${trimmedPara}</p>`;
@@ -696,7 +911,7 @@ export async function exportToEpub(data: ReportData): Promise<void> {
     <h2>Referências Consultadas</h2>
     <ul>`;
     for (const ref of data.references) {
-      const cleanRef = ref.replace(/^[•-]\s*/, "").trim();
+      const cleanRef = ref.replace(/^[•\-–]\s*/, "").trim();
       htmlContent += `
       <li>${cleanRef}</li>`;
     }
@@ -709,8 +924,12 @@ export async function exportToEpub(data: ReportData): Promise<void> {
   }
   
   htmlContent += `
+  <div class="cta">
+    ${CTA_TEXT}
+  </div>
   <div class="footer">
-    <p>Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade.</p>
+    <p>${FOOTER_TEXT}</p>
+    <p>${WEBSITE_URL} | © VetAgro Sustentável AI ${new Date().getFullYear()}</p>
   </div>
 </body>
 </html>`;
