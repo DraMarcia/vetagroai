@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle, FileUp, RefreshCw, Stethoscope } from "lucide-react";
+import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle, FileUp, RefreshCw, Stethoscope, Copy, Download, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ReportExporter } from "@/components/ReportExporter";
 import { supabase } from "@/integrations/supabase/client";
@@ -395,6 +395,68 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
   const imageCount = files.filter(f => f.type === "image").length;
   const pdfCount = files.filter(f => f.type === "pdf").length;
 
+  // === SAFE COPY FUNCTION ===
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopyReport = async () => {
+    if (!result) return;
+    
+    try {
+      await navigator.clipboard.writeText(result);
+      setCopied(true);
+      toast({
+        title: "Copiado!",
+        description: "Relatório copiado para a área de transferência.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar. Selecione o texto manualmente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // === ISOLATED PDF GENERATION ===
+  const [pdfLoading, setPdfLoading] = useState(false);
+  
+  const handleGeneratePdfExperimental = async () => {
+    if (!result) return;
+    
+    setPdfLoading(true);
+    
+    try {
+      // Dynamic import to isolate PDF generation
+      const { exportToPDF } = await import("@/lib/reportExport");
+      
+      const reportData = {
+        title: `Interpretação de ${examType}`,
+        content: result,
+        toolName: "Interpretação de Exames",
+        references: getReferences(),
+        userInputs: getUserInputs(),
+        date: new Date()
+      };
+      
+      await exportToPDF(reportData);
+      
+      toast({
+        title: "PDF gerado!",
+        description: "Download iniciado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast({
+        title: "PDF temporariamente indisponível",
+        description: "Utilize o botão Copiar Relatório como alternativa.",
+        variant: "destructive",
+      });
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -660,34 +722,68 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
         {result && (
           <>
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Interpretação</CardTitle>
-                  <CardDescription>
-                    {isProfessional === "sim" 
-                      ? "Análise técnica para profissional" 
-                      : "Explicação simplificada"}
-                  </CardDescription>
-                </div>
-                {canExportPdf && (
-                  <ReportExporter
-                    title={`Interpretação de ${examType}`}
-                    content={result}
-                    toolName="Interpretação de Exames"
-                    references={getReferences()}
-                    userInputs={getUserInputs()}
-                    showAllFormats={true}
-                  />
-                )}
+              <CardHeader>
+                <CardTitle className="text-lg">Interpretação</CardTitle>
+                <CardDescription>
+                  {isProfessional === "sim" 
+                    ? "Análise técnica para profissional" 
+                    : "Explicação simplificada"}
+                </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="prose prose-sm max-w-none">
                   <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
                     {result}
                   </div>
                 </div>
+
+                {/* === EXPORT BUTTONS SECTION === */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
+                  {/* SAFE COPY BUTTON - Always works */}
+                  <Button
+                    onClick={handleCopyReport}
+                    variant="default"
+                    className="flex-1"
+                    disabled={copied}
+                  >
+                    {copied ? (
+                      <>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Copiado!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copiar Relatório (Recomendado)
+                      </>
+                    )}
+                  </Button>
+
+                  {/* EXPERIMENTAL PDF BUTTON - Isolated, may fail */}
+                  {canExportPdf && (
+                    <Button
+                      onClick={handleGeneratePdfExperimental}
+                      variant="outline"
+                      className="flex-1"
+                      disabled={pdfLoading}
+                    >
+                      {pdfLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Gerando...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" />
+                          Gerar PDF (Experimental)
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
                 {!canExportPdf && (
-                  <p className="text-xs text-muted-foreground mt-3">
+                  <p className="text-xs text-muted-foreground">
                     Exportação em PDF disponível nos planos Pro e Enterprise.
                   </p>
                 )}
