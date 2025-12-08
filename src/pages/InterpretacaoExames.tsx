@@ -13,21 +13,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle } from "lucide-react";
+import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle, FileUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ReportExporter } from "@/components/ReportExporter";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 
+interface UploadedFile {
+  url: string;
+  name: string;
+  type: "image" | "pdf";
+}
+
 const InterpretacaoExames = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [isProfessional, setIsProfessional] = useState("");
   const [crmv, setCrmv] = useState("");
   const [species, setSpecies] = useState("");
   const [age, setAge] = useState("");
   const [weight, setWeight] = useState("");
   const [examType, setExamType] = useState("");
-  const [images, setImages] = useState<{ url: string; name: string }[]>([]);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [clinicalData, setClinicalData] = useState("");
   const [result, setResult] = useState("");
 
@@ -56,33 +63,58 @@ const InterpretacaoExames = () => {
     "Outro"
   ];
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFiles = e.target.files;
+    if (!uploadedFiles) return;
 
-    const fileArray = Array.from(files);
-    const imagePromises = fileArray.map((file) => {
-      return new Promise<{ url: string; name: string }>((resolve) => {
+    const fileArray = Array.from(uploadedFiles);
+    const filePromises = fileArray.map((file) => {
+      return new Promise<UploadedFile>((resolve, reject) => {
+        const isPdf = file.type === "application/pdf";
+        const isImage = file.type.startsWith("image/");
+        
+        if (!isPdf && !isImage) {
+          reject(new Error(`Arquivo não suportado: ${file.name}`));
+          return;
+        }
+
         const reader = new FileReader();
         reader.onloadend = () => resolve({
           url: reader.result as string,
-          name: file.name
+          name: file.name,
+          type: isPdf ? "pdf" : "image"
         });
+        reader.onerror = () => reject(new Error(`Erro ao ler ${file.name}`));
         reader.readAsDataURL(file);
       });
     });
 
-    Promise.all(imagePromises).then((loadedImages) => {
-      setImages(prev => [...prev, ...loadedImages]);
-      toast({
-        title: "Imagens carregadas",
-        description: `${loadedImages.length} arquivo(s) adicionado(s).`,
+    Promise.all(filePromises)
+      .then((loadedFiles) => {
+        setFiles(prev => [...prev, ...loadedFiles]);
+        const imageCount = loadedFiles.filter(f => f.type === "image").length;
+        const pdfCount = loadedFiles.filter(f => f.type === "pdf").length;
+        
+        let message = "";
+        if (imageCount > 0) message += `${imageCount} imagem(ns)`;
+        if (pdfCount > 0) message += `${message ? " e " : ""}${pdfCount} PDF(s)`;
+        
+        toast({
+          title: "Arquivos carregados",
+          description: `${message} adicionado(s) com sucesso.`,
+        });
+      })
+      .catch((error) => {
+        toast({
+          title: "Erro ao carregar arquivo",
+          description: error.message,
+          variant: "destructive",
+        });
       });
-    });
   };
 
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const getReferences = () => [
@@ -93,18 +125,83 @@ const InterpretacaoExames = () => {
     "Thrall MA — Hematologia e Bioquímica Clínica Veterinária"
   ];
 
-  const getUserInputs = () => ({
-    "Tipo de Usuário": isProfessional === "sim" ? "Profissional Veterinário" : "Tutor/Produtor",
-    ...(isProfessional === "sim" && crmv ? { "CRMV": crmv } : {}),
-    "Espécie": species,
-    "Idade": age,
-    "Peso": weight,
-    "Tipo de Exame": examType,
-    "Imagens Anexadas": images.length > 0 ? `${images.length} imagem(ns)` : "Nenhuma",
-    ...(clinicalData ? { "Dados Clínicos": clinicalData.substring(0, 200) + (clinicalData.length > 200 ? "..." : "") } : {}),
-  });
+  const getUserInputs = () => {
+    const imageCount = files.filter(f => f.type === "image").length;
+    const pdfCount = files.filter(f => f.type === "pdf").length;
+    
+    let filesInfo = "Nenhum";
+    if (imageCount > 0 || pdfCount > 0) {
+      const parts = [];
+      if (imageCount > 0) parts.push(`${imageCount} imagem(ns)`);
+      if (pdfCount > 0) parts.push(`${pdfCount} PDF(s)`);
+      filesInfo = parts.join(" e ");
+    }
+
+    return {
+      "Tipo de Usuário": isProfessional === "sim" ? "Profissional Veterinário" : "Tutor/Produtor",
+      ...(isProfessional === "sim" && crmv ? { "CRMV": crmv } : {}),
+      "Espécie": species,
+      "Idade": age,
+      "Peso": weight,
+      "Tipo de Exame": examType,
+      "Arquivos Anexados": filesInfo,
+      ...(clinicalData ? { "Dados Clínicos": clinicalData.substring(0, 200) + (clinicalData.length > 200 ? "..." : "") } : {}),
+    };
+  };
+
+  const extractPdfContent = async (pdfBase64: string): Promise<string> => {
+    try {
+      // Use Lovable AI to extract text from PDF via OCR
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: `Extraia TODO o texto deste documento PDF de exame laboratorial veterinário. 
+                  
+INSTRUÇÕES:
+- Extraia todos os valores laboratoriais (hemograma, bioquímica, etc.)
+- Mantenha os valores numéricos e unidades exatamente como aparecem
+- Se houver observações ou interpretações do laboratório, inclua-as
+- Se o PDF estiver ilegível ou criptografado, retorne: "PDF_NAO_LEGIVEL"
+- Organize os dados de forma clara e estruturada
+
+Retorne APENAS o conteúdo extraído, sem comentários adicionais.`
+                },
+                {
+                  type: "image_url",
+                  image_url: { url: pdfBase64 }
+                }
+              ]
+            }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        return "PDF_ERRO_LEITURA";
+      }
+
+      const data = await response.json();
+      const extractedText = data.choices?.[0]?.message?.content || "PDF_ERRO_LEITURA";
+      return extractedText;
+    } catch (error) {
+      console.error("Erro ao extrair PDF:", error);
+      return "PDF_ERRO_LEITURA";
+    }
+  };
 
   const handleAnalyze = async () => {
+    // Validation
     if (!isProfessional) {
       toast({
         title: "Campo obrigatório",
@@ -132,25 +229,69 @@ const InterpretacaoExames = () => {
       return;
     }
 
-    if (images.length === 0 && !clinicalData.trim()) {
+    if (files.length === 0 && !clinicalData.trim()) {
       toast({
         title: "Dados insuficientes",
-        description: "Anexe imagens dos exames ou descreva os valores clínicos.",
+        description: "Anexe arquivos (imagens ou PDFs) ou descreva os valores clínicos no campo de texto.",
         variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
+    setResult("");
+    
     try {
       const userType = isProfessional === "sim" ? "profissional" : "tutor";
-      const hasImages = images.length > 0;
+      const images = files.filter(f => f.type === "image");
+      const pdfs = files.filter(f => f.type === "pdf");
       
+      let extractedPdfContent = "";
+      let pdfWarning = "";
+
+      // Process PDFs if any
+      if (pdfs.length > 0) {
+        setLoadingMessage("Extraindo dados dos PDFs...");
+        
+        const pdfContents: string[] = [];
+        for (const pdf of pdfs) {
+          const content = await extractPdfContent(pdf.url);
+          if (content === "PDF_NAO_LEGIVEL" || content === "PDF_ERRO_LEITURA") {
+            pdfWarning = `Não conseguimos ler automaticamente o PDF "${pdf.name}". Os valores do laudo devem ser descritos no campo de texto.`;
+          } else {
+            pdfContents.push(`--- Conteúdo de ${pdf.name} ---\n${content}`);
+          }
+        }
+        
+        if (pdfContents.length > 0) {
+          extractedPdfContent = pdfContents.join("\n\n");
+        }
+      }
+
+      setLoadingMessage("Analisando dados clínicos...");
+
+      const hasImages = images.length > 0;
+      const hasExtractedPdf = extractedPdfContent.length > 0;
+      const hasTextData = clinicalData.trim().length > 0;
+
+      // Build analysis context
+      let analysisContext = "";
+      if (hasExtractedPdf) {
+        analysisContext += `\nDADOS EXTRAÍDOS DO PDF:\n${extractedPdfContent}\n`;
+      }
+      if (hasTextData) {
+        analysisContext += `\nDADOS CLÍNICOS INFORMADOS:\n${clinicalData}\n`;
+      }
+      if (!hasImages && !hasExtractedPdf && !hasTextData) {
+        analysisContext = "\nNENHUM DADO FOI FORNECIDO PARA ANÁLISE.\n";
+      }
+
       const systemPrompt = `Você é a inteligência clínica da ferramenta Interpretação de Exames – VetAgro Sustentável AI.
 
-Sua função: analisar imagem (quando fornecida) + texto clínico e gerar um relatório estruturado, legível e técnico.
+Sua função: analisar imagens de exames (quando fornecidas), dados de PDFs extraídos e/ou texto clínico fornecido pelo usuário, gerando um relatório estruturado, legível e técnico.
 
-${!hasImages ? `IMPORTANTE: Nenhuma imagem foi enviada — análise realizada apenas com as informações clínicas fornecidas.` : ""}
+${!hasImages ? "IMPORTANTE: Nenhuma imagem foi enviada — análise realizada apenas com as informações clínicas/laboratoriais fornecidas." : ""}
+${pdfWarning ? `AVISO: ${pdfWarning}` : ""}
 
 ESTRUTURA OBRIGATÓRIA DA RESPOSTA (use exatamente estes títulos em MAIÚSCULAS):
 
@@ -160,27 +301,29 @@ IDENTIFICAÇÃO DO CASO
 • Peso: ${weight}
 • Tipo de exame: ${examType}
 • Tipo de usuário: ${userType === "profissional" ? "Profissional veterinário" : "Tutor/Produtor"}
+• Arquivos analisados: ${hasImages ? `${images.length} imagem(ns)` : ""}${hasExtractedPdf ? `${hasImages ? " e " : ""}${pdfs.length} PDF(s)` : ""}${!hasImages && !hasExtractedPdf ? "Apenas dados textuais" : ""}
 
 AVALIAÇÃO CLÍNICA
 ${userType === "profissional" 
-  ? "• Forneça análise técnica detalhada dos parâmetros\n• Inclua valores de referência\n• Use terminologia técnica apropriada"
+  ? "• Forneça análise técnica detalhada dos parâmetros\n• Inclua valores de referência quando disponíveis\n• Use terminologia técnica apropriada\n• Correlacione achados laboratoriais"
   : "• Explique de forma simples e acessível\n• Evite termos técnicos complexos\n• Foque no significado prático dos resultados"}
 
-ACHADOS NA IMAGEM
+ACHADOS DE EXAME
 ${hasImages 
-  ? "• Descreva os achados visuais identificados na(s) imagem(ns)"
-  : "• Nenhuma imagem foi anexada para análise visual"}
+  ? "• Descreva os achados visuais identificados na(s) imagem(ns)\n• Correlacione com dados laboratoriais se disponíveis"
+  : "• Interprete os valores laboratoriais fornecidos\n• Identifique alterações significativas"}
+${hasExtractedPdf ? "• Analise os dados extraídos do PDF laboratorial" : ""}
 
 DIAGNÓSTICOS DIFERENCIAIS
 • Liste em ordem de probabilidade (mais provável primeiro)
 • Máximo de 4 diagnósticos principais
-• Justifique brevemente cada hipótese
+• Justifique brevemente cada hipótese com base nos achados
 
 EXAMES COMPLEMENTARES RECOMENDADOS
 • Liste exames que ajudariam a confirmar/descartar diagnósticos
-• Priorize por relevância
+• Priorize por relevância e urgência
 
-CLASSIFICAÇÃO DE URGÊNCIA
+NÍVEL DE URGÊNCIA
 • Indique o nível: BAIXO, MODERADO, ALTO ou URGÊNCIA
 • Descreva sinais de alerta que o tutor/profissional deve observar
 
@@ -211,11 +354,7 @@ DADOS DO PACIENTE:
 • Idade: ${age}
 • Peso: ${weight}
 • Tipo de exame: ${examType}
-
-DADOS CLÍNICOS/VALORES:
-${clinicalData || "Não foram fornecidos dados clínicos textuais."}
-
-${hasImages ? `IMAGENS: ${images.length} imagem(ns) anexada(s) para análise.` : "IMAGENS: Nenhuma imagem foi anexada."}
+${analysisContext}
 
 TIPO DE USUÁRIO: ${userType}
 ${isProfessional === "sim" ? `CRMV: ${crmv}` : ""}
@@ -247,7 +386,9 @@ Gere o relatório estruturado conforme as instruções do sistema.`;
         messages.push({ role: "user", content: userPrompt });
       }
 
-      // Call Lovable AI Gateway directly (no Edge Function dependency)
+      setLoadingMessage("Gerando interpretação...");
+
+      // Call Lovable AI Gateway directly
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -269,14 +410,22 @@ Gere o relatório estruturado conforme as instruções do sistema.`;
         }
         const errorText = await response.text();
         console.error("AI gateway error:", response.status, errorText);
-        throw new Error(`Erro ao processar análise: ${response.status}`);
+        throw new Error(`Erro ao processar análise. Tente novamente.`);
       }
 
       const data = await response.json();
       const answer = data.choices?.[0]?.message?.content || "Não foi possível gerar a interpretação.";
 
       // Clean and format the response
-      const cleanedResult = cleanTextForDisplay(answer);
+      let cleanedResult = cleanTextForDisplay(answer);
+      
+      // Add PDF warning if needed
+      if (pdfWarning) {
+        cleanedResult = `AVISO: ${pdfWarning}\n\n${cleanedResult}`;
+      }
+
+      // Add footer
+      cleanedResult += "\n\n---\nRelatório gerado via VetAgro Sustentável AI — Análise Assistida, não substitui consulta presencial veterinária registrada. © 2025";
 
       setResult(cleanedResult);
       toast({
@@ -285,15 +434,51 @@ Gere o relatório estruturado conforme as instruções do sistema.`;
       });
     } catch (error: any) {
       console.error("Erro:", error);
-      toast({
-        title: "Erro ao analisar",
-        description: error.message || "Tente novamente mais tarde.",
-        variant: "destructive",
-      });
+      
+      // Fallback: try to provide basic guidance based on text input
+      if (clinicalData.trim()) {
+        const fallbackResult = `IDENTIFICAÇÃO DO CASO
+• Espécie: ${species}
+• Idade: ${age}
+• Peso: ${weight}
+• Tipo de exame: ${examType}
+
+AVISO IMPORTANTE
+Ocorreu um erro técnico ao processar a análise completa. Abaixo estão orientações básicas baseadas nos dados fornecidos.
+
+DADOS INFORMADOS
+${clinicalData}
+
+RECOMENDAÇÃO
+Por favor, consulte um médico veterinário para interpretação completa dos exames. Se o problema persistir, tente novamente em alguns minutos ou descreva os valores de forma mais detalhada.
+
+ALERTA LEGAL
+Esta análise tem caráter educativo e não substitui a consulta veterinária presencial.
+
+---
+Relatório gerado via VetAgro Sustentável AI — Análise Assistida © 2025`;
+
+        setResult(fallbackResult);
+        toast({
+          title: "Análise parcial",
+          description: "Houve um erro, mas geramos orientações básicas. Consulte um veterinário.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro ao analisar",
+          description: error.message || "Tente novamente mais tarde ou descreva os valores no campo de texto.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
+      setLoadingMessage("");
     }
   };
+
+  const imageCount = files.filter(f => f.type === "image").length;
+  const pdfCount = files.filter(f => f.type === "pdf").length;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -307,7 +492,7 @@ Gere o relatório estruturado conforme as instruções do sistema.`;
               Interpretação de Exames
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
-              Hemograma, bioquímica, imagem e outros exames veterinários
+              Hemograma, bioquímica, imagem, PDFs de laudos e outros exames veterinários
             </p>
           </div>
         </div>
@@ -428,43 +613,59 @@ Gere o relatório estruturado conforme as instruções do sistema.`;
               Dados do Exame
             </CardTitle>
             <CardDescription>
-              Anexe imagens e/ou descreva os valores do exame. A análise funciona com texto, imagem ou ambos.
+              Anexe imagens (raio-x, ultrassom) e/ou PDFs (hemograma, bioquímica, laudos). A ferramenta extrai automaticamente os dados.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
               <Input
                 type="file"
-                accept="image/*"
+                accept="image/*,.pdf,application/pdf"
                 multiple
-                onChange={handleImageUpload}
+                onChange={handleFileUpload}
                 className="hidden"
-                id="exam-images"
+                id="exam-files"
               />
-              <label htmlFor="exam-images" className="cursor-pointer">
-                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <p className="text-sm font-medium">Clique para anexar imagens</p>
+              <label htmlFor="exam-files" className="cursor-pointer">
+                <div className="flex justify-center gap-2 mb-3">
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <FileUp className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-sm font-medium">Clique para anexar arquivos</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Fotos do exame, laudos, resultados (JPG, PNG)
+                  Imagens (JPG, PNG) ou PDFs de laudos laboratoriais
                 </p>
               </label>
             </div>
 
-            {images.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-primary">
-                  {images.length} imagem(ns) carregada(s) ✓
-                </p>
+            {files.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                  {imageCount > 0 && <span>{imageCount} imagem(ns)</span>}
+                  {imageCount > 0 && pdfCount > 0 && <span>e</span>}
+                  {pdfCount > 0 && <span>{pdfCount} PDF(s)</span>}
+                  <span>✓</span>
+                </div>
+                
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {images.map((img, index) => (
+                  {files.map((file, index) => (
                     <div key={index} className="relative group">
-                      <img
-                        src={img.url}
-                        alt={`Exame ${index + 1}`}
-                        className="w-full h-20 object-cover rounded-lg border border-border"
-                      />
+                      {file.type === "image" ? (
+                        <img
+                          src={file.url}
+                          alt={`Exame ${index + 1}`}
+                          className="w-full h-20 object-cover rounded-lg border border-border"
+                        />
+                      ) : (
+                        <div className="w-full h-20 rounded-lg border border-border bg-muted flex flex-col items-center justify-center">
+                          <FileText className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground mt-1 px-2 truncate w-full text-center">
+                            {file.name}
+                          </span>
+                        </div>
+                      )}
                       <button
-                        onClick={() => removeImage(index)}
+                        onClick={() => removeFile(index)}
                         className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="h-3 w-3" />
@@ -476,18 +677,27 @@ Gere o relatório estruturado conforme as instruções do sistema.`;
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="clinicalData">Valores/Dados Clínicos (opcional se tiver imagens)</Label>
+              <Label htmlFor="clinicalData">Valores/Dados Clínicos (opcional se anexar arquivos)</Label>
               <Textarea
                 id="clinicalData"
-                placeholder="Ex: Hemácias 5.2 milhões/µL, Leucócitos 18.000/µL, ALT 120 U/L, Creatinina 1.8 mg/dL..."
+                placeholder="Ex: Hemácias 5.2 milhões/µL, Leucócitos 18.000/µL, ALT 120 U/L, Creatinina 1.8 mg/dL, histórico de apatia há 3 dias..."
                 value={clinicalData}
                 onChange={(e) => setClinicalData(e.target.value)}
                 className="min-h-[120px]"
               />
               <p className="text-xs text-muted-foreground">
-                Descreva os valores encontrados no exame. Se anexar imagens, este campo é opcional.
+                Descreva os valores encontrados no exame, histórico clínico e sinais observados. Se anexar imagens/PDFs, este campo complementa a análise.
               </p>
             </div>
+
+            {pdfCount > 0 && (
+              <Alert>
+                <FileText className="h-4 w-4" />
+                <AlertDescription>
+                  Os PDFs serão processados automaticamente. Se não conseguirmos extrair os dados, você receberá orientação para inserir manualmente.
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -500,7 +710,7 @@ Gere o relatório estruturado conforme as instruções do sistema.`;
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Analisando exames...
+              {loadingMessage || "Analisando..."}
             </>
           ) : (
             <>
