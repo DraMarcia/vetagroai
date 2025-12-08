@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.veterinary-consultation]
 verify_jwt = false
+
+[functions.chatbot-assistant]
+verify_jwt = false
+
+[functions.interpret-exams]
+verify_jwt = false

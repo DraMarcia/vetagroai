@@ -16,7 +16,8 @@ import {
 import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle, FileUp, RefreshCw, Stethoscope } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ReportExporter } from "@/components/ReportExporter";
-import { cleanTextForDisplay } from "@/lib/textUtils";
+import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 interface UploadedFile {
   url: string;
@@ -26,6 +27,7 @@ interface UploadedFile {
 
 const InterpretacaoExames = () => {
   const { toast } = useToast();
+  const { plan } = useSubscription();
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [isProfessional, setIsProfessional] = useState("");
@@ -39,6 +41,7 @@ const InterpretacaoExames = () => {
   const [result, setResult] = useState("");
   const [showFallbackInput, setShowFallbackInput] = useState(false);
   const [ocrFailed, setOcrFailed] = useState(false);
+  const [canExportPdf, setCanExportPdf] = useState(false);
 
   const speciesOptions = [
     "Canina",
@@ -154,83 +157,6 @@ const InterpretacaoExames = () => {
     };
   };
 
-  const extractPdfContent = async (pdfBase64: string, fileName: string): Promise<{ content: string; success: boolean }> => {
-    try {
-      setLoadingMessage(`Extraindo dados de ${fileName}...`);
-      
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: `Você é um extrator de laudos laboratoriais veterinários.
-
-TAREFA: Extraia TODOS os valores do exame laboratorial deste documento.
-
-INSTRUÇÕES:
-1. Identifique o tipo de exame (hemograma, bioquímica, urinálise, etc.)
-2. Extraia TODOS os parâmetros com seus valores e unidades
-3. Inclua valores de referência se visíveis
-4. Copie observações ou conclusões do laboratório
-5. Organize os dados de forma estruturada
-
-FORMATO DE SAÍDA:
-TIPO DE EXAME: [identificado]
-PARÂMETROS:
-- [Nome]: [Valor] [Unidade] (Ref: [valor referência se disponível])
-...
-OBSERVAÇÕES DO LABORATÓRIO:
-[se houver]
-
-Se o PDF estiver ilegível, criptografado, ou não contiver dados laboratoriais reconhecíveis, responda EXATAMENTE: "OCR_FALHOU"
-
-Retorne APENAS os dados extraídos, sem explicações adicionais.`
-                },
-                {
-                  type: "image_url",
-                  image_url: { url: pdfBase64 }
-                }
-              ]
-            }
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        console.error("OCR API error:", response.status);
-        return { content: "", success: false };
-      }
-
-      const data = await response.json();
-      const extractedText = data.choices?.[0]?.message?.content || "";
-      
-      if (extractedText.includes("OCR_FALHOU") || extractedText.trim().length < 20) {
-        return { content: "", success: false };
-      }
-      
-      // Validate if key lab values were found
-      const hasLabValues = /hemácias|leucócitos|plaquetas|hemoglobina|hematócrito|alt|ast|ureia|creatinina|proteína|glicose|albumina/i.test(extractedText);
-      
-      if (!hasLabValues && examType === "Hemograma Completo" || examType === "Bioquímica Sérica") {
-        return { content: extractedText, success: false };
-      }
-      
-      return { content: extractedText, success: true };
-    } catch (error) {
-      console.error("Erro ao extrair PDF:", error);
-      return { content: "", success: false };
-    }
-  };
-
   const handleAnalyze = async () => {
     // Validation
     if (!isProfessional) {
@@ -272,296 +198,177 @@ Retorne APENAS os dados extraídos, sem explicações adicionais.`
     setLoading(true);
     setResult("");
     setOcrFailed(false);
+    setLoadingMessage("Enviando dados para análise...");
     
     try {
-      const userType = isProfessional === "sim" ? "profissional" : "tutor";
-      const images = files.filter(f => f.type === "image");
-      const pdfs = files.filter(f => f.type === "pdf");
-      
-      let extractedPdfContent = "";
-      let pdfOcrFailed = false;
-      const failedPdfs: string[] = [];
+      // Prepare request body for Edge Function
+      const requestBody = {
+        files: files.map(f => ({
+          url: f.url,
+          type: f.type,
+          name: f.name
+        })),
+        clinicalData: clinicalData.trim(),
+        userType: isProfessional === "sim" ? "profissional" : "tutor",
+        crmv: isProfessional === "sim" ? crmv : undefined,
+        patient: {
+          species,
+          age,
+          weight
+        },
+        examType,
+        plan: plan || "free"
+      };
 
-      // Process PDFs if any
-      if (pdfs.length > 0) {
-        setLoadingMessage("Processando PDFs...");
+      setLoadingMessage("Processando exames (OCR e análise)...");
+
+      // Call the Edge Function
+      const { data, error } = await supabase.functions.invoke('interpret-exams', {
+        body: requestBody
+      });
+
+      if (error) {
+        console.error("Edge Function error:", error);
+        throw new Error(error.message || "Erro ao chamar a função de análise");
+      }
+
+      // Check for API errors returned in the response
+      if (data?.error) {
+        const errorCode = data.code;
         
-        for (const pdf of pdfs) {
-          const { content, success } = await extractPdfContent(pdf.url, pdf.name);
-          if (success && content) {
-            extractedPdfContent += `\n--- Dados de ${pdf.name} ---\n${content}\n`;
-          } else {
-            failedPdfs.push(pdf.name);
-            pdfOcrFailed = true;
-          }
+        // Handle specific error codes
+        if (errorCode === "NO_LAB_VALUES" || errorCode === "NO_INPUT") {
+          setOcrFailed(true);
+          setShowFallbackInput(true);
+          toast({
+            title: "Dados insuficientes",
+            description: data.error,
+            variant: "destructive",
+          });
+          
+          // Show guidance result
+          setResult(`ORIENTAÇÃO PARA INSERÇÃO DE DADOS
+
+O PDF foi lido, porém os valores não puderam ser extraídos automaticamente.
+
+Para continuar a análise, forneça os valores do exame manualmente:
+
+HEMOGRAMA
+• Hemácias (milhões/µL)
+• Hemoglobina (g/dL)
+• Hematócrito (%)
+• Leucócitos totais (/µL)
+• Plaquetas (/µL)
+• VCM, HCM, CHCM (se disponíveis)
+
+BIOQUÍMICA
+• ALT/TGP (U/L)
+• AST/TGO (U/L)
+• Ureia (mg/dL)
+• Creatinina (mg/dL)
+• Proteínas totais (g/dL)
+• Albumina (g/dL)
+
+COMO INSERIR
+Copie os valores do seu laudo no campo de texto abaixo, no formato:
+"Hemácias 5.2; Hemoglobina 13; Leucócitos 12.000; Plaquetas 190.000..."
+
+---
+Relatório gerado via VetAgro Sustentável AI © 2025`);
+          return;
         }
-      }
-
-      // If OCR failed and no manual data provided, show fallback
-      if (pdfOcrFailed && failedPdfs.length > 0 && !clinicalData.trim() && images.length === 0) {
-        setOcrFailed(true);
-        setShowFallbackInput(true);
-        setLoading(false);
-        setLoadingMessage("");
         
-        toast({
-          title: "Não foi possível ler o PDF automaticamente",
-          description: "Por favor, insira os valores manualmente no campo abaixo.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setLoadingMessage("Analisando dados clínicos...");
-
-      const hasImages = images.length > 0;
-      const hasExtractedPdf = extractedPdfContent.length > 0;
-      const hasTextData = clinicalData.trim().length > 0;
-
-      // Build analysis context
-      let analysisContext = "";
-      let ocrWarning = "";
-      
-      if (hasExtractedPdf) {
-        analysisContext += `\nDADOS EXTRAÍDOS DOS LAUDOS:\n${extractedPdfContent}\n`;
-      }
-      if (hasTextData) {
-        analysisContext += `\nDADOS CLÍNICOS INFORMADOS PELO USUÁRIO:\n${clinicalData}\n`;
-      }
-      if (failedPdfs.length > 0) {
-        ocrWarning = `AVISO: Os seguintes arquivos não puderam ser lidos automaticamente: ${failedPdfs.join(", ")}. A análise foi realizada com os dados disponíveis.`;
-      }
-      if (!hasImages && !hasExtractedPdf && !hasTextData) {
-        analysisContext = "\nNENHUM DADO LABORATORIAL FOI FORNECIDO.\n";
-      }
-
-      const systemPrompt = `Você é a inteligência clínica da ferramenta Interpretação de Exames – VetAgro Sustentável AI.
-
-FUNÇÃO: Analisar exames laboratoriais veterinários (imagens, PDFs, dados textuais) e gerar relatório estruturado, técnico e legível.
-
-${!hasImages && !hasExtractedPdf && !hasTextData ? `
-ATENÇÃO: Nenhum dado laboratorial foi fornecido.
-Responda orientando o usuário a fornecer os valores, exemplo:
-"Para realizar a interpretação, forneça os valores do exame:
-- Hemograma: Hemácias, Hemoglobina, Hematócrito, Leucócitos, Plaquetas
-- Bioquímica: ALT, AST, Ureia, Creatinina, Proteínas totais
-Insira os valores no campo de texto ou anexe o laudo."
-` : ""}
-
-${ocrWarning ? `${ocrWarning}` : ""}
-
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA (títulos em MAIÚSCULAS, sem # ou *):
-
-IDENTIFICAÇÃO DO PACIENTE
-• Espécie: ${species}
-• Idade: ${age}
-• Peso: ${weight}
-• Tipo de exame: ${examType}
-• Tipo de usuário: ${userType === "profissional" ? "Profissional veterinário" : "Tutor/Produtor"}
-
-INTERPRETAÇÃO DA TABELA DE VALORES
-• Listar cada parâmetro analisado
-• Indicar se está NORMAL, ALTO ou BAIXO
-• Correlacionar com possíveis condições clínicas
-
-CONCLUSÕES CLÍNICAS
-${userType === "profissional" 
-  ? `• Diagnóstico sindrômico
-• Fisiopatologia resumida
-• Hipóteses diagnósticas ordenadas por probabilidade
-• Condutas recomendadas`
-  : `• Explicação em linguagem simples e acolhedora
-• O que os resultados significam na prática
-• Orientações claras para o tutor`}
-
-DIAGNÓSTICOS DIFERENCIAIS
-• Listar em ordem de probabilidade (mais provável primeiro)
-• Máximo 4 diagnósticos
-• Justificar brevemente cada hipótese
-
-EXAMES COMPLEMENTARES RECOMENDADOS
-• Exames que ajudariam a confirmar/descartar diagnósticos
-• Priorizar por relevância
-
-NÍVEL DE URGÊNCIA
-• BAIXO / MODERADO / ALTO / URGÊNCIA
-• Sinais de alerta para observar
-• Quando procurar emergência
-• ${examType.includes("Hemograma") || examType.includes("Bioquímica") ? "Indicar se está liberado para procedimentos cirúrgicos (ex: castração)" : ""}
-
-RECOMENDAÇÕES
-${userType === "profissional"
-  ? `• Condutas terapêuticas sugeridas
-• Manejo clínico
-• Monitoramento indicado`
-  : `• Cuidados domiciliares
-• Sinais que indicam piora
-• Quando retornar ao veterinário`}
-
-REFERÊNCIAS
-• Merck Veterinary Manual
-• Nelson & Couto – Medicina Interna de Pequenos Animais
-• Ettinger & Feldman – Veterinary Internal Medicine
-• VIN Veterinary Information Network
-
-RODAPÉ OBRIGATÓRIO:
-"Esta análise tem caráter educativo e não substitui a consulta veterinária presencial."
-"Relatório gerado via VetAgro Sustentável AI – Análise Assistida © 2025"
-
-REGRAS DE FORMATAÇÃO:
-- NUNCA use hashtags (#), asteriscos (*) ou emojis
-- Use apenas marcadores: • ou –
-- Títulos das seções em MAIÚSCULAS
-- Parágrafos organizados e claros
-- Números sempre com unidades`;
-
-      const userPrompt = `Interprete os seguintes exames veterinários:
-
-DADOS DO PACIENTE:
-• Espécie: ${species}
-• Idade: ${age}
-• Peso: ${weight}
-• Tipo de exame: ${examType}
-${analysisContext}
-
-TIPO DE USUÁRIO: ${userType}
-${isProfessional === "sim" ? `CRMV: ${crmv}` : ""}
-
-Gere o relatório estruturado conforme as instruções.`;
-
-      // Build messages array with multimodal support
-      const messages: any[] = [
-        { role: "system", content: systemPrompt }
-      ];
-
-      // If images are present, use multimodal content
-      if (hasImages) {
-        const userContent: any[] = [
-          { type: "text", text: userPrompt }
-        ];
+        if (errorCode === "RATE_LIMIT") {
+          toast({
+            title: "Limite de requisições",
+            description: "Aguarde 2 minutos e tente novamente.",
+            variant: "destructive",
+          });
+          return;
+        }
         
-        for (const img of images) {
-          userContent.push({
-            type: "image_url",
-            image_url: { url: img.url }
+        if (errorCode === "CREDITS_INSUFFICIENT") {
+          toast({
+            title: "Créditos insuficientes",
+            description: "Atualize seu plano para continuar.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        throw new Error(data.error);
+      }
+
+      // Success! Set the result
+      if (data?.analysis) {
+        setResult(data.analysis);
+        setCanExportPdf(data.canExportPdf !== false);
+        
+        // Show OCR warning if some files failed
+        if (data.ocrErrors && data.ocrErrors.length > 0) {
+          toast({
+            title: "Alguns arquivos não foram lidos",
+            description: `Arquivos não processados: ${data.ocrErrors.join(", ")}. A análise foi feita com os dados disponíveis.`,
+          });
+        } else {
+          toast({
+            title: "Análise concluída",
+            description: "Interpretação dos exames gerada com sucesso.",
           });
         }
-        
-        messages.push({ role: "user", content: userContent });
       } else {
-        messages.push({ role: "user", content: userPrompt });
+        throw new Error("Resposta vazia da análise");
       }
 
-      setLoadingMessage("Gerando interpretação...");
-
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: messages,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error("RATE_LIMIT");
-        }
-        if (response.status === 402) {
-          throw new Error("CREDITS_INSUFFICIENT");
-        }
-        const errorText = await response.text();
-        console.error("AI gateway error:", response.status, errorText);
-        throw new Error("API_ERROR");
-      }
-
-      const data = await response.json();
-      const answer = data.choices?.[0]?.message?.content;
-
-      if (!answer || answer.trim().length < 50) {
-        throw new Error("EMPTY_RESPONSE");
-      }
-
-      // Clean and format the response
-      const cleanedResult = cleanTextForDisplay(answer);
-
-      setResult(cleanedResult);
-      toast({
-        title: "Análise concluída",
-        description: "Interpretação dos exames gerada com sucesso.",
-      });
     } catch (error: any) {
       console.error("Erro:", error);
       
-      // Generate intelligent fallback based on error type
-      let errorMessage = "";
-      let fallbackResult = "";
-      
-      switch (error.message) {
-        case "RATE_LIMIT":
-          errorMessage = "Limite de requisições excedido. Aguarde alguns minutos e tente novamente.";
-          break;
-        case "CREDITS_INSUFFICIENT":
-          errorMessage = "Créditos insuficientes. Atualize seu plano para continuar usando a ferramenta.";
-          break;
-        case "EMPTY_RESPONSE":
-          errorMessage = "Não conseguimos gerar uma interpretação completa. Verifique os dados inseridos.";
-          break;
-        default:
-          errorMessage = "Ocorreu um erro ao processar a análise.";
-      }
-      
-      // Generate fallback report if we have any data
-      if (clinicalData.trim() || files.length > 0) {
-        fallbackResult = `IDENTIFICAÇÃO DO PACIENTE
+      // Generate fallback guidance
+      const fallbackResult = `IDENTIFICAÇÃO DO PACIENTE
 • Espécie: ${species}
 • Idade: ${age}
 • Peso: ${weight}
 • Tipo de exame: ${examType}
 
 AVISO DE PROCESSAMENTO
-Não foi possível realizar a análise automática completa neste momento.
+Não foi possível realizar a análise automática neste momento.
 
-DADOS FORNECIDOS
-${clinicalData || "Arquivos anexados aguardando processamento"}
+POSSÍVEIS CAUSAS
+• O arquivo enviado pode estar ilegível ou corrompido
+• O PDF pode estar protegido ou escaneado em baixa qualidade
+• Problema temporário de conexão
 
 O QUE FAZER
-Para continuar, você pode:
-• Aguardar alguns minutos e tentar novamente
-• Inserir os valores do exame manualmente no campo de texto
-• Verificar se o arquivo está legível e não está corrompido
+1. Insira os valores manualmente no campo de texto abaixo
+2. Tente enviar uma imagem mais nítida do exame
+3. Aguarde alguns minutos e tente novamente
 
-VALORES IMPORTANTES PARA HEMOGRAMA
-Se você possui um hemograma, informe:
-• Hemácias (milhões/µL)
-• Hemoglobina (g/dL)
-• Hematócrito (%)
-• Leucócitos totais (/µL)
-• Plaquetas (/µL)
+VALORES IMPORTANTES PARA INFORMAR
 
-VALORES IMPORTANTES PARA BIOQUÍMICA
-• ALT/TGP (U/L)
-• AST/TGO (U/L)
-• Ureia (mg/dL)
-• Creatinina (mg/dL)
-• Proteínas totais (g/dL)
+Hemograma:
+• Hemácias, Hemoglobina, Hematócrito
+• Leucócitos totais e diferencial
+• Plaquetas
+
+Bioquímica:
+• ALT, AST, Ureia, Creatinina
+• Proteínas totais, Albumina
+• Glicose (se disponível)
 
 RECOMENDAÇÃO
 Consulte um médico veterinário para interpretação presencial dos exames.
 
 ---
-Relatório gerado via VetAgro Sustentável AI – Análise Assistida © 2025`;
+Esta análise tem caráter educativo e não substitui a consulta veterinária presencial.
+Relatório gerado via VetAgro Sustentável AI © 2025`;
 
-        setResult(fallbackResult);
-        setShowFallbackInput(true);
-      }
+      setResult(fallbackResult);
+      setShowFallbackInput(true);
+      setCanExportPdf(false);
       
       toast({
         title: "Erro na análise",
-        description: errorMessage,
+        description: error.message || "Ocorreu um erro ao processar. Insira os dados manualmente.",
         variant: "destructive",
       });
     } finally {
@@ -577,6 +384,7 @@ Relatório gerado via VetAgro Sustentável AI – Análise Assistida © 2025`;
     setOcrFailed(false);
     setShowFallbackInput(false);
     setExamType(type);
+    setCanExportPdf(false);
     
     toast({
       title: "Nova análise",
@@ -788,9 +596,9 @@ Relatório gerado via VetAgro Sustentável AI – Análise Assistida © 2025`;
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>O exame não foi reconhecido automaticamente.</strong>
+                  <strong>O PDF foi lido, porém os valores não puderam ser extraídos automaticamente.</strong>
                   <br />
-                  Por favor, descreva os valores manualmente abaixo:
+                  Por favor, insira os valores manualmente no campo abaixo:
                   <br />
                   <em>Exemplo: Hemácias 5,2; Hemoglobina 13 g/dL; Plaquetas 190.000; Leucócitos 12.000</em>
                 </AlertDescription>
@@ -861,14 +669,16 @@ Relatório gerado via VetAgro Sustentável AI – Análise Assistida © 2025`;
                       : "Explicação simplificada"}
                   </CardDescription>
                 </div>
-                <ReportExporter
-                  title={`Interpretação de ${examType}`}
-                  content={result}
-                  toolName="Interpretação de Exames"
-                  references={getReferences()}
-                  userInputs={getUserInputs()}
-                  showAllFormats={true}
-                />
+                {canExportPdf && (
+                  <ReportExporter
+                    title={`Interpretação de ${examType}`}
+                    content={result}
+                    toolName="Interpretação de Exames"
+                    references={getReferences()}
+                    userInputs={getUserInputs()}
+                    showAllFormats={true}
+                  />
+                )}
               </CardHeader>
               <CardContent>
                 <div className="prose prose-sm max-w-none">
@@ -876,6 +686,11 @@ Relatório gerado via VetAgro Sustentável AI – Análise Assistida © 2025`;
                     {result}
                   </div>
                 </div>
+                {!canExportPdf && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Exportação em PDF disponível nos planos Pro e Enterprise.
+                  </p>
+                )}
               </CardContent>
             </Card>
 
