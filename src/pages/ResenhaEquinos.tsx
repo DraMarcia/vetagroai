@@ -4,21 +4,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Upload, Download, Loader2, Image as ImageIcon, X, CheckCircle2, Copy, FileDown } from "lucide-react";
+import { FileText, Upload, Download, Loader2, Image as ImageIcon, X, CheckCircle2, Copy, FileDown, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useCrmvValidation, UFS } from "@/hooks/useCrmvValidation";
+import { UFS } from "@/hooks/useCrmvValidation";
 import jsPDF from "jspdf";
 
 const ResenhaEquinos = () => {
   const { toast } = useToast();
-  const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
   
-  // Professional identification
-  const [isProfessional, setIsProfessional] = useState(true);
+  // Professional identification (MANDATORY)
+  const [vetName, setVetName] = useState("");
   const [crmv, setCrmv] = useState("");
   const [uf, setUf] = useState("");
   
@@ -33,16 +31,48 @@ const ResenhaEquinos = () => {
   const [images, setImages] = useState<{ url: string; name: string }[]>([]);
   const [resenha, setResenha] = useState("");
 
+  const validateCrmv = (): boolean => {
+    if (!crmv.trim()) {
+      toast({
+        title: "CRMV obrigatório",
+        description: "Esta ferramenta é restrita a médicos veterinários. Informe seu CRMV para continuar.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const crmvPattern = /^\d{3,6}$/;
+    if (!crmvPattern.test(crmv.trim())) {
+      toast({
+        title: "CRMV inválido",
+        description: "Informe um número de CRMV válido (3 a 6 dígitos).",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!uf) {
+      toast({
+        title: "UF obrigatório",
+        description: "Selecione o estado (UF) do seu registro profissional.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
     const fileArray = Array.from(files);
     
-    if (fileArray.length < 3) {
+    if (fileArray.length < 2) {
       toast({
         title: "Mínimo de imagens",
-        description: "Por favor, selecione pelo menos 3 imagens do equino.",
+        description: "Por favor, selecione pelo menos 2 imagens do equino.",
         variant: "destructive",
       });
       return;
@@ -83,12 +113,9 @@ const ResenhaEquinos = () => {
   };
 
   const handleGenerate = async () => {
-    // CRMV validation gatekeeper for professionals
-    if (isProfessional) {
-      const validation = validateAndNotify(isProfessional, crmv, uf);
-      if (!validation.isValid) {
-        return;
-      }
+    // CRMV validation gatekeeper - MANDATORY
+    if (!validateCrmv()) {
+      return;
     }
 
     if (!breed.trim() || !age.trim() || !purpose.trim()) {
@@ -100,10 +127,10 @@ const ResenhaEquinos = () => {
       return;
     }
 
-    if (images.length < 3) {
+    if (images.length < 2) {
       toast({
         title: "Imagens insuficientes",
-        description: `Envie entre 3 e 5 imagens. Você enviou ${images.length}.`,
+        description: `Envie entre 2 e 5 imagens. Você enviou ${images.length}.`,
         variant: "destructive",
       });
       return;
@@ -120,8 +147,8 @@ const ResenhaEquinos = () => {
           horseName,
           sex,
           coat,
-          isProfessional,
-          crmv: isProfessional ? `${crmv}-${uf}` : null
+          vetName,
+          crmv: `${crmv}-${uf}`
         },
       });
 
@@ -171,15 +198,14 @@ const ResenhaEquinos = () => {
     }
   };
 
-  const getReportFooter = () => {
-    const date = new Date().toLocaleDateString("pt-BR");
-    return `\n\n---\nEmitido por VetAgro Sustentável AI — ${date}`;
+  const getLegalDisclaimer = () => {
+    return `\n\n---\nEste relatório foi gerado por inteligência artificial e não substitui exame presencial nem assinatura do médico veterinário responsável, sendo este obrigatório para validade oficial.\n\nEmitido por VetAgro Sustentável AI — ${new Date().toLocaleDateString("pt-BR")}`;
   };
 
   const handleCopyToClipboard = async () => {
     if (!resenha) return;
     
-    const textToCopy = resenha + getReportFooter();
+    const textToCopy = resenha + getLegalDisclaimer();
     
     try {
       await navigator.clipboard.writeText(textToCopy);
@@ -199,7 +225,7 @@ const ResenhaEquinos = () => {
   const handleDownloadTxt = () => {
     if (!resenha) return;
     
-    const textContent = resenha + getReportFooter();
+    const textContent = resenha + getLegalDisclaimer();
     const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -238,20 +264,22 @@ const ResenhaEquinos = () => {
     yPosition += 10;
 
     // Professional data
-    if (isProfessional && crmv && uf) {
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text("DADOS DO PROFISSIONAL", margin, yPosition);
-      yPosition += 6;
-      doc.setFont("helvetica", "normal");
-      doc.text(`CRMV: ${crmv}-${uf}`, margin, yPosition);
-      doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, pageWidth - margin - 40, yPosition);
-      yPosition += 10;
-    }
-
-    // Equine data
+    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("IDENTIFICAÇÃO", margin, yPosition);
+    doc.text("RESPONSÁVEL TÉCNICO", margin, yPosition);
+    yPosition += 6;
+    doc.setFont("helvetica", "normal");
+    if (vetName) {
+      doc.text(`Nome: ${vetName}`, margin, yPosition);
+      yPosition += 5;
+    }
+    doc.text(`CRMV: ${crmv}-${uf}`, margin, yPosition);
+    doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, pageWidth - margin - 40, yPosition);
+    yPosition += 10;
+
+    // Equine identification
+    doc.setFont("helvetica", "bold");
+    doc.text("IDENTIFICAÇÃO DO EQUINO", margin, yPosition);
     yPosition += 6;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
@@ -281,12 +309,27 @@ const ResenhaEquinos = () => {
     
     const lines = doc.splitTextToSize(resenha, maxWidth);
     lines.forEach((line: string) => {
-      if (yPosition > pageHeight - 30) {
+      if (yPosition > pageHeight - 40) {
         doc.addPage();
         yPosition = 20;
       }
       doc.text(line, margin, yPosition);
       yPosition += 5;
+    });
+
+    // Legal disclaimer
+    if (yPosition > pageHeight - 50) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    yPosition += 10;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    const disclaimer = "Este relatório foi gerado por inteligência artificial e não substitui exame presencial nem assinatura do médico veterinário responsável, sendo este obrigatório para validade oficial.";
+    const disclaimerLines = doc.splitTextToSize(disclaimer, maxWidth);
+    disclaimerLines.forEach((line: string) => {
+      doc.text(line, margin, yPosition);
+      yPosition += 4;
     });
 
     // Footer on all pages
@@ -296,7 +339,7 @@ const ResenhaEquinos = () => {
       doc.setFontSize(8);
       doc.setFont("helvetica", "italic");
       doc.text(
-        `Emitido por VetAgro Sustentável AI — ${new Date().toLocaleDateString("pt-BR")} — Página ${i} de ${pageCount}`,
+        `VetAgro Sustentável AI — ${new Date().toLocaleDateString("pt-BR")} — Página ${i} de ${pageCount}`,
         pageWidth / 2,
         pageHeight - 10,
         { align: "center" }
@@ -319,74 +362,79 @@ const ResenhaEquinos = () => {
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              Gerador de Resenha de Equinos
+              Resenha Técnica de Equinos
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
-              Gere resenhas técnicas oficiais a partir de fotos com exportação em múltiplos formatos
+              Ferramenta exclusiva para médicos veterinários
             </p>
           </div>
         </div>
       </div>
 
       <div className="grid gap-6 max-w-3xl">
-        {/* User Type Selection */}
+        {/* Legal Warning */}
+        <Card className="border-amber-500/50 bg-amber-500/5">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-amber-700 dark:text-amber-400">
+                  Uso exclusivo por Médico Veterinário
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  Este documento só tem validade jurídica com CRMV válido e assinatura do veterinário responsável.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Veterinarian Data - MANDATORY */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Identificação do Usuário</CardTitle>
+            <CardTitle className="text-lg">Responsável Técnico</CardTitle>
             <CardDescription>
-              Selecione seu perfil para personalizar a análise
+              Dados obrigatórios do médico veterinário
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <RadioGroup
-              value={isProfessional ? "professional" : "layperson"}
-              onValueChange={(value) => setIsProfessional(value === "professional")}
-              className="flex flex-col gap-3"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="professional" id="professional" />
-                <Label htmlFor="professional" className="cursor-pointer">
-                  Médico(a) Veterinário(a)
-                </Label>
+            <div className="space-y-2">
+              <Label htmlFor="vetName">Nome do Veterinário</Label>
+              <Input
+                id="vetName"
+                placeholder="Ex: Dr(a). João Silva"
+                value={vetName}
+                onChange={(e) => setVetName(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="crmv">Número do CRMV *</Label>
+                <Input
+                  id="crmv"
+                  placeholder="Ex: 12345"
+                  value={crmv}
+                  onChange={(e) => setCrmv(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  maxLength={6}
+                />
+                <p className="text-xs text-muted-foreground">3 a 6 dígitos</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="layperson" id="layperson" />
-                <Label htmlFor="layperson" className="cursor-pointer">
-                  Proprietário / Criador (não profissional)
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="uf">Estado (UF) *</Label>
+                <Select value={uf} onValueChange={setUf}>
+                  <SelectTrigger id="uf">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {UFS.map((state) => (
+                      <SelectItem key={state} value={state}>
+                        {state}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </RadioGroup>
-
-            {isProfessional && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                <div className="space-y-2">
-                  <Label htmlFor="crmv">Número do CRMV *</Label>
-                  <Input
-                    id="crmv"
-                    placeholder="Ex: 12345"
-                    value={crmv}
-                    onChange={(e) => setCrmv(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    maxLength={6}
-                  />
-                  <p className="text-xs text-muted-foreground">3 a 6 dígitos</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="uf">Estado (UF) *</Label>
-                  <Select value={uf} onValueChange={setUf}>
-                    <SelectTrigger id="uf">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {UFS.map((state) => (
-                        <SelectItem key={state} value={state}>
-                          {state}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -395,7 +443,7 @@ const ResenhaEquinos = () => {
           <CardHeader>
             <CardTitle className="text-lg">Dados do Equino</CardTitle>
             <CardDescription>
-              Preencha as informações do animal para análise
+              Informações para identificação do animal
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -457,7 +505,7 @@ const ResenhaEquinos = () => {
                 <Label htmlFor="purpose">Finalidade *</Label>
                 <Input
                   id="purpose"
-                  placeholder="Ex: Registro, venda, documentação"
+                  placeholder="Ex: Registro, venda, exposição"
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
                 />
@@ -474,7 +522,7 @@ const ResenhaEquinos = () => {
               Imagens do Equino
             </CardTitle>
             <CardDescription>
-              Envie de 3 a 5 imagens do animal para análise completa
+              Envie de 2 a 5 imagens para análise morfológica completa
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -491,7 +539,7 @@ const ResenhaEquinos = () => {
                 <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-sm font-medium">Clique para selecionar imagens</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Mínimo 3, máximo 5 imagens (JPG, PNG)
+                  Mínimo 2, máximo 5 imagens (JPG, PNG)
                 </p>
               </label>
             </div>
@@ -529,7 +577,7 @@ const ResenhaEquinos = () => {
 
         <Button
           onClick={handleGenerate}
-          disabled={loading || images.length < 3}
+          disabled={loading || images.length < 2}
           size="lg"
           className="w-full"
         >
@@ -541,7 +589,7 @@ const ResenhaEquinos = () => {
           ) : (
             <>
               <FileText className="mr-2 h-5 w-5" />
-              Gerar Resenha ({images.length}/3 imagens)
+              Gerar Resenha Técnica ({images.length}/2 imagens mínimas)
             </>
           )}
         </Button>
@@ -549,7 +597,7 @@ const ResenhaEquinos = () => {
         {resenha && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Resenha Gerada</CardTitle>
+              <CardTitle className="text-lg">Resenha Técnica Gerada</CardTitle>
               <CardDescription>
                 Revise a resenha e exporte no formato desejado
               </CardDescription>
@@ -558,7 +606,7 @@ const ResenhaEquinos = () => {
               <Textarea
                 value={resenha}
                 onChange={(e) => setResenha(e.target.value)}
-                className="min-h-[300px] font-mono text-sm"
+                className="min-h-[400px] font-mono text-sm"
               />
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -576,9 +624,10 @@ const ResenhaEquinos = () => {
                 </Button>
               </div>
               
-              <p className="text-xs text-muted-foreground text-center">
-                Esta ferramenta é exclusiva para avaliação morfológica de equinos.
-              </p>
+              <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                <p className="font-medium mb-1">Aviso Legal:</p>
+                <p>Este relatório foi gerado por inteligência artificial e não substitui exame presencial nem assinatura do médico veterinário responsável, sendo este obrigatório para validade oficial.</p>
+              </div>
             </CardContent>
           </Card>
         )}
