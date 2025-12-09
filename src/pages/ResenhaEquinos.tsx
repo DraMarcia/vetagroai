@@ -250,14 +250,31 @@ const ResenhaEquinos = () => {
     });
   };
 
-  // Remove seção IDENTIFICAÇÃO duplicada do conteúdo da resenha
+  // Remove seção IDENTIFICAÇÃO duplicada e linhas repetidas do conteúdo da resenha
   const getCleanResenhaContent = () => {
-    // Remove seção IDENTIFICAÇÃO se existir no conteúdo da resenha para evitar duplicidade
     let cleaned = resenha
-      .replace(/IDENTIFICAÇÃO[\s\S]*?(?=MORFOLOGIA|PELAGEM|CONDIÇÃO|$)/i, '')
-      .replace(/^\s*\n+/gm, '\n')
+      // Remove seção IDENTIFICAÇÃO inteira (evita duplicidade com bloco manual)
+      .replace(/IDENTIFICAÇÃO[\s\S]*?(?=MORFOLOGIA|PELAGEM|CONDIÇÃO|PONTOS|$)/gi, '')
+      // Remove linhas soltas de identificação que possam aparecer duplicadas
+      .replace(/•\s*Raça:.*\n?/gi, '')
+      .replace(/•\s*Idade:.*\n?/gi, '')
+      .replace(/•\s*Sexo:.*\n?/gi, '')
+      .replace(/•\s*Pelagem:.*\n?/gi, '')
+      .replace(/•\s*Finalidade:.*\n?/gi, '')
+      .replace(/•\s*Responsável técnico:.*\n?/gi, '')
+      .replace(/•\s*Nome:.*\n?/gi, '')
+      // Limpar linhas vazias excessivas
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
     return cleaned;
+  };
+
+  // Bloco institucional obrigatório antes da conclusão
+  const getInstitutionalBlock = () => {
+    return `
+NOTA INSTITUCIONAL
+• Este relatório descreve características fenotípicas observáveis a partir das imagens fornecidas.
+• A assinatura do médico veterinário responsável é obrigatória para validade oficial.`;
   };
 
   const handleDownloadPDF = () => {
@@ -319,7 +336,19 @@ const ResenhaEquinos = () => {
     doc.setFontSize(10);
     
     const cleanContent = getCleanResenhaContent();
-    const lines = doc.splitTextToSize(cleanContent, maxWidth);
+    
+    // Inserir bloco institucional antes da CONCLUSÃO
+    let contentWithInstitutional = cleanContent;
+    if (cleanContent.includes('CONCLUSÃO')) {
+      contentWithInstitutional = cleanContent.replace(
+        /(CONCLUSÃO)/i, 
+        `${getInstitutionalBlock()}\n\n$1`
+      );
+    } else {
+      contentWithInstitutional = cleanContent + getInstitutionalBlock();
+    }
+    
+    const lines = doc.splitTextToSize(contentWithInstitutional, maxWidth);
     lines.forEach((line: string) => {
       if (yPosition > pageHeight - 40) {
         doc.addPage();
@@ -327,7 +356,7 @@ const ResenhaEquinos = () => {
       }
       
       // Destacar títulos de seções
-      if (line.match(/^(MORFOLOGIA|PELAGEM|CONDIÇÃO|PONTOS|OBSERVAÇÕES|CONCLUSÃO)/i)) {
+      if (line.match(/^(MORFOLOGIA|PELAGEM|CONDIÇÃO|PONTOS|OBSERVAÇÕES|CONCLUSÃO|NOTA INSTITUCIONAL)/i)) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         yPosition += 3;
@@ -388,7 +417,6 @@ const ResenhaEquinos = () => {
       : breed;
 
     const cleanContent = getCleanResenhaContent();
-    const contentLines = cleanContent.split('\n').filter(line => line.trim());
 
     const doc = new Document({
       sections: [{
@@ -419,9 +447,20 @@ const ResenhaEquinos = () => {
           })),
           // Separador
           new Paragraph({ children: [], spacing: { after: 200 } }),
-          // Conteúdo
-          ...contentLines.map(line => {
-            const isTitle = line.match(/^(MORFOLOGIA|PELAGEM|CONDIÇÃO|PONTOS|OBSERVAÇÕES|CONCLUSÃO)/i);
+          // Conteúdo com bloco institucional
+          ...(() => {
+            let contentWithInstitutional = cleanContent;
+            if (cleanContent.includes('CONCLUSÃO')) {
+              contentWithInstitutional = cleanContent.replace(
+                /(CONCLUSÃO)/i, 
+                `${getInstitutionalBlock()}\n\n$1`
+              );
+            } else {
+              contentWithInstitutional = cleanContent + getInstitutionalBlock();
+            }
+            return contentWithInstitutional.split('\n').filter(line => line.trim());
+          })().map(line => {
+            const isTitle = line.match(/^(MORFOLOGIA|PELAGEM|CONDIÇÃO|PONTOS|OBSERVAÇÕES|CONCLUSÃO|NOTA INSTITUCIONAL)/i);
             return new Paragraph({
               children: [new TextRun({ 
                 text: line, 
