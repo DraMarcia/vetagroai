@@ -115,6 +115,12 @@ const ResenhaEquinos = () => {
   };
 
   const handleGenerate = async () => {
+    // Prevent double-clicks
+    if (loading) {
+      console.log('Já processando, ignorando clique');
+      return;
+    }
+
     // CRMV validation gatekeeper - MANDATORY
     if (!validateCrmv()) {
       return;
@@ -139,6 +145,9 @@ const ResenhaEquinos = () => {
     }
 
     setLoading(true);
+    setResenha(""); // Clear previous result
+    console.log('Iniciando análise equina...');
+    
     try {
       const { data, error } = await supabase.functions.invoke("analyze-equine", {
         body: { 
@@ -154,7 +163,24 @@ const ResenhaEquinos = () => {
         },
       });
 
+      console.log('Resposta recebida:', { hasData: !!data, hasError: !!error });
+
       if (error) throw error;
+
+      if (!data?.resenha) {
+        throw new Error('Resposta vazia do servidor');
+      }
+
+      // Check if response is rejection message
+      if (data.resenha.includes("exclusiva para avaliação morfológica de equinos")) {
+        console.warn('Modelo rejeitou imagens incorretamente');
+        toast({
+          title: "Erro na análise",
+          description: "O sistema não conseguiu processar as imagens. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Clean unwanted formatting
       let cleanResenha = data.resenha
@@ -164,6 +190,7 @@ const ResenhaEquinos = () => {
         .replace(/\*/g, '•')
         .replace(/#+\s*/g, '');
 
+      console.log('Resenha processada com sucesso');
       setResenha(cleanResenha);
       toast({
         title: "Resenha gerada",
