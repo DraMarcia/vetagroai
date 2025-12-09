@@ -312,9 +312,12 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
       else if (tool === "analise-mucosa") {
         const isProfessional = requestBody.isProfessional === true;
         const crmvInfo = requestBody.crmv || "";
+        const especieInfo = requestBody.data?.especie || "Não informada (identificar pela imagem/descrição)";
         
         if (isProfessional) {
-          systemPrompt = `Você é um oftalmologista veterinário especializado. O usuário é um Médico Veterinário com registro no CRMV (${crmvInfo}).
+          systemPrompt = `Você é um especialista veterinário MULTIESPÉCIE em oftalmologia e clínica geral. O usuário é um Médico Veterinário com registro no CRMV (${crmvInfo}).
+
+IMPORTANTE: Você é capaz de diagnosticar QUALQUER espécie animal. Adapte sua análise à espécie informada ou identificada (caninos, felinos, equinos, bovinos, suínos, aves, peixes, silvestres, etc.).
 
 REGRAS OBRIGATÓRIAS:
 1. Identifique a espécie automaticamente pela descrição ou imagem
@@ -371,7 +374,9 @@ IMPORTANTE:
 - Parágrafos curtos e objetivos
 - Linguagem técnica para profissionais`;
         } else {
-          systemPrompt = `Você é um assistente veterinário educativo especializado em oftalmologia. O usuário é um TUTOR/PRODUTOR, não profissional.
+          systemPrompt = `Você é um assistente veterinário MULTIESPÉCIE educativo especializado em oftalmologia e sinais clínicos. O usuário é um TUTOR/PRODUTOR, não profissional.
+
+IMPORTANTE: Você é capaz de analisar QUALQUER espécie animal. Adapte sua análise à espécie informada ou identificada pela descrição/imagem (cães, gatos, cavalos, bovinos, aves, etc.).
 
 REGRAS OBRIGATÓRIAS:
 1. Identifique a espécie automaticamente pela descrição ou imagem
@@ -429,15 +434,14 @@ IMPORTANTE:
 - Linguagem simples e acessível para tutores`;
         }
 
-        const especieInfo = requestBody.data?.especie || "Não informada (identificar pela imagem/descrição)";
-        const descricaoInfo = requestBody.data?.descricao || "Não informado";
-
         userPrompt = `Analise a mucosa ocular/sinais clínicos com base nos seguintes dados:
 
 DADOS DO CASO:
 • Espécie: ${especieInfo}
-• Descrição clínica: ${descricaoInfo}
+• Descrição clínica: ${requestBody.data?.descricao || "Não informado"}
 ${requestBody.data?.images ? `• Imagens anexadas: ${requestBody.data.images.length} imagem(ns)` : '• Sem imagens anexadas'}
+
+IMPORTANTE: Forneça análise adequada para a espécie informada, utilizando literatura científica específica para cada tipo de animal.
 
 Forneça a análise seguindo rigorosamente a estrutura definida para ${isProfessional ? 'profissional veterinário' : 'tutor/produtor'}.`;
       }

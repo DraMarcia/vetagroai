@@ -5,23 +5,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Stethoscope, Loader2, AlertCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Stethoscope, Loader2, AlertCircle, AlertTriangle, Copy, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ReportExporter } from "@/components/ReportExporter";
 import { cleanTextForDisplay } from "@/lib/textUtils";
+import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
 
 const DiagnosticoDiferencial = () => {
   const { toast } = useToast();
+  const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
   const [isProfessional, setIsProfessional] = useState("");
   const [crmv, setCrmv] = useState("");
+  const [uf, setUf] = useState("");
   const [species, setSpecies] = useState("");
   const [age, setAge] = useState("");
   const [weight, setWeight] = useState("");
   const [symptoms, setSymptoms] = useState("");
   const [history, setHistory] = useState("");
   const [result, setResult] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const validateInputs = (): boolean => {
     if (!isProfessional) {
@@ -33,19 +37,18 @@ const DiagnosticoDiferencial = () => {
       return false;
     }
 
-    if (isProfessional === "sim" && !crmv.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Informe seu número de CRMV.",
-        variant: "destructive",
-      });
-      return false;
+    // Gate keeper: CRMV + UF validation for professionals
+    if (isProfessional === "sim") {
+      const crmvResult = validateAndNotify(true, crmv, uf);
+      if (!crmvResult.isValid) {
+        return false;
+      }
     }
 
     if (!species.trim()) {
       toast({
         title: "Dados incompletos",
-        description: "Informe a espécie do animal. Exemplo: Canina, Felina, Bovina, Equina.",
+        description: "Selecione a espécie do animal.",
         variant: "destructive",
       });
       return false;
@@ -81,18 +84,43 @@ const DiagnosticoDiferencial = () => {
     return true;
   };
 
+  const handleCopyReport = async () => {
+    if (!result) return;
+
+    const fullReport = `${result}\n\n---\nRelatório gerado via VetAgro Sustentável AI — Análise Assistida © 2025`;
+
+    try {
+      await navigator.clipboard.writeText(fullReport);
+      setCopied(true);
+      toast({
+        title: "Copiado!",
+        description: "Relatório copiado para a área de transferência.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar. Selecione o texto manualmente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!validateInputs()) return;
 
     setLoading(true);
     try {
       const userType = isProfessional === "sim" ? "Profissional Veterinário" : "Tutor/Produtor";
+      const speciesLabel = SPECIES_OPTIONS.find(s => s.value === species)?.label || species;
       
-      const prompt = `Você é um sistema especialista em diagnóstico veterinário. Analise o caso clínico abaixo e forneça um diagnóstico diferencial estruturado.
+      const prompt = `Você é um sistema especialista em diagnóstico veterinário MULTIESPÉCIE. Analise o caso clínico abaixo e forneça um diagnóstico diferencial estruturado.
+
+IMPORTANTE: Adapte sua análise à espécie informada. Você é capaz de diagnosticar qualquer espécie animal (caninos, felinos, equinos, bovinos, suínos, aves, etc.).
 
 DADOS DO CASO:
-- Tipo de Usuário: ${userType}${isProfessional === "sim" ? ` (CRMV: ${crmv})` : ""}
-- Espécie: ${species}
+- Tipo de Usuário: ${userType}${isProfessional === "sim" ? ` (CRMV: ${crmv}-${uf.toUpperCase()})` : ""}
+- Espécie: ${speciesLabel}
 - Idade: ${age}
 - Peso: ${weight}
 - Sinais Clínicos: ${symptoms}
@@ -178,8 +206,8 @@ REFERÊNCIAS:
   };
 
   const getUserInputs = () => ({
-    "Tipo de Usuário": isProfessional === "sim" ? `Profissional (CRMV: ${crmv})` : "Tutor/Produtor",
-    "Espécie": species,
+    "Tipo de Usuário": isProfessional === "sim" ? `Profissional (CRMV: ${crmv}-${uf.toUpperCase()})` : "Tutor/Produtor",
+    "Espécie": SPECIES_OPTIONS.find(s => s.value === species)?.label || species,
     "Idade": age,
     "Peso": weight,
     "Sinais Clínicos": symptoms,
@@ -193,6 +221,7 @@ REFERÊNCIAS:
     "JAVMA — Journal of the American Veterinary Medical Association",
     "Ettinger, S.J. & Feldman, E.C. — Textbook of Veterinary Internal Medicine",
   ];
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -211,32 +240,74 @@ REFERÊNCIAS:
       <div className="grid gap-6 max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle>Identificação</CardTitle>
+            <CardTitle>Identificação Profissional</CardTitle>
             <CardDescription>
               Informe se você é um profissional da área veterinária
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <RadioGroup value={isProfessional} onValueChange={setIsProfessional}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="sim" id="prof-sim" />
-                <Label htmlFor="prof-sim">Sou profissional da área veterinária</Label>
+                <Label htmlFor="prof-sim">Sou Médico(a) Veterinário(a)</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="nao" id="prof-nao" />
-                <Label htmlFor="prof-nao">Não sou profissional (tutor/produtor)</Label>
+                <Label htmlFor="prof-nao">Não sou profissional da área (tutor/produtor)</Label>
               </div>
             </RadioGroup>
 
             {isProfessional === "sim" && (
-              <div className="mt-4">
-                <Label htmlFor="crmv">CRMV *</Label>
-                <Input
-                  id="crmv"
-                  placeholder="Ex: CRMV-SP 12345"
-                  value={crmv}
-                  onChange={(e) => setCrmv(e.target.value)}
-                />
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <span className="text-sm font-medium text-foreground">CRMV obrigatório para respostas técnicas</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="crmv">Número CRMV *</Label>
+                    <Input
+                      id="crmv"
+                      placeholder="Ex: 12345"
+                      value={crmv}
+                      onChange={(e) => setCrmv(e.target.value.replace(/\D/g, ""))}
+                      maxLength={6}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="uf">UF *</Label>
+                    <Select value={uf} onValueChange={setUf}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UFS.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="col-span-2 text-xs text-muted-foreground mt-2">
+                  CRMV e UF obrigatórios para emissão de análise técnica completa
+                </p>
+              </div>
+            )}
+
+            {isProfessional === "nao" && (
+              <div className="mt-4 p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Atenção</p>
+                    <p className="text-sm text-muted-foreground">
+                      A resposta será educativa e orientativa. Para diagnóstico e tratamento, 
+                      consulte um médico veterinário.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
@@ -253,12 +324,18 @@ REFERÊNCIAS:
             <div className="space-y-4">
               <div>
                 <Label htmlFor="species">Espécie *</Label>
-                <Input
-                  id="species"
-                  placeholder="Ex: Canina, Felina, Bovina, Equina..."
-                  value={species}
-                  onChange={(e) => setSpecies(e.target.value)}
-                />
+                <Select value={species} onValueChange={setSpecies}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a espécie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SPECIES_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -347,32 +424,44 @@ REFERÊNCIAS:
                 Análise baseada nos sinais clínicos informados
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="prose prose-sm max-w-none">
-                  <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
-                    {result}
-                  </div>
+            <CardContent className="space-y-4">
+              <div className="prose prose-sm max-w-none">
+                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
+                  {result}
                 </div>
+              </div>
 
-                {isProfessional === "nao" && (
-                  <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-amber-800 dark:text-amber-200">
-                      Esta análise tem caráter informativo. É fundamental procurar um médico veterinário para avaliação presencial e diagnóstico definitivo.
-                    </p>
-                  </div>
-                )}
+              {isProfessional === "nao" && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    Esta análise tem caráter informativo. É fundamental procurar um médico veterinário para avaliação presencial e diagnóstico definitivo.
+                  </p>
+                </div>
+              )}
 
-                <ReportExporter
-                  title="Diagnóstico Diferencial Veterinário"
-                  content={result}
-                  toolName="Diagnóstico Diferencial Inteligente"
-                  references={getReferences()}
-                  userInputs={getUserInputs()}
-                  className="w-full"
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-3 italic">
+                  Relatório gerado via VetAgro Sustentável AI — Análise Assistida © 2025
+                </p>
+                
+                <Button
+                  onClick={handleCopyReport}
                   variant="outline"
-                />
+                  className="w-full"
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 h-4 w-4" />
+                      Copiar Relatório
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
