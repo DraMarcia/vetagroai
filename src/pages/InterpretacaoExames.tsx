@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ReportExporter } from "@/components/ReportExporter";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
 
 interface UploadedFile {
   url: string;
@@ -28,10 +29,12 @@ interface UploadedFile {
 const InterpretacaoExames = () => {
   const { toast } = useToast();
   const { plan } = useSubscription();
+  const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [isProfessional, setIsProfessional] = useState("");
   const [crmv, setCrmv] = useState("");
+  const [uf, setUf] = useState("");
   const [species, setSpecies] = useState("");
   const [age, setAge] = useState("");
   const [weight, setWeight] = useState("");
@@ -43,19 +46,18 @@ const InterpretacaoExames = () => {
   const [ocrFailed, setOcrFailed] = useState(false);
   const [canExportPdf, setCanExportPdf] = useState(false);
 
-  const speciesOptions = [
-    "Canina",
-    "Felina",
-    "Bovina",
-    "Equina",
-    "Suína",
-    "Ovina",
-    "Caprina",
-    "Aves",
-    "Outra"
-  ];
-
   const examTypes = [
+    "Hemograma Completo",
+    "Bioquímica Sérica",
+    "Urinálise",
+    "Coproparasitológico",
+    "Raio-X",
+    "Ultrassonografia",
+    "Eletrocardiograma",
+    "Citologia",
+    "Histopatológico",
+    "Outro"
+  ];
     "Hemograma Completo",
     "Bioquímica Sérica",
     "Urinálise",
@@ -168,13 +170,12 @@ const InterpretacaoExames = () => {
       return;
     }
 
-    if (isProfessional === "sim" && !crmv.trim()) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Informe seu número de CRMV.",
-        variant: "destructive",
-      });
-      return;
+    // Gate keeper: CRMV + UF validation for professionals
+    if (isProfessional === "sim") {
+      const crmvResult = validateAndNotify(true, crmv, uf);
+      if (!crmvResult.isValid) {
+        return;
+      }
     }
 
     if (!species || !age.trim() || !weight.trim() || !examType) {
@@ -500,14 +501,41 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
             </RadioGroup>
 
             {isProfessional === "sim" && (
-              <div className="space-y-2">
-                <Label htmlFor="crmv">CRMV *</Label>
-                <Input
-                  id="crmv"
-                  placeholder="Ex: CRMV-SP 12345"
-                  value={crmv}
-                  onChange={(e) => setCrmv(e.target.value)}
-                />
+              <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <span className="text-sm font-medium text-foreground">CRMV obrigatório para respostas técnicas</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="crmv">Número CRMV *</Label>
+                    <Input
+                      id="crmv"
+                      placeholder="Ex: 12345"
+                      value={crmv}
+                      onChange={(e) => setCrmv(e.target.value.replace(/\D/g, ""))}
+                      maxLength={6}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="uf">UF *</Label>
+                    <Select value={uf} onValueChange={setUf}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UFS.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  CRMV e UF obrigatórios para emissão de análise técnica completa
+                </p>
               </div>
             )}
 
@@ -538,9 +566,9 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    {speciesOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
+                    {SPECIES_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
