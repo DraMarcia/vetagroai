@@ -58,17 +58,6 @@ const InterpretacaoExames = () => {
     "Histopatológico",
     "Outro"
   ];
-    "Hemograma Completo",
-    "Bioquímica Sérica",
-    "Urinálise",
-    "Coproparasitológico",
-    "Raio-X",
-    "Ultrassonografia",
-    "Eletrocardiograma",
-    "Citologia",
-    "Histopatológico",
-    "Outro"
-  ];
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = e.target.files;
