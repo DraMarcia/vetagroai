@@ -18,11 +18,15 @@ export interface ReportData {
 
 // ============= Constants =============
 
-const BRAND_COLOR = { r: 34, g: 100, b: 60 }; // Dark green
-const BRAND_HEX = "226444";
+// Professional color scheme as requested
+const BRAND_COLOR = { r: 29, g: 53, b: 87 }; // Dark blue #1D3557
+const BRAND_HEX = "1D3557";
+const SUBTITLE_COLOR = { r: 74, g: 74, b: 74 }; // Gray #4A4A4A
+const BODY_COLOR = { r: 31, g: 31, b: 31 }; // Black #1F1F1F
 const WEBSITE_URL = "www.vetagroai.com.br";
 const DISCLAIMER = "Este relatório é informativo e não substitui avaliação clínica por médico veterinário habilitado.";
 const FOOTER_TEXT = "Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade.";
+const LEGAL_DISCLAIMER = "Este documento foi gerado por inteligência artificial para fins de apoio. A validade oficial depende da assinatura do médico veterinário responsável, conforme legislação profissional vigente (Lei 5.517/1968 e Resoluções CFMV).";
 const CTA_TEXT = "Deseja análise complementar? Envie novos dados ou imagens pelo app.";
 
 // ============= PDF Export =============
@@ -310,14 +314,36 @@ export async function exportToPDF(data: ReportData): Promise<void> {
     }
   }
   
-  // CTA Section
-  if (checkPageBreak(30)) {
+  // Legal Disclaimer Section
+  if (checkPageBreak(45)) {
     addPageHeader();
     yPosition = 25;
   }
-  yPosition += 15;
+  yPosition += 10;
   
-  doc.setFillColor(240, 248, 240);
+  doc.setFillColor(255, 248, 230);
+  doc.setDrawColor(200, 150, 50);
+  doc.roundedRect(margin, yPosition, maxWidth, 28, 3, 3, "FD");
+  
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(150, 100, 50);
+  doc.text("AVISO LEGAL", margin + 5, yPosition + 8);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  const legalLines = doc.splitTextToSize(LEGAL_DISCLAIMER, maxWidth - 10);
+  for (let i = 0; i < legalLines.length; i++) {
+    doc.text(legalLines[i], margin + 5, yPosition + 14 + (i * 4));
+  }
+  yPosition += 35;
+
+  // CTA Section
+  if (checkPageBreak(25)) {
+    addPageHeader();
+    yPosition = 25;
+  }
+  
+  doc.setFillColor(235, 245, 255);
   doc.setDrawColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
   doc.roundedRect(margin, yPosition, maxWidth, 18, 3, 3, "FD");
   
@@ -333,19 +359,22 @@ export async function exportToPDF(data: ReportData): Promise<void> {
     
     // Footer background
     doc.setFillColor(250, 250, 250);
-    doc.rect(0, pageHeight - 18, pageWidth, 18, "F");
+    doc.rect(0, pageHeight - 22, pageWidth, 22, "F");
     
     // Footer line
-    doc.setDrawColor(220, 220, 220);
-    doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
+    doc.setDrawColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+    doc.setLineWidth(0.5);
+    doc.line(margin, pageHeight - 22, pageWidth - margin, pageHeight - 22);
     
     // Footer text
     doc.setFontSize(7);
-    doc.setTextColor(120, 120, 120);
-    doc.text(FOOTER_TEXT, pageWidth / 2, pageHeight - 10, { align: "center" });
+    doc.setTextColor(100, 100, 100);
+    doc.text(FOOTER_TEXT, pageWidth / 2, pageHeight - 14, { align: "center" });
     
-    doc.setFontSize(8);
-    doc.text(`Página ${i - 1} de ${totalPages - 1}`, pageWidth / 2, pageHeight - 5, { align: "center" });
+    // Copyright and page number
+    doc.setFontSize(7);
+    doc.text(`© VetAgro Sustentável AI — ${new Date().getFullYear()}`, margin, pageHeight - 6);
+    doc.text(`Página ${i - 1} de ${totalPages - 1}`, pageWidth - margin, pageHeight - 6, { align: "right" });
   }
   
   // Save
@@ -578,6 +607,27 @@ export async function exportToDocx(data: ReportData): Promise<void> {
     }
   }
   
+  // Legal Disclaimer
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "AVISO LEGAL: ",
+          bold: true,
+          size: 18,
+          color: "996600"
+        }),
+        new TextRun({
+          text: LEGAL_DISCLAIMER,
+          size: 18,
+          color: "996600"
+        })
+      ],
+      spacing: { before: 300, after: 200 },
+      shading: { fill: "FFF8E6" }
+    })
+  );
+
   // CTA
   children.push(
     new Paragraph({
@@ -590,7 +640,7 @@ export async function exportToDocx(data: ReportData): Promise<void> {
         })
       ],
       alignment: AlignmentType.CENTER,
-      spacing: { before: 400, after: 200 }
+      spacing: { before: 300, after: 200 }
     })
   );
   
@@ -831,14 +881,23 @@ export async function exportToEpub(data: ReportData): Promise<void> {
       list-style-type: disc;
       padding-left: 25px;
     }
+    .legal-disclaimer {
+      background: #fff8e6;
+      border: 1px solid #e6a700;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 30px 0;
+      font-size: 0.85em;
+      color: #996600;
+    }
     .cta {
-      background: #f0f8f0;
-      border: 1px solid #226444;
+      background: #e8f4fc;
+      border: 1px solid #1D3557;
       padding: 15px;
       border-radius: 5px;
       text-align: center;
-      margin: 30px 0;
-      color: #226444;
+      margin: 20px 0;
+      color: #1D3557;
       font-weight: bold;
     }
     .footer {
@@ -924,6 +983,9 @@ export async function exportToEpub(data: ReportData): Promise<void> {
   }
   
   htmlContent += `
+  <div class="legal-disclaimer">
+    <strong>⚠ AVISO LEGAL:</strong> ${LEGAL_DISCLAIMER}
+  </div>
   <div class="cta">
     ${CTA_TEXT}
   </div>

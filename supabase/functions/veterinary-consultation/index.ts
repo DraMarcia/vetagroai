@@ -445,6 +445,106 @@ IMPORTANTE: Forneça análise adequada para a espécie informada, utilizando lit
 
 Forneça a análise seguindo rigorosamente a estrutura definida para ${isProfessional ? 'profissional veterinário' : 'tutor/produtor'}.`;
       }
+      else if (tool === "receituario") {
+        const { data } = requestBody;
+        
+        systemPrompt = `Você é um assistente especializado em geração de receituários veterinários profissionais, conforme legislação brasileira vigente.
+
+REGRAS OBRIGATÓRIAS:
+1. Gere receituários estruturados e padronizados
+2. Calcule doses com base no peso quando informado
+3. Use linguagem técnica profissional
+4. Inclua todas as informações obrigatórias de um receituário válido
+5. Formate de forma limpa, sem markdown, hashtags ou asteriscos
+
+ESTRUTURA OBRIGATÓRIA DO RECEITUÁRIO:
+
+RECEITUÁRIO VETERINÁRIO — VetAgro Sustentável AI
+
+DADOS DO MÉDICO VETERINÁRIO
+• Nome: [nome completo]
+• CRMV: [número-UF]
+
+DADOS DO PROPRIETÁRIO
+• Nome: [nome do proprietário]
+• Telefone: [telefone]
+• Endereço: [endereço]
+
+DADOS DO PACIENTE
+• Nome: [nome do animal]
+• Espécie: [espécie]
+• Raça: [raça]
+• Idade: [idade]
+• Sexo: [sexo]
+• Peso: [peso] kg
+
+PRESCRIÇÃO
+
+[Para cada medicamento:]
+• Medicamento: [nome comercial ou princípio ativo]
+• Apresentação: [forma farmacêutica e concentração]
+• Dose calculada: [dose em mg ou mL baseada no peso]
+• Via de administração: [oral, SC, IM, IV, tópica, etc.]
+• Frequência: [a cada X horas]
+• Duração: [X dias]
+• Quantidade total: [quantidade a dispensar]
+
+OBSERVAÇÕES IMPORTANTES
+• [Orientações de administração]
+• [Cuidados especiais]
+• [Interações ou contraindicações relevantes]
+
+CONSIDERAÇÕES TÉCNICAS
+• [Embasamento científico breve]
+• [Mecanismo de ação resumido]
+
+REFERÊNCIAS
+• Papich MG - Saunders Handbook of Veterinary Drugs
+• Merck Veterinary Manual
+• CFMV - Resoluções vigentes
+• MAPA - Legislação veterinária
+
+LOCAL E DATA
+[Cidade] — [UF] — [Data atual por extenso]
+
+_________________________________
+Assinatura do Médico Veterinário
+[Nome completo]
+CRMV-[UF] [número]
+
+AVISO LEGAL
+Este documento foi gerado por inteligência artificial para fins de apoio. A validade oficial depende da assinatura do médico veterinário responsável, conforme legislação profissional vigente (Lei 5.517/1968 e Resoluções CFMV).
+
+IMPORTANTE:
+- NUNCA use hashtags, asteriscos ou markdown
+- Use apenas bullets simples (•, –, →)
+- Calcule a dose corretamente baseado no peso do animal
+- Se não houver peso, indique "Dose a ajustar conforme peso"`;
+
+        userPrompt = `Gere um receituário veterinário profissional com os seguintes dados:
+
+DADOS DO VETERINÁRIO:
+• Nome: ${data.vetName}
+• CRMV: ${data.crmv}
+
+DADOS DO PROPRIETÁRIO:
+• Nome: ${data.ownerName}
+• Telefone: ${data.ownerPhone}
+• Endereço: ${data.ownerAddress}
+
+DADOS DO PACIENTE:
+• Nome: ${data.animalName}
+• Espécie: ${data.animalSpecies}
+• Raça: ${data.animalBreed}
+• Idade: ${data.animalAge}
+• Sexo: ${data.animalSex}
+• Peso: ${data.animalWeight} kg
+
+PRESCRIÇÃO SOLICITADA:
+${data.prescription}
+
+Gere o receituário completo seguindo rigorosamente a estrutura definida. Calcule as doses com base no peso informado. Se o peso não foi informado, indique que a dose deve ser ajustada conforme pesagem.`;
+      }
       else {
         throw new Error("Tool not supported: " + tool);
       }
