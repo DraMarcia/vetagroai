@@ -18,14 +18,14 @@ export interface ReportData {
 
 // ============= Constants =============
 
-// Professional color scheme as requested
-const BRAND_COLOR = { r: 29, g: 53, b: 87 }; // Dark blue #1D3557
-const BRAND_HEX = "1D3557";
+// GREEN institutional color scheme - VetAgro Sustentável AI
+const BRAND_COLOR = { r: 27, g: 127, b: 70 }; // Green #1B7F46
+const BRAND_HEX = "1B7F46";
 const SUBTITLE_COLOR = { r: 74, g: 74, b: 74 }; // Gray #4A4A4A
 const BODY_COLOR = { r: 31, g: 31, b: 31 }; // Black #1F1F1F
 const WEBSITE_URL = "www.vetagroai.com.br";
 const DISCLAIMER = "Este relatório é informativo e não substitui avaliação clínica por médico veterinário habilitado.";
-const FOOTER_TEXT = "Relatório gerado pela suíte VetAgro AI — inteligência aplicada à saúde e sustentabilidade.";
+const FOOTER_TEXT = "Documento gerado pela suíte VetAgro Sustentável AI — inteligência aplicada à saúde, produção e bem-estar animal.";
 const LEGAL_DISCLAIMER = "Este documento foi gerado por inteligência artificial para fins de apoio. A validade oficial depende da assinatura do médico veterinário responsável, conforme legislação profissional vigente (Lei 5.517/1968 e Resoluções CFMV).";
 const CTA_TEXT = "Deseja análise complementar? Envie novos dados ou imagens pelo app.";
 
@@ -86,7 +86,7 @@ export async function exportToPDF(data: ReportData): Promise<void> {
   
   // Tool name box
   yPosition = 80;
-  doc.setFillColor(245, 248, 245);
+  doc.setFillColor(235, 250, 240); // Light green background
   doc.roundedRect(margin, yPosition, maxWidth, 25, 3, 3, "F");
   
   doc.setFontSize(14);
@@ -159,7 +159,7 @@ export async function exportToPDF(data: ReportData): Promise<void> {
   
   // User inputs section
   if (data.userInputs && Object.keys(data.userInputs).length > 0) {
-    doc.setFillColor(248, 250, 248);
+    doc.setFillColor(240, 250, 245); // Light green background
     doc.roundedRect(margin, yPosition, maxWidth, 8 + Object.keys(data.userInputs).length * 6, 2, 2, "F");
     
     doc.setFontSize(11);
@@ -343,7 +343,7 @@ export async function exportToPDF(data: ReportData): Promise<void> {
     yPosition = 25;
   }
   
-  doc.setFillColor(235, 245, 255);
+  doc.setFillColor(235, 250, 240); // Light green background
   doc.setDrawColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
   doc.roundedRect(margin, yPosition, maxWidth, 18, 3, 3, "FD");
   
