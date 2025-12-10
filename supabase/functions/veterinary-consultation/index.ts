@@ -1067,10 +1067,13 @@ Gere o relatório seguindo RIGOROSAMENTE a estrutura definida. Texto 100% justif
         const isProfessional = requestBody.isProfessional === true;
         const description = requestBody.description || "";
         const images = requestBody.images || [];
+        const councilType = requestBody.councilType || "";
+        const councilNumber = requestBody.councilNumber || "";
+        const councilUF = requestBody.councilUF || "";
         
-        systemPrompt = `Você é um especialista em botânica e toxicologia veterinária da plataforma VetAgro Sustentável AI.
+        systemPrompt = `Você é um especialista em botânica, agronomia, toxicologia vegetal e manejo de pastagens da plataforma VetAgro Sustentável AI.
 
-OBJETIVO: Identificar plantas a partir de imagens ou descrições e avaliar sua toxicidade para animais domésticos e de produção.
+OBJETIVO: A partir da imagem enviada (folha, caule, raiz, flores, fruto ou foto de pastagem), gerar relatório técnico completo e padronizado sobre identificação botânica, fitossanidade e toxicidade animal.
 
 REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:
 • SEM asteriscos, hashtags, emojis ou markdown
@@ -1078,49 +1081,121 @@ REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:
 • Títulos em MAIÚSCULAS seguidos de dois-pontos
 • Texto 100% justificado
 • Parágrafos contínuos sem quebras desnecessárias
+• Tabelas devem ser alinhadas e claras
 
 ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
 
-1) IDENTIFICAÇÃO DA PLANTA:
-   • Nome popular
-   • Nome científico
-   • Família botânica
-   • Características morfológicas observadas
+1) IDENTIFICAÇÃO BOTÂNICA E MORFOLÓGICA:
+• Nome popular
+• Nome científico
+• Família botânica
+• Sinônimos botânicos (se houver)
+• Características morfológicas observadas na imagem:
+  – Tipo de folha e disposição
+  – Nervuras e coloração
+  – Formato e margem
+  – Textura
+  – Estolhos, rizomas (se visíveis)
+  – Aspecto do caule
+  – Presença de inflorescência ou sementes
+  – Estrutura radicular (se visível)
+• Se forem imagens de pasto: formação, densidade, manejo aparente
+• Se não houver segurança na identificação: apresentar as 3 espécies mais prováveis explicando similaridades
 
-2) ANÁLISE DE TOXICIDADE:
-   • Princípios tóxicos (se houver)
-   • Partes tóxicas da planta
-   • Espécies animais susceptíveis
-   • Dose tóxica estimada (quando conhecida)
+2) ANÁLISE FITOSSANITÁRIA:
+• Pragas comuns no Brasil (lagarta-militar, percevejos, cigarrinha-das-pastagens, cochonilhas, ácaros)
+• Doenças fúngicas, bacterianas ou virais (ferrugem, míldio, antracnose, helmintosporiose)
+• Deficiências nutricionais visuais: N, P, K, Ca, Mg, S, micronutrientes
+• Estresse hídrico, queimaduras solares, encharcamento, compactação do solo
+• Danos mecânicos ou fisiológicos
+• Recomendação objetiva de correção: nutrição do solo, manejo de pragas, rotação, correção de solo, adubação, pastejo rotacionado, altura de manejo
 
-3) SINAIS CLÍNICOS DE INTOXICAÇÃO:
-   • Sinais iniciais
-   • Sinais avançados
-   • Tempo de manifestação
+3) ANÁLISE DE TOXICIDADE ANIMAL (SE APLICÁVEL):
+• Princípios tóxicos (oxalatos, glicosídeos, alcaloides, saponinas, fotossensibilizantes)
+• Partes tóxicas da planta
+• Espécies animais afetadas
+• Dose tóxica (quando existir literatura)
+• Sinais clínicos detalhados:
+  – Fase inicial
+  – Fase intermediária
+  – Fase grave
+• Riscos de morte ou sequelas
+• Tratamento recomendado (suporte, antídotos se existirem)
+• Conduta imediata no campo
 
-4) CONDUTA RECOMENDADA:
-   ${isProfessional ? `• Tratamento de suporte
-   • Antídotos específicos (se existirem)
-   • Monitoramento recomendado` : `• Orientações gerais de segurança
-   • Quando procurar atendimento veterinário`}
+4) CONTEXTO AGROECOLÓGICO E BIOMAS:
+• Identificar o bioma provável:
+  – Amazônia
+  – Cerrado
+  – Mata Atlântica
+  – Caatinga
+  – Pantanal
+  – Pampa
+• Subclasses regionais quando aplicável:
+  – Lavrado de Roraima (savana amazônica)
+  – Campos de altitude
+  – Savanas úmidas
+  – Campinaranas
+  – Veredas
+  – Áreas de várzea e igapó
+  – Faixas de transição (ecótonos)
 
-5) PREVENÇÃO:
-   • Medidas para evitar acesso dos animais
-   • Alternativas seguras de paisagismo
+5) FORRAGEIRAS ADEQUADAS POR BIOMA:
+• Avaliar se o pasto observado é adequado ou inadequado ao bioma local
+• Listar forrageiras mais adequadas por bioma:
+  – Brachiaria brizantha cv. Marandu, Paiaguás, BRS Ipyporã
+  – Brachiaria humidicola
+  – Andropogon gayanus
+  – Panicum maximum cv. Mombaça, BRS Zuri, Tamani
+  – Cynodon spp. (Tifton 85, Coastcross)
+  – Forrageiras nativas de savana amazônica (Lavrado)
+  – Espécies tóxicas rurais frequentes
+• Recomendações de manejo específicas do bioma
+• No Lavrado de Roraima: evitar degradar áreas arenosas, cuidados com invasoras (capim-navalha, malícia, marupazinho), maior adaptação ao clima quente e solos pobres em P e Ca
 
-6) REFERÊNCIAS TÉCNICAS:
-   • Sempre citar: Embrapa, Manual de Plantas Tóxicas (Tokarnia), CEVAP, literatura científica
+6) RECOMENDAÇÕES DE MANEJO:
+• Manejo da pastagem
+• Indicadores de degradação
+• Altura ideal de entrada e saída
+• Correções de solo (V%, P, K)
+• Adequação para bovinos, equinos, ovinos, bubalinos
+• Viabilidade ambiental e produtiva
+• Controle de pragas e doenças
+• Riscos de intoxicação
+• Alternativas de substituição (plantas seguras)
 
-7) AVISO FINAL:
-   ${isProfessional ? "Este relatório é de apoio técnico. A confirmação diagnóstica requer avaliação clínica e laboratorial." : "⚠️ Esta é uma identificação preliminar. Para segurança do seu animal, consulte um médico veterinário antes de qualquer ação."}`;
+7) RISCOS ZOOTÉCNICOS:
+• Impacto na produção animal
+• Perdas econômicas potenciais
+• Medidas preventivas
 
-        userPrompt = `Identifique a planta e avalie sua toxicidade:
+8) REFERÊNCIAS TÉCNICAS:
+Sempre citar:
+• Embrapa Gado de Corte / Amazônia Oriental / Roraima
+• Plantas Tóxicas da Embrapa
+• Tokarnia et al. – Manual de Plantas Tóxicas
+• Flora do Brasil (Reflora)
+• CEVAP
+• Artigos científicos revisados por pares
+• MAPA – listagens oficiais
+• Guias de gramíneas brasileiras
+
+9) AVISO FINAL:
+${isProfessional ? "Este relatório é de apoio técnico. A avaliação diagnóstica completa requer análise presencial por engenheiro agrônomo, florestal, biólogo ou médico veterinário." : "⚠ Este relatório é uma estimativa baseada na imagem. A avaliação diagnóstica completa requer análise presencial por engenheiro agrônomo, florestal, biólogo ou médico veterinário."}`;
+
+        userPrompt = `Identifique a planta/pastagem e gere relatório técnico completo:
+
+DADOS DO PROFISSIONAL:
+• Tipo: ${isProfessional ? "Profissional da área" : "Não profissional"}
+${isProfessional && councilType ? `• Conselho: ${councilType}` : ""}
+${isProfessional && councilNumber ? `• Registro: ${councilNumber}-${councilUF}` : ""}
+• Data: ${new Date().toLocaleDateString("pt-BR")}
 
 DESCRIÇÃO FORNECIDA: ${description || "Não fornecida - analisar pela imagem"}
 
 ${images.length > 0 ? `IMAGENS ANEXADAS: ${images.length} imagem(ns) para análise` : "Nenhuma imagem anexada"}
 
-Forneça identificação e análise de toxicidade seguindo rigorosamente a estrutura definida.`;
+Forneça identificação botânica completa, análise fitossanitária, toxicidade animal (se aplicável), contexto agroecológico, forrageiras adequadas ao bioma e recomendações de manejo. Siga RIGOROSAMENTE a estrutura definida com texto 100% justificado, sem markdown, títulos em MAIÚSCULAS.`;
       }
       else {
         throw new Error("Tool not supported: " + tool);
