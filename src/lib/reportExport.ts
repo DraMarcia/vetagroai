@@ -19,8 +19,8 @@ export interface ReportData {
 // ============= Constants =============
 
 // GREEN institutional color scheme - VetAgro Sustentável AI
-const BRAND_COLOR = { r: 27, g: 127, b: 70 }; // Green #1B7F46
-const BRAND_HEX = "1B7F46";
+const BRAND_COLOR = { r: 14, g: 138, b: 71 }; // Green institucional #0E8A47
+const BRAND_HEX = "0E8A47";
 const SUBTITLE_COLOR = { r: 74, g: 74, b: 74 }; // Gray #4A4A4A
 const BODY_COLOR = { r: 31, g: 31, b: 31 }; // Black #1F1F1F
 const WEBSITE_URL = "www.vetagroai.com.br";
