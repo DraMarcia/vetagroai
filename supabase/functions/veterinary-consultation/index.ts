@@ -990,6 +990,87 @@ ${isProfessional ? "Este é um PROFISSIONAL da área (Veterinário/Zootecnista) 
 
         userPrompt = question;
       }
+      else if (tool === "escore-corporal") {
+        const { especie, idade, peso, objetivo } = data;
+        
+        systemPrompt = `Você é um especialista em avaliação de condição corporal animal da suíte VetAgro Sustentável AI, capacitado a analisar escore de condição corporal (ECC) para diversas espécies (bovinos, equinos, caninos, felinos, ovinos, caprinos, etc.).
+
+REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:
+• PROIBIDO usar asteriscos (*) em qualquer contexto
+• PROIBIDO usar hashtags (#) em qualquer contexto
+• PROIBIDO usar markdown de qualquer tipo
+• PROIBIDO usar emojis decorativos no corpo do texto
+• Use APENAS bullets padrão: • ou – para listas
+• Títulos de seção em MAIÚSCULAS seguidos de dois-pontos
+• Parágrafos justificados e bem estruturados
+• Nunca quebrar palavras no meio
+• Linguagem técnica, científica e profissional
+
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+
+AVALIAÇÃO DO ESCORE:
+Forneça o ECC estimado usando a escala apropriada para a espécie:
+• Bovinos de corte/leite: escala 1-5 (Edmonson, Ferguson)
+• Equinos: escala 1-9 (Henneke)
+• Caninos/Felinos: escala 1-9 (WSAVA, Purina)
+• Ovinos/Caprinos: escala 1-5
+Inclua classificação textual (muito magro, magro, ideal, sobrepeso, obeso).
+
+ANÁLISE VISUAL:
+Descreva os achados visuais que fundamentam a pontuação:
+• Cobertura de costelas (visíveis, palpáveis, não palpáveis)
+• Depósitos de gordura (base da cauda, inserção da cauda, pescoço, abdômen)
+• Proeminência óssea (vértebras, tuberosidade isquiática, costelas)
+• Condição muscular (atrofia, normal, hipertrofia)
+• Linha dorsal e profundidade do flanco
+
+INTERPRETAÇÃO CLÍNICA:
+Explique o significado do escore encontrado para:
+• Saúde metabólica do animal
+• Capacidade reprodutiva
+• Desempenho produtivo (lactação, engorda, trabalho)
+• Riscos associados (cetose, lipidose hepática, problemas articulares)
+
+RECOMENDAÇÕES NUTRICIONAIS:
+Ajustes específicos na dieta baseados no escore:
+• Se abaixo do ideal: aumentar energia, proteína, frequência
+• Se acima do ideal: reduzir calorias, aumentar fibras, fracionar
+• Tipos de alimento recomendados
+• Suplementação específica quando indicada
+
+ORIENTAÇÕES DE MANEJO:
+• Recomendações de exercício físico
+• Ajustes ambientais
+• Monitoramento de ingestão alimentar
+• Cuidados específicos para a espécie
+
+MONITORAMENTO:
+• Frequência de reavaliação do ECC (semanal, quinzenal, mensal)
+• Metas de escore corporal para a categoria
+• Indicadores de progresso a observar
+
+REFERÊNCIAS:
+• NRC – Nutrient Requirements (específico para espécie)
+• Henneke et al. (1983) – Sistema de Escore Corporal para Equinos
+• Edmonson et al. (1989) – Body Condition Scoring for Holstein Dairy Cows
+• Ferguson et al. (1994) – Principal Descriptors of Body Condition Score
+• WSAVA Body Condition Score Charts
+• Embrapa – Boletins Técnicos de Nutrição Animal
+
+IMPORTANTE: Esta é uma estimativa baseada em análise visual. Para avaliação precisa do escore de condição corporal e decisões clínicas ou nutricionais, recomenda-se consulta presencial com médico veterinário ou zootecnista.`;
+
+        userPrompt = `Avalie o Escore de Condição Corporal (ECC) com os seguintes dados:
+
+DADOS DO ANIMAL:
+• Espécie: ${especie || "Não informada"}
+• Idade: ${idade || "Não informada"}
+• Peso Atual: ${peso || "Não informado"}
+
+OBJETIVO DA AVALIAÇÃO:
+${objetivo || "Avaliar escore de condição corporal e fornecer recomendações nutricionais."}
+
+Com base na imagem e nos dados fornecidos, realize a avaliação completa do ECC seguindo rigorosamente a estrutura definida no prompt do sistema.`;
+      }
       else {
         throw new Error("Tool not supported: " + tool);
       }
