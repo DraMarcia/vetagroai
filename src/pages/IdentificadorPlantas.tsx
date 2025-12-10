@@ -343,10 +343,17 @@ const IdentificadorPlantas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed text-justify">
-                  {result}
-                </div>
+              <div className="bg-muted p-4 rounded-lg text-sm leading-relaxed">
+                {result.split('\n\n').map((paragraph, idx) => (
+                  <p key={idx} className="text-justify mb-3 last:mb-0">
+                    {paragraph.split('\n').map((line, lineIdx) => (
+                      <span key={lineIdx}>
+                        {line}
+                        {lineIdx < paragraph.split('\n').length - 1 && <br />}
+                      </span>
+                    ))}
+                  </p>
+                ))}
               </div>
               
               <div className="flex flex-wrap gap-2 pt-4 border-t">
