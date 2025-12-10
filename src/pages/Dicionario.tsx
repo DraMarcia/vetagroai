@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportExporter } from "@/components/ReportExporter";
 import { useCrmvValidation, UFS } from "@/hooks/useCrmvValidation";
-
+import { cleanTextForDisplay } from "@/lib/textUtils";
 // Pharmacological categories
 const PHARMACOLOGICAL_CATEGORIES = [
   { value: "aines", label: "Anti-inflamatórios não esteroidais (AINEs)" },
@@ -181,7 +181,9 @@ REGRAS OBRIGATÓRIAS:
 
       if (error) throw error;
 
-      setResult(data.answer);
+      // Clean the result text to remove markdown symbols
+      const cleanedResult = cleanTextForDisplay(data.answer);
+      setResult(cleanedResult);
       toast({
         title: "Consulta realizada!",
         description: "Informações farmacológicas encontradas com sucesso.",
@@ -417,9 +419,17 @@ REGRAS OBRIGATÓRIAS:
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
-              {/* Result Display */}
+              {/* Result Display - Justified professional text */}
               <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-lg text-sm leading-relaxed border">
+                <div 
+                  className="whitespace-pre-wrap bg-muted/50 p-6 rounded-lg text-sm leading-relaxed border"
+                  style={{ 
+                    textAlign: 'justify', 
+                    textJustify: 'inter-word',
+                    fontFamily: 'Inter, Roboto, system-ui, sans-serif',
+                    lineHeight: '1.6'
+                  }}
+                >
                   {result}
                 </div>
               </div>

@@ -555,7 +555,7 @@ FUNÇÃO PRINCIPAL:
 1. Interpretar o nome do medicamento informado (comercial, genérico ou princípio ativo)
 2. Identificar automaticamente: classe farmacológica, princípios ativos, espécies com indicação, doses usuais, contraindicações, interações, efeitos adversos, cuidados e orientações ao tutor
 
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA (use EXATAMENTE esta ordem e estes títulos):
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA (use EXATAMENTE esta ordem e estes títulos numerados):
 
 1. NOME COMERCIAL E SINÔNIMOS
 Liste os principais nomes comerciais disponíveis no Brasil e sinônimos conhecidos.
@@ -615,14 +615,19 @@ Use exclusivamente fontes confiáveis:
 • AAHA, AAFP, ISFM Guidelines
 • Publicações científicas indexadas recentes
 
-REGRAS OBRIGATÓRIAS:
-• Texto EXTREMAMENTE TÉCNICO, claro e com linguagem científica
+REGRAS OBRIGATÓRIAS DE FORMATAÇÃO:
+• PROIBIDO usar asteriscos (*) em qualquer contexto
+• PROIBIDO usar hashtags (#) em qualquer contexto
+• PROIBIDO usar markdown de qualquer tipo
+• PROIBIDO usar emojis ou símbolos decorativos
+• Use APENAS bullets padrão: • ou – para listas
+• Títulos devem ser numerados: "1. TÍTULO", "2. TÍTULO", etc.
+• Subtítulos internos sem numeração, apenas texto em maiúsculas seguido de dois pontos
+• Parágrafos devem ser bem estruturados e completos
+• Nunca quebrar palavras no meio (ex: "a r t r i t e" é PROIBIDO)
+• Texto técnico, claro, com linguagem científica profissional
 • Jamais inventar informações
 • Se não houver dados confiáveis → "Informação não disponível em fontes confiáveis até o momento"
-• Resposta técnica, completa, organizada
-• Sem asteriscos, hashtags ou emojis
-• Use apenas bullets padrão: •, –, →
-• Formate títulos como "TÍTULO:" sem markdown
 ${isProfessional ? "• Este é um MÉDICO VETERINÁRIO com CRMV - forneça informações técnicas completas e detalhadas" : "• Forneça informações técnicas mas com explicações acessíveis"}
 ${category ? `• Categoria farmacológica selecionada: ${category}` : ""}
 ${objective ? `• Objetivo da consulta: ${objective}` : "• Objetivo: Análise completa"}`;
