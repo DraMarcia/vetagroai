@@ -40,10 +40,10 @@ const BRAND_HEX = "0E8A47";
 const SUBTITLE_COLOR = { r: 74, g: 74, b: 74 }; // Gray #4A4A4A
 const BODY_COLOR = { r: 31, g: 31, b: 31 }; // Black #1F1F1F
 const WEBSITE_URL = "www.vetagroai.com.br";
-const DISCLAIMER = "Este relatório é informativo e não substitui avaliação clínica por médico veterinário habilitado.";
-const FOOTER_TEXT = "Documento gerado pela suíte VetAgro Sustentável AI — inteligência aplicada à saúde, produção e bem-estar animal.";
-const LEGAL_DISCLAIMER = "Este documento foi gerado por inteligência artificial para fins de apoio. A validade oficial depende da assinatura do médico veterinário responsável, conforme legislação profissional vigente (Lei 5.517/1968 e Resoluções CFMV).";
-const CTA_TEXT = "Deseja análise complementar? Envie novos dados ou imagens pelo app.";
+const DISCLAIMER = "Este relatorio e informativo e nao substitui avaliacao clinica por medico veterinario habilitado.";
+const FOOTER_TEXT = "Documento gerado pela suite VetAgro Sustentavel AI - inteligencia aplicada a saude, producao e bem-estar animal.";
+const LEGAL_DISCLAIMER = "Este documento foi gerado por inteligencia artificial para fins de apoio. A validade oficial depende da assinatura do medico veterinario responsavel, conforme legislacao profissional vigente (Lei 5.517/1968 e Resolucoes CFMV).";
+const CTA_TEXT = "Deseja analise complementar? Envie novos dados ou imagens pelo app.";
 
 // ============= PDF Export =============
 
