@@ -4,11 +4,143 @@
  */
 
 /**
+ * Check if content contains HTML
+ */
+function isHtmlContent(text: string): boolean {
+  return /<(div|table|h[1-6]|p|tr|td|th|strong|br|span)[^>]*>/i.test(text);
+}
+
+/**
+ * Convert HTML table to clean text format
+ */
+function convertHtmlTableToText(tableHtml: string): string {
+  const rows: string[][] = [];
+  
+  // Extract rows
+  const rowMatches = tableHtml.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+  
+  for (const rowHtml of rowMatches) {
+    const cells: string[] = [];
+    const cellMatches = rowHtml.match(/<(td|th)[^>]*>([\s\S]*?)<\/(td|th)>/gi) || [];
+    
+    for (const cellHtml of cellMatches) {
+      // Extract cell content, remove tags
+      let cellText = cellHtml
+        .replace(/<(td|th)[^>]*>/gi, "")
+        .replace(/<\/(td|th)>/gi, "")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .trim();
+      cells.push(cellText);
+    }
+    
+    if (cells.length > 0) {
+      rows.push(cells);
+    }
+  }
+  
+  if (rows.length === 0) return "";
+  
+  // Format as text table
+  let result = "\n";
+  
+  // Check if first row is header (th tags)
+  const isHeaderRow = tableHtml.includes("<th");
+  
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (i === 0 && isHeaderRow) {
+      // Header row
+      result += row.join(" | ") + "\n";
+      result += "-".repeat(60) + "\n";
+    } else {
+      // Data row - format as key: value if 2 columns
+      if (row.length === 2) {
+        result += `• ${row[0]}: ${row[1]}\n`;
+      } else {
+        result += row.join(" | ") + "\n";
+      }
+    }
+  }
+  
+  return result + "\n";
+}
+
+/**
+ * Convert HTML content to clean plain text
+ */
+function convertHtmlToText(html: string): string {
+  let text = html;
+  
+  // Convert tables to text format first
+  text = text.replace(/<table[^>]*>[\s\S]*?<\/table>/gi, (match) => {
+    return convertHtmlTableToText(match);
+  });
+  
+  // Convert headings to section titles
+  text = text.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi, (_, content) => {
+    const cleanContent = content.replace(/<[^>]+>/g, "").trim().toUpperCase();
+    return `\n\n${cleanContent}:\n`;
+  });
+  
+  // Convert strong/bold to plain text
+  text = text.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, "$1");
+  text = text.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "$1");
+  
+  // Convert emphasis to plain text
+  text = text.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "$1");
+  text = text.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "$1");
+  
+  // Convert line breaks
+  text = text.replace(/<br\s*\/?>/gi, "\n");
+  
+  // Convert paragraphs
+  text = text.replace(/<\/p>/gi, "\n\n");
+  text = text.replace(/<p[^>]*>/gi, "");
+  
+  // Convert divs to line breaks
+  text = text.replace(/<\/div>/gi, "\n");
+  text = text.replace(/<div[^>]*>/gi, "");
+  
+  // Convert list items
+  text = text.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "• $1\n");
+  text = text.replace(/<\/?[ou]l[^>]*>/gi, "\n");
+  
+  // Remove all remaining HTML tags
+  text = text.replace(/<[^>]+>/g, "");
+  
+  // Decode HTML entities
+  text = text.replace(/&nbsp;/g, " ");
+  text = text.replace(/&amp;/g, "&");
+  text = text.replace(/&lt;/g, "<");
+  text = text.replace(/&gt;/g, ">");
+  text = text.replace(/&quot;/g, '"');
+  text = text.replace(/&#39;/g, "'");
+  text = text.replace(/&apos;/g, "'");
+  
+  // Clean up excessive whitespace
+  text = text.replace(/\n{3,}/g, "\n\n");
+  text = text.replace(/  +/g, " ");
+  text = text.replace(/^\s+/gm, "");
+  
+  return text.trim();
+}
+
+/**
  * Aggressively clean text for professional display
  * Removes ALL markdown, asterisks, hashtags, emojis, and formatting symbols
+ * Also handles HTML content by converting to plain text
  */
 export function cleanTextForDisplay(text: string): string {
   let cleaned = text;
+  
+  // If content is HTML, convert to plain text first
+  if (isHtmlContent(cleaned)) {
+    cleaned = convertHtmlToText(cleaned);
+  }
   
   // Remove markdown headers (# ## ###) but keep text
   cleaned = cleaned.replace(/^#{1,6}\s*/gm, "");
@@ -71,9 +203,18 @@ export function cleanTextForDisplay(text: string): string {
 /**
  * Clean text specifically for PDF export
  * More aggressive cleaning for professional documents
+ * Handles both HTML and markdown content
  */
 export function cleanTextForPDF(text: string): string {
-  let cleaned = cleanTextForDisplay(text);
+  let cleaned = text;
+  
+  // If content is HTML, convert to plain text first
+  if (isHtmlContent(cleaned)) {
+    cleaned = convertHtmlToText(cleaned);
+  }
+  
+  // Apply standard display cleaning
+  cleaned = cleanTextForDisplay(cleaned);
   
   // Convert remaining special characters to standard equivalents
   cleaned = cleaned.replace(/[\""]/g, '"');
