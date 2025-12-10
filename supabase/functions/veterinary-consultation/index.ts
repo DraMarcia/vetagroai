@@ -992,84 +992,76 @@ ${isProfessional ? "Este é um PROFISSIONAL da área (Veterinário/Zootecnista) 
       }
       else if (tool === "escore-corporal") {
         const { especie, idade, peso, objetivo } = data;
+        const userPlan = requestBody.plan || "free";
         
-        systemPrompt = `Você é um especialista em avaliação de condição corporal animal da suíte VetAgro Sustentável AI, capacitado a analisar escore de condição corporal (ECC) para diversas espécies (bovinos, equinos, caninos, felinos, ovinos, caprinos, etc.).
+        systemPrompt = `Você é um especialista em avaliação de condição corporal animal da suíte VetAgro Sustentável AI.
 
-REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:
-• PROIBIDO usar asteriscos (*) em qualquer contexto
-• PROIBIDO usar hashtags (#) em qualquer contexto
-• PROIBIDO usar markdown de qualquer tipo
-• PROIBIDO usar emojis decorativos no corpo do texto
-• Use APENAS bullets padrão: • ou – para listas
+REGRAS DE FORMATAÇÃO ABSOLUTAS:
+• PROIBIDO asteriscos (*), hashtags (#), markdown ou emojis
+• Use APENAS bullets: • ou –
 • Títulos de seção em MAIÚSCULAS seguidos de dois-pontos
-• Parágrafos justificados e bem estruturados
-• Nunca quebrar palavras no meio
-• Linguagem técnica, científica e profissional
+• Parágrafos contínuos e justificados
+• Nunca separar letras de palavras
+• Texto técnico, direto e objetivo
+• Tabelas com no máximo 4 colunas, alinhadas
 
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+ESTRUTURA OBRIGATÓRIA DO RELATÓRIO:
 
-AVALIAÇÃO DO ESCORE:
-Forneça o ECC estimado usando a escala apropriada para a espécie:
-• Bovinos de corte/leite: escala 1-5 (Edmonson, Ferguson)
-• Equinos: escala 1-9 (Henneke)
-• Caninos/Felinos: escala 1-9 (WSAVA, Purina)
-• Ovinos/Caprinos: escala 1-5
-Inclua classificação textual (muito magro, magro, ideal, sobrepeso, obeso).
+1) IDENTIFICAÇÃO DO CASO:
+Dados exatamente como fornecidos pelo usuário (espécie, idade, peso, data).
 
-ANÁLISE VISUAL:
-Descreva os achados visuais que fundamentam a pontuação:
-• Cobertura de costelas (visíveis, palpáveis, não palpáveis)
-• Depósitos de gordura (base da cauda, inserção da cauda, pescoço, abdômen)
-• Proeminência óssea (vértebras, tuberosidade isquiática, costelas)
-• Condição muscular (atrofia, normal, hipertrofia)
-• Linha dorsal e profundidade do flanco
+2) SÍNTESE EXECUTIVA:
+Texto direto e técnico resumindo o ECC encontrado, classificação (muito magro/magro/ideal/sobrepeso/obeso) e principais achados.
 
-INTERPRETAÇÃO CLÍNICA:
-Explique o significado do escore encontrado para:
-• Saúde metabólica do animal
-• Capacidade reprodutiva
-• Desempenho produtivo (lactação, engorda, trabalho)
-• Riscos associados (cetose, lipidose hepática, problemas articulares)
+3) ANÁLISE TÉCNICA DETALHADA:
+• ECC estimado na escala apropriada:
+  – Bovinos de corte/leite: escala 1-5 (Edmonson, Ferguson)
+  – Equinos: escala 1-9 (Henneke)
+  – Caninos/Felinos: escala 1-9 (WSAVA)
+  – Ovinos/Caprinos: escala 1-5
+• Achados visuais: cobertura de costelas, depósitos de gordura, proeminência óssea, condição muscular
+• Interpretação clínica: impacto na saúde metabólica, reprodução, desempenho
 
-RECOMENDAÇÕES NUTRICIONAIS:
-Ajustes específicos na dieta baseados no escore:
-• Se abaixo do ideal: aumentar energia, proteína, frequência
-• Se acima do ideal: reduzir calorias, aumentar fibras, fracionar
-• Tipos de alimento recomendados
-• Suplementação específica quando indicada
+4) ANÁLISE ECONÔMICA:
+${userPlan === "free" ? "Disponível nos planos VetAgro Pro e Enterprise." : "Impacto do ECC na eficiência produtiva, custos com nutrição corretiva, projeção de ganho/perda de peso."}
 
-ORIENTAÇÕES DE MANEJO:
-• Recomendações de exercício físico
-• Ajustes ambientais
-• Monitoramento de ingestão alimentar
-• Cuidados específicos para a espécie
+5) TABELA DE REFERÊNCIA ECC:
+Forneça tabela simples com escores e descrição para a espécie avaliada (máximo 4 colunas).
 
-MONITORAMENTO:
-• Frequência de reavaliação do ECC (semanal, quinzenal, mensal)
-• Metas de escore corporal para a categoria
-• Indicadores de progresso a observar
+6) COMPARATIVO DE CENÁRIOS:
+${userPlan === "free" ? "Este relatório é de usuário FREE. A versão completa está disponível nos planos VetAgro Pro e Enterprise." : "Compare cenários: manter manejo atual vs. ajustar dieta vs. intervenção intensiva."}
 
-REFERÊNCIAS:
+7) DIAGNÓSTICO DE RISCOS:
+${userPlan === "free" ? "Análise básica de riscos. Versão detalhada disponível nos planos Pro/Enterprise." : "Riscos associados ao ECC atual: cetose, lipidose hepática, problemas articulares, infertilidade, baixa imunidade."}
+
+8) PLANO DE AÇÃO PRIORITÁRIO:
+${userPlan === "free" ? "3 recomendações técnicas principais (versão FREE)." : "Plano completo com recomendações nutricionais, ajustes de manejo, metas de ECC."}
+
+9) MONITORAMENTO:
+Frequência de reavaliação (semanal/quinzenal/mensal), metas de escore, indicadores de progresso.
+
+10) REFERÊNCIAS TÉCNICAS:
 • NRC – Nutrient Requirements (específico para espécie)
-• Henneke et al. (1983) – Sistema de Escore Corporal para Equinos
-• Edmonson et al. (1989) – Body Condition Scoring for Holstein Dairy Cows
-• Ferguson et al. (1994) – Principal Descriptors of Body Condition Score
+• Henneke et al. (1983) – Escala ECC Equinos
+• Edmonson et al. (1989) – Body Condition Scoring Bovinos
+• Ferguson et al. (1994) – Descriptors of Body Condition Score
 • WSAVA Body Condition Score Charts
 • Embrapa – Boletins Técnicos de Nutrição Animal
 
-IMPORTANTE: Esta é uma estimativa baseada em análise visual. Para avaliação precisa do escore de condição corporal e decisões clínicas ou nutricionais, recomenda-se consulta presencial com médico veterinário ou zootecnista.`;
+11) AVISO FINAL:
+Este relatório foi gerado pela suíte VetAgro Sustentável AI. Recomenda-se validação por profissional habilitado.`;
 
-        userPrompt = `Avalie o Escore de Condição Corporal (ECC) com os seguintes dados:
+        userPrompt = `Avalie o Escore de Condição Corporal (ECC) com os dados:
 
 DADOS DO ANIMAL:
 • Espécie: ${especie || "Não informada"}
 • Idade: ${idade || "Não informada"}
 • Peso Atual: ${peso || "Não informado"}
+• Data: ${new Date().toLocaleDateString("pt-BR")}
 
-OBJETIVO DA AVALIAÇÃO:
-${objetivo || "Avaliar escore de condição corporal e fornecer recomendações nutricionais."}
+${objetivo ? `OBJETIVO: ${objetivo}` : ""}
 
-Com base na imagem e nos dados fornecidos, realize a avaliação completa do ECC seguindo rigorosamente a estrutura definida no prompt do sistema.`;
+Gere o relatório seguindo RIGOROSAMENTE a estrutura definida. Texto 100% justificado, sem markdown, títulos em MAIÚSCULAS.`;
       }
       else {
         throw new Error("Tool not supported: " + tool);
