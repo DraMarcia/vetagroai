@@ -16,6 +16,27 @@
  */
 
 /**
+ * AGGRESSIVE removal of decorative patterns and hidden characters
+ */
+function removeDecorativePatterns(text: string): string {
+  return text
+    // Remove % patterns (any sequence of 2+ percent signs)
+    .replace(/%+/g, '')
+    // Remove = patterns (3+ equals)
+    .replace(/={3,}/g, '')
+    // Remove - patterns (4+ dashes)
+    .replace(/-{4,}/g, '')
+    // Remove _ patterns (3+ underscores)
+    .replace(/_{3,}/g, '')
+    // Remove * patterns (decorative)
+    .replace(/\*{3,}/g, '')
+    // Remove # patterns (decorative)
+    .replace(/#{3,}/g, '')
+    // Remove any remaining % that got through
+    .replace(/%/g, '');
+}
+
+/**
  * Remove ALL hidden unicode characters that cause PDF rendering issues
  */
 function removeHiddenCharacters(text: string): string {
@@ -35,15 +56,52 @@ function removeHiddenCharacters(text: string): string {
     // Non-breaking spaces converted to regular spaces
     .replace(/\u00A0/g, ' ')
     // Single low quotation marks (U+201A) that corrupt subscripts
-    .replace(/\u201A/g, '')
+    .replace(/\u201A/g, '2')
     // Other problematic characters
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
-    // Remove %%%%%%%% patterns
-    .replace(/%{2,}/g, '')
-    // Remove ======== patterns
-    .replace(/={3,}/g, '')
-    // Remove -------- patterns (decorative)
-    .replace(/-{4,}/g, '');
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+}
+
+/**
+ * AGGRESSIVE fix for words with letter spacing 
+ * Handles: "E m i s s õ e s", "R E L A T Ó R I O", etc.
+ */
+function fixLetterSpacing(text: string): string {
+  // Pattern 1: Single letters separated by spaces (3+ in sequence)
+  // Match: "E m i s s õ e s" -> "Emissões"
+  let result = text;
+  
+  // Detect sequences of single letters with spaces
+  const singleLetterPattern = /\b([A-Za-zÀ-ÿ])\s+([A-Za-zÀ-ÿ])\s+([A-Za-zÀ-ÿ])(\s+[A-Za-zÀ-ÿ]){2,}\b/g;
+  
+  result = result.replace(singleLetterPattern, (match) => {
+    // Remove all spaces between single characters
+    return match.replace(/\s+/g, '');
+  });
+  
+  // Pattern 2: Common broken words (specific fixes)
+  const brokenWords: [RegExp, string][] = [
+    [/E\s*m\s*i\s*s\s*s\s*[oõ]\s*e\s*s/gi, 'Emissoes'],
+    [/R\s*E\s*L\s*A\s*T\s*[OÓ]\s*R\s*I\s*O/gi, 'RELATORIO'],
+    [/I\s*D\s*E\s*N\s*T\s*I\s*F\s*I\s*C\s*A\s*[CÇ]\s*[AÃ]\s*O/gi, 'IDENTIFICACAO'],
+    [/R\s*E\s*F\s*E\s*R\s*[EÊ]\s*N\s*C\s*I\s*A\s*S/gi, 'REFERENCIAS'],
+    [/T\s*[EÉ]\s*C\s*N\s*I\s*C\s*A\s*S/gi, 'TECNICAS'],
+    [/A\s*V\s*I\s*S\s*O/gi, 'AVISO'],
+    [/L\s*E\s*G\s*A\s*L/gi, 'LEGAL'],
+    [/A\s*N\s*[AÁ]\s*L\s*I\s*S\s*E/gi, 'ANALISE'],
+    [/C\s*[AÁ]\s*L\s*C\s*U\s*L\s*O\s*S/gi, 'CALCULOS'],
+    [/R\s*E\s*S\s*U\s*L\s*T\s*A\s*D\s*O\s*S/gi, 'RESULTADOS'],
+    [/R\s*E\s*C\s*O\s*M\s*E\s*N\s*D\s*A\s*[CÇ]\s*[OÕ]\s*E\s*S/gi, 'RECOMENDACOES'],
+    [/M\s*O\s*N\s*I\s*T\s*O\s*R\s*A\s*M\s*E\s*N\s*T\s*O/gi, 'MONITORAMENTO'],
+    [/C\s*O\s*N\s*S\s*E\s*L\s*H\s*O/gi, 'CONSELHO'],
+    [/D\s*o\s*c\s*u\s*m\s*e\s*n\s*t\s*o/gi, 'Documento'],
+    [/S\s*u\s*s\s*t\s*e\s*n\s*t\s*[aá]\s*v\s*e\s*l/gi, 'Sustentavel'],
+  ];
+  
+  for (const [pattern, replacement] of brokenWords) {
+    result = result.replace(pattern, replacement);
+  }
+  
+  return result;
 }
 
 /**
@@ -51,9 +109,14 @@ function removeHiddenCharacters(text: string): string {
  */
 function fixSpacedNumbers(text: string): string {
   return text
+    // Fix spaced digits
     .replace(/(\d)\s+(\d)/g, '$1$2')
+    // Fix spaced decimal points
     .replace(/(\d)\s*\.\s*(\d)/g, '$1.$2')
-    .replace(/(\d)\s*,\s*(\d)/g, '$1,$2');
+    // Fix spaced commas in numbers
+    .replace(/(\d)\s*,\s*(\d)/g, '$1,$2')
+    // Fix "1 0 / 1 2 / 2 0 2 5" date patterns
+    .replace(/(\d)\s*\/\s*(\d)/g, '$1/$2');
 }
 
 /**
@@ -73,11 +136,12 @@ function convertChemicalToASCII(text: string): string {
     .replace(/₇/g, '7')
     .replace(/₈/g, '8')
     .replace(/₉/g, '9')
-    // Fix corrupted subscripts
-    .replace(/CO\s*[‚,]\s*eq?/gi, 'CO2eq')
-    .replace(/CO\s*[‚,]\s*e\s*q?/gi, 'CO2eq')
-    .replace(/CH\s*[‚,]\s*/gi, 'CH4')
-    .replace(/N\s*[‚,]\s*O/gi, 'N2O')
+    // Fix corrupted subscripts (U+201A comma-like character)
+    .replace(/CO\s*[‚,„]\s*e\s*q/gi, 'CO2eq')
+    .replace(/CO\s*[‚,„]\s*e/gi, 'CO2e')
+    .replace(/CO\s*[‚,„]/gi, 'CO2')
+    .replace(/CH\s*[‚,„]/gi, 'CH4')
+    .replace(/N\s*[‚,„]\s*O/gi, 'N2O')
     // Standardize common formulas
     .replace(/CO₂eq/gi, 'CO2eq')
     .replace(/CO₂e/gi, 'CO2e')
@@ -87,22 +151,10 @@ function convertChemicalToASCII(text: string): string {
     .replace(/H₂O/gi, 'H2O')
     .replace(/O₂/gi, 'O2')
     .replace(/tCO₂eq/gi, 'tCO2eq')
-    .replace(/kgCO₂eq/gi, 'kgCO2eq');
-}
-
-/**
- * Fix words with letter spacing (e.g., "E m i s s o e s" -> "Emissoes")
- */
-function fixLetterSpacing(text: string): string {
-  const spacedWordPattern = /\b([A-Za-zÀ-ÿ])\s([A-Za-zÀ-ÿ])\s([A-Za-zÀ-ÿ])(\s[A-Za-zÀ-ÿ])+\b/g;
-  
-  return text.replace(spacedWordPattern, (match) => {
-    const letters = match.split(/\s+/);
-    if (letters.every(l => l.length === 1)) {
-      return letters.join('');
-    }
-    return match;
-  });
+    .replace(/kgCO₂eq/gi, 'kgCO2eq')
+    // Fix common corrupted patterns from AI output
+    .replace(/t\s*CO\s*2\s*eq/gi, 'tCO2eq')
+    .replace(/kg\s*CO\s*2\s*eq/gi, 'kgCO2eq');
 }
 
 /**
@@ -110,17 +162,18 @@ function fixLetterSpacing(text: string): string {
  */
 function removeProblematicSymbols(text: string): string {
   return text
-    // Remove arrows and special symbols
+    // Convert arrows to simple text
     .replace(/[→⇒⇐⇔←↑↓]/g, '->')
-    .replace(/[±‰†‡°˚·]/g, '')
+    // Remove problematic symbols
+    .replace(/[±‰†‡°˚·¶§©®™]/g, '')
     // Convert special quotes
     .replace(/[""]/g, '"')
     .replace(/['']/g, "'")
     .replace(/[–—]/g, '-')
     .replace(/…/g, '...')
-    // Remove warning symbols
+    // Remove warning/emoji symbols
     .replace(/⚠️?/g, 'ATENCAO: ')
-    .replace(/[📌📍🔔💡⚡]/g, '');
+    .replace(/[📌📍🔔💡⚡🛑✔️❌✅⭐🔹🔸🟩🟨🟧🟦🟪🔴🟢🔵⬛⬜🟤🟠🔶🔷]/g, '');
 }
 
 /**
@@ -170,23 +223,16 @@ function convertHtmlTableToAlignedList(tableHtml: string): string {
   
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    
-    // Skip empty rows
     if (row.every(cell => !cell.trim())) continue;
     
-    // Format as "Parametro: Valor" for 2-column tables
     if (row.length === 2) {
       const label = row[0].replace(/[:\s]+$/, '');
       const value = row[1] || '-';
       result += `  - ${label}: ${value}\n`;
-    } 
-    // Format as bullet list for single column or header rows
-    else if (row.length === 1 || (i === 0 && isHeaderRow)) {
-      result += `  - ${row.join(' | ')}\n`;
-    }
-    // Format multi-column as aligned bullets
-    else {
-      result += `  - ${row.join(' | ')}\n`;
+    } else if (row.length >= 3) {
+      result += `  - ${row.join(' - ')}\n`;
+    } else if (row.length === 1) {
+      result += `  - ${row[0]}\n`;
     }
   }
   
@@ -214,11 +260,12 @@ function convertMarkdownTableToList(text: string): string {
       
       if (cells.length === 0) continue;
       
-      // Format as aligned parameters
       if (cells.length === 2) {
         result += `  - ${cells[0]}: ${cells[1]}\n`;
+      } else if (cells.length === 3) {
+        result += `  - ${cells[0]}: ${cells[1]} (${cells[2]})\n`;
       } else if (cells.length >= 1) {
-        result += `  - ${cells.join(' | ')}\n`;
+        result += `  - ${cells.join(' - ')}\n`;
       }
     }
     
@@ -232,19 +279,15 @@ function convertMarkdownTableToList(text: string): string {
 function convertHtmlToText(html: string): string {
   let text = html;
   
-  // Convert tables to aligned lists (NOT markdown)
+  // Convert tables to aligned lists
   text = text.replace(/<table[^>]*>[\s\S]*?<\/table>/gi, (match) => {
     return convertHtmlTableToAlignedList(match);
   });
   
-  // Convert headings to simple format
+  // Convert headings to simple format (ASCII safe)
   text = text.replace(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/gi, (_, content) => {
     const cleanContent = content.replace(/<[^>]+>/g, '').trim().toUpperCase();
-    // Remove accents for PDF safety
-    const normalized = cleanContent
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-    return `\n\n${normalized}:\n`;
+    return `\n\n${cleanContent}:\n`;
   });
   
   // Remove formatting tags but keep content
@@ -276,19 +319,14 @@ function convertHtmlToText(html: string): string {
   text = text.replace(/&#39;/g, "'");
   text = text.replace(/&apos;/g, "'");
   
-  // Clean whitespace
-  text = text.replace(/\n{3,}/g, '\n\n');
-  text = text.replace(/  +/g, ' ');
-  text = text.replace(/^\s+/gm, '');
-  
   return text.trim();
 }
 
 /**
- * Split long paragraphs into shorter ones (max 3 lines ~150 chars)
+ * Split long paragraphs into shorter ones (max ~150 chars)
  */
 function splitLongParagraphs(text: string): string {
-  const MAX_PARA_LENGTH = 200;
+  const MAX_PARA_LENGTH = 180;
   const lines = text.split('\n');
   const result: string[] = [];
   
@@ -323,6 +361,47 @@ function splitLongParagraphs(text: string): string {
 }
 
 /**
+ * Remove duplicate sections from text
+ */
+function removeDuplicateSections(text: string): string {
+  const lines = text.split('\n');
+  const seenSections = new Set<string>();
+  const result: string[] = [];
+  let skipUntilNextSection = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim().toUpperCase();
+    
+    // Check if this is a section header
+    const isSectionHeader = 
+      trimmed.match(/^[A-Z\s]{4,}:?$/) ||
+      trimmed.match(/^\d+\)\s*[A-Z]/) ||
+      trimmed.match(/^SECAO\s*\d+/i);
+    
+    if (isSectionHeader) {
+      const normalizedHeader = trimmed
+        .replace(/[:\s]+/g, '')
+        .replace(/^\d+\)/g, '');
+      
+      if (seenSections.has(normalizedHeader)) {
+        skipUntilNextSection = true;
+        continue;
+      }
+      
+      seenSections.add(normalizedHeader);
+      skipUntilNextSection = false;
+    }
+    
+    if (!skipUntilNextSection) {
+      result.push(line);
+    }
+  }
+  
+  return result.join('\n');
+}
+
+/**
  * Master cleaning function for display
  */
 export function cleanTextForDisplay(text: string): string {
@@ -330,21 +409,24 @@ export function cleanTextForDisplay(text: string): string {
   
   let cleaned = text;
   
-  // Step 1: Remove ALL hidden unicode characters
+  // Step 1: Remove decorative patterns FIRST
+  cleaned = removeDecorativePatterns(cleaned);
+  
+  // Step 2: Remove ALL hidden unicode characters
   cleaned = removeHiddenCharacters(cleaned);
   
-  // Step 2: Convert HTML if present
+  // Step 3: Convert HTML if present
   if (isHtmlContent(cleaned)) {
     cleaned = convertHtmlToText(cleaned);
   }
   
-  // Step 3: Fix letter spacing issues
+  // Step 4: Fix letter spacing issues
   cleaned = fixLetterSpacing(cleaned);
   
-  // Step 4: Fix spaced numbers
+  // Step 5: Fix spaced numbers
   cleaned = fixSpacedNumbers(cleaned);
   
-  // Step 5: Remove markdown formatting
+  // Step 6: Remove markdown formatting
   cleaned = cleaned.replace(/^#{1,6}\s*/gm, '');
   cleaned = cleaned.replace(/\*\*\*([^*]+)\*\*\*/g, '$1');
   cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
@@ -356,20 +438,19 @@ export function cleanTextForDisplay(text: string): string {
   cleaned = cleaned.replace(/^[-]\s+/gm, '  - ');
   cleaned = cleaned.replace(/#/g, '');
   
-  // Step 6: Remove emojis
+  // Step 7: Remove emojis
   cleaned = cleaned.replace(/[\u{1F300}-\u{1F9FF}]/gu, '');
   cleaned = cleaned.replace(/[\u{2600}-\u{26FF}]/gu, '');
   cleaned = cleaned.replace(/[\u{2700}-\u{27BF}]/gu, '');
   cleaned = cleaned.replace(/[\u{1F600}-\u{1F64F}]/gu, '');
   cleaned = cleaned.replace(/[\u{1F680}-\u{1F6FF}]/gu, '');
   cleaned = cleaned.replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '');
-  cleaned = cleaned.replace(/[⚠️🛑📌✔️❌✅⭐🔹🔸🟩🟨🟧🟦🟪⚡💡📍🔔🔴🟢🔵⬛⬜🟤🟠🔶🔷]/g, '');
   
-  // Step 7: Remove code blocks
+  // Step 8: Remove code blocks
   cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
   cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
   
-  // Step 8: Final cleanup
+  // Step 9: Final cleanup
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   cleaned = cleaned.replace(/  +/g, ' ');
   cleaned = cleaned.trim();
@@ -386,52 +467,66 @@ export function cleanTextForPDF(text: string): string {
   
   let cleaned = text;
   
-  // Step 1: Remove ALL hidden unicode characters
+  // Step 1: AGGRESSIVE removal of decorative patterns
+  cleaned = removeDecorativePatterns(cleaned);
+  
+  // Step 2: Remove ALL hidden unicode characters
   cleaned = removeHiddenCharacters(cleaned);
   
-  // Step 2: Convert HTML if present
+  // Step 3: Fix letter spacing EARLY
+  cleaned = fixLetterSpacing(cleaned);
+  
+  // Step 4: Fix spaced numbers
+  cleaned = fixSpacedNumbers(cleaned);
+  
+  // Step 5: Convert HTML if present
   if (isHtmlContent(cleaned)) {
     cleaned = convertHtmlToText(cleaned);
   }
   
-  // Step 3: Convert markdown tables to aligned lists
+  // Step 6: Convert markdown tables to aligned lists
   cleaned = convertMarkdownTableToList(cleaned);
   
-  // Step 4: Apply standard display cleaning
+  // Step 7: Apply standard display cleaning
   cleaned = cleanTextForDisplay(cleaned);
   
-  // Step 5: Convert chemical formulas to ASCII (NO subscripts)
+  // Step 8: Convert chemical formulas to ASCII (NO subscripts)
   cleaned = convertChemicalToASCII(cleaned);
   
-  // Step 6: Remove problematic symbols
+  // Step 9: Remove problematic symbols
   cleaned = removeProblematicSymbols(cleaned);
   
-  // Step 7: Split long paragraphs
+  // Step 10: Remove duplicate sections
+  cleaned = removeDuplicateSections(cleaned);
+  
+  // Step 11: Split long paragraphs
   cleaned = splitLongParagraphs(cleaned);
   
-  // Step 8: Fix spacing after punctuation
+  // Step 12: Fix spacing after punctuation
   cleaned = cleaned.replace(/([.!?])([A-Z])/g, '$1 $2');
   
-  // Step 9: Final aggressive cleanup
-  cleaned = cleaned.replace(/\*+/g, '');
-  cleaned = cleaned.replace(/#+/g, '');
-  cleaned = cleaned.replace(/%{2,}/g, '');
-  cleaned = cleaned.replace(/={3,}/g, '');
-  cleaned = cleaned.replace(/-{4,}/g, '');
-  cleaned = cleaned.replace(/  +/g, ' ');
-  
-  // Step 10: One final pass for hidden characters
+  // Step 13: Final aggressive cleanup - one more pass
+  cleaned = removeDecorativePatterns(cleaned);
   cleaned = removeHiddenCharacters(cleaned);
+  cleaned = fixLetterSpacing(cleaned);
+  cleaned = fixSpacedNumbers(cleaned);
   
-  return cleaned;
+  // Step 14: Clean up whitespace
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  cleaned = cleaned.replace(/  +/g, ' ');
+  cleaned = cleaned.replace(/^\s+/gm, '');
+  
+  return cleaned.trim();
 }
 
 /**
  * Parse content into structured sections for reports
+ * Also removes duplicate sections
  */
 export function parseReportSections(content: string): { title: string; body: string }[] {
   const sections: { title: string; body: string }[] = [];
   const lines = content.split('\n');
+  const seenTitles = new Set<string>();
   
   let currentSection: { title: string; body: string } = { title: '', body: '' };
   
@@ -439,7 +534,7 @@ export function parseReportSections(content: string): { title: string; body: str
     const trimmedLine = line.trim();
     
     // Detect section titles (numbered or all caps)
-    const numberedTitleMatch = trimmedLine.match(/^(\d+)\.\s*([A-Za-zÀ-ÿ\s]+)(?::|$)/);
+    const numberedTitleMatch = trimmedLine.match(/^(\d+)\)\s*([A-Za-zÀ-ÿ\s]+)(?::|$)/);
     const capsTitle = trimmedLine.match(/^([A-ZÁÀÂÃÉÊÍÓÔÕÚÇ\s]{3,50}):?$/);
     const sectionMatch = trimmedLine.match(/^SECAO\s*\d+\s*[-—]\s*(.+)/i);
     
@@ -453,20 +548,40 @@ export function parseReportSections(content: string): { title: string; body: str
        !trimmedLine.startsWith('•'));
     
     if (isSectionTitle) {
+      // Save current section if not empty
       if (currentSection.title || currentSection.body.trim()) {
-        sections.push({ ...currentSection });
+        // Only add if not duplicate
+        const normalizedTitle = currentSection.title.replace(/[\s:]+/g, '').toUpperCase();
+        if (!seenTitles.has(normalizedTitle)) {
+          seenTitles.add(normalizedTitle);
+          sections.push({ ...currentSection });
+        }
       }
+      
+      // Extract clean title
       let cleanTitle = trimmedLine.replace(/:$/, '');
-      cleanTitle = cleanTitle.replace(/^\d+\.\s*/, '');
+      cleanTitle = cleanTitle.replace(/^\d+\)\s*/, '');
       cleanTitle = cleanTitle.replace(/^SECAO\s*\d+\s*[-—]\s*/i, '');
+      
+      // Check if this title is duplicate
+      const normalizedNewTitle = cleanTitle.replace(/[\s:]+/g, '').toUpperCase();
+      if (seenTitles.has(normalizedNewTitle)) {
+        // Skip duplicate section - continue adding to current body
+        continue;
+      }
+      
       currentSection = { title: cleanTitle.trim().toUpperCase(), body: '' };
     } else {
       currentSection.body += line + '\n';
     }
   }
   
+  // Add last section if not empty and not duplicate
   if (currentSection.title || currentSection.body.trim()) {
-    sections.push(currentSection);
+    const normalizedTitle = currentSection.title.replace(/[\s:]+/g, '').toUpperCase();
+    if (!seenTitles.has(normalizedTitle)) {
+      sections.push(currentSection);
+    }
   }
   
   return sections;
@@ -476,16 +591,24 @@ export function parseReportSections(content: string): { title: string; body: str
  * Format references for display (ASCII safe)
  */
 export function formatReferences(references: string[]): string[] {
-  return references.map(ref => {
-    let cleaned = ref.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
-    cleaned = cleaned.replace(/^[-*•]\s*/, '');
-    cleaned = cleaned.replace(/\*/g, '');
-    cleaned = cleaned.replace(/#/g, '');
-    cleaned = removeHiddenCharacters(cleaned);
-    cleaned = convertChemicalToASCII(cleaned);
-    cleaned = cleaned.trim();
-    return cleaned;
-  });
+  const seen = new Set<string>();
+  
+  return references
+    .map(ref => {
+      let cleaned = ref.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+      cleaned = cleaned.replace(/^[-*•]\s*/, '');
+      cleaned = cleaned.replace(/\*/g, '');
+      cleaned = cleaned.replace(/#/g, '');
+      cleaned = removeHiddenCharacters(cleaned);
+      cleaned = convertChemicalToASCII(cleaned);
+      cleaned = cleaned.trim();
+      return cleaned;
+    })
+    .filter(ref => {
+      if (seen.has(ref.toLowerCase())) return false;
+      seen.add(ref.toLowerCase());
+      return ref.length > 0;
+    });
 }
 
 /**

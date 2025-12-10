@@ -200,28 +200,31 @@ export async function exportToPDF(data: ReportData): Promise<void> {
   }
   
   // Main content - REBUILD FROM CLEAN TEXT (never use interface text directly)
-  // Step 1: Deep clean the content to remove ALL hidden characters and formatting issues
-  const cleanedContent = cleanTextForPDF(data.content);
+  // Step 1: Deep clean the content MULTIPLE TIMES to ensure no artifacts remain
+  let cleanedContent = cleanTextForPDF(data.content);
+  // Apply cleaning again to catch any remaining issues
+  cleanedContent = cleanTextForPDF(cleanedContent);
   
-  // Step 2: Parse into structured sections
+  // Step 2: Parse into structured sections (also removes duplicates)
   const sections = parseReportSections(cleanedContent);
   
-  // Track processed content to avoid duplicates
+  // Track processed content to avoid duplicates - normalize titles for comparison
   const processedTitles = new Set<string>();
   
   for (const section of sections) {
-    // Skip duplicate sections
-    if (section.title && processedTitles.has(section.title)) {
+    // Skip duplicate sections - normalize for comparison
+    const normalizedTitle = section.title?.replace(/[\s:]+/g, '').toUpperCase() || '';
+    if (normalizedTitle && processedTitles.has(normalizedTitle)) {
       continue;
     }
-    if (section.title) {
-      processedTitles.add(section.title);
+    if (normalizedTitle) {
+      processedTitles.add(normalizedTitle);
     }
     
     // Section title
     if (section.title) {
       // Page break before major sections (References, Legal)
-      const isPageBreakSection = section.title.includes("REFERÊNCIAS") || 
+      const isPageBreakSection = section.title.includes("REFERENCIA") || 
                                   section.title.includes("AVISO") ||
                                   section.title.includes("LEGAL");
       
@@ -241,7 +244,13 @@ export async function exportToPDF(data: ReportData): Promise<void> {
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-      doc.text(section.title, margin + 6, yPosition + 3);
+      
+      // Clean the title one more time
+      const cleanTitle = section.title
+        .replace(/%+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      doc.text(cleanTitle, margin + 6, yPosition + 3);
       doc.setTextColor(0, 0, 0);
       yPosition += 12;
     }
@@ -254,7 +263,11 @@ export async function exportToPDF(data: ReportData): Promise<void> {
       const paragraphs = section.body.split("\n").filter(p => p.trim());
       
       for (const para of paragraphs) {
-        const trimmedPara = para.trim();
+        // Clean each paragraph individually
+        let trimmedPara = para.trim()
+          .replace(/%+/g, '')
+          .replace(/\s+/g, ' ');
+        
         if (!trimmedPara) continue;
         
         if (checkPageBreak(8)) {
@@ -264,7 +277,7 @@ export async function exportToPDF(data: ReportData): Promise<void> {
         
         // Handle bullet points
         if (trimmedPara.startsWith("•") || trimmedPara.startsWith("-") || trimmedPara.startsWith("–")) {
-          const bulletText = trimmedPara.replace(/^[•\-–]\s*/, "");
+          const bulletText = trimmedPara.replace(/^[•\-–]\s*/, '');
           const lines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 8);
           for (let i = 0; i < lines.length; i++) {
             if (checkPageBreak(6)) {
@@ -288,9 +301,9 @@ export async function exportToPDF(data: ReportData): Promise<void> {
           }
         }
         // Handle arrows
-        else if (trimmedPara.startsWith("→") || trimmedPara.startsWith("->")) {
-          const arrowText = trimmedPara.replace(/^(→|->)\s*/, "");
-          const lines = doc.splitTextToSize(`→ ${arrowText}`, maxWidth - 8);
+        else if (trimmedPara.startsWith("->") || trimmedPara.includes("->")) {
+          const arrowText = trimmedPara.replace(/^->\s*/, '');
+          const lines = doc.splitTextToSize(`-> ${arrowText}`, maxWidth - 8);
           for (let i = 0; i < lines.length; i++) {
             if (checkPageBreak(6)) {
               addPageHeader();
@@ -300,7 +313,7 @@ export async function exportToPDF(data: ReportData): Promise<void> {
             yPosition += 5;
           }
         }
-        // Regular paragraph - LEFT ALIGNED (no manual justification to avoid letter spacing bugs)
+        // Regular paragraph - LEFT ALIGNED (no manual justification)
         else {
           const lines = doc.splitTextToSize(trimmedPara, maxWidth);
           for (const line of lines) {
@@ -308,8 +321,7 @@ export async function exportToPDF(data: ReportData): Promise<void> {
               addPageHeader();
               yPosition = 25;
             }
-            // Simple left-aligned text - no manual justification
-            // This prevents letter spacing issues like "E m i s s õ e s"
+            // Simple left-aligned text - prevents letter spacing bugs
             doc.text(line, margin, yPosition);
             yPosition += 5;
           }
