@@ -632,11 +632,10 @@ const AnaliseProdutiva = () => {
               <CardContent>
                 <div className="prose prose-sm max-w-none dark:prose-invert">
                   <div 
-                    className="whitespace-pre-wrap bg-muted/50 p-4 rounded-lg text-sm leading-relaxed"
+                    className="bg-muted/50 p-4 rounded-lg text-sm leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-amber-700 [&_h2]:dark:text-amber-400 [&_table]:my-4 [&_th]:bg-gray-200 [&_th]:dark:bg-gray-700 [&_td]:align-top [&_strong]:font-semibold"
                     style={{ textAlign: 'justify', textJustify: 'inter-word' }}
-                  >
-                    {result}
-                  </div>
+                    dangerouslySetInnerHTML={{ __html: result }}
+                  />
                 </div>
               </CardContent>
             </Card>
