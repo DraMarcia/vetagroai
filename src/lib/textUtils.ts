@@ -28,11 +28,14 @@ function convertHtmlTableToText(tableHtml: string): string {
       let cellText = cellHtml
         .replace(/<(td|th)[^>]*>/gi, "")
         .replace(/<\/(td|th)>/gi, "")
+        .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, "$1")
+        .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "$1")
         .replace(/<[^>]+>/g, "")
         .replace(/&nbsp;/g, " ")
         .replace(/&amp;/g, "&")
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">")
+        .replace(/\s+/g, " ")
         .trim();
       cells.push(cellText);
     }
@@ -44,25 +47,37 @@ function convertHtmlTableToText(tableHtml: string): string {
   
   if (rows.length === 0) return "";
   
-  // Format as text table
+  // Calculate max width for each column
+  const colWidths: number[] = [];
+  for (const row of rows) {
+    for (let i = 0; i < row.length; i++) {
+      const cellLen = row[i].length;
+      colWidths[i] = Math.max(colWidths[i] || 0, Math.min(cellLen, 40));
+    }
+  }
+  
+  // Format as clean structured text
   let result = "\n";
   
   // Check if first row is header (th tags)
   const isHeaderRow = tableHtml.includes("<th");
+  const isTwoColumnTable = rows.length > 0 && rows[0].length === 2;
   
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (i === 0 && isHeaderRow) {
-      // Header row
-      result += row.join(" | ") + "\n";
-      result += "-".repeat(60) + "\n";
+    
+    if (i === 0 && isHeaderRow && !isTwoColumnTable) {
+      // Multi-column header row with separator
+      result += row.map((cell, idx) => cell.padEnd(colWidths[idx] || 15)).join(" | ") + "\n";
+      result += row.map((_, idx) => "-".repeat(colWidths[idx] || 15)).join("-+-") + "\n";
+    } else if (isTwoColumnTable) {
+      // Two-column table: format as "Label: Value"
+      const label = row[0].replace(/[:\s]+$/, "");
+      const value = row[1] || "-";
+      result += `• ${label}: ${value}\n`;
     } else {
-      // Data row - format as key: value if 2 columns
-      if (row.length === 2) {
-        result += `• ${row[0]}: ${row[1]}\n`;
-      } else {
-        result += row.join(" | ") + "\n";
-      }
+      // Multi-column data row
+      result += row.map((cell, idx) => cell.substring(0, colWidths[idx] || 15).padEnd(colWidths[idx] || 15)).join(" | ") + "\n";
     }
   }
   

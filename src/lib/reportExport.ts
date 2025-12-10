@@ -264,13 +264,37 @@ export async function exportToPDF(data: ReportData): Promise<void> {
         // Regular paragraph - with justified text
         else {
           const lines = doc.splitTextToSize(trimmedPara, maxWidth);
-          for (const line of lines) {
+          for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+            const line = lines[lineIdx];
+            const isLastLine = lineIdx === lines.length - 1;
+            
             if (checkPageBreak(6)) {
               addPageHeader();
               yPosition = 25;
             }
-            // Justify text by adding spacing between words for full lines
-            doc.text(line, margin, yPosition, { maxWidth: maxWidth });
+            
+            // Apply text justification for non-last lines
+            if (!isLastLine && line.trim().length > 0) {
+              const words = line.split(/\s+/);
+              if (words.length > 1) {
+                const textWidth = doc.getTextWidth(line.replace(/\s+/g, ' '));
+                const totalSpaces = words.length - 1;
+                const extraSpace = (maxWidth - textWidth + (totalSpaces * doc.getTextWidth(' '))) / totalSpaces;
+                
+                let xPos = margin;
+                for (let w = 0; w < words.length; w++) {
+                  doc.text(words[w], xPos, yPosition);
+                  if (w < words.length - 1) {
+                    xPos += doc.getTextWidth(words[w]) + extraSpace;
+                  }
+                }
+              } else {
+                doc.text(line, margin, yPosition);
+              }
+            } else {
+              // Last line or single word - left align
+              doc.text(line, margin, yPosition);
+            }
             yPosition += 5;
           }
         }
