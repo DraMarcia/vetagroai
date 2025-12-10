@@ -344,7 +344,7 @@ const IdentificadorPlantas = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
+                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed text-justify">
                   {result}
                 </div>
               </div>
