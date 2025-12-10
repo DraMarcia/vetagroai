@@ -1,3 +1,19 @@
+/**
+ * Report Export Module - VetAgro Sustentável AI
+ * 
+ * CRITICAL PDF GENERATION RULES:
+ * 1. NEVER use text directly from interface - always rebuild clean
+ * 2. NEVER apply letter-spacing or character-spacing
+ * 3. NEVER break words automatically
+ * 4. NEVER use HTML justification - use native PDF alignment
+ * 5. Remove ALL hidden unicode characters (U+201A, U+200B, soft hyphen, zero-width)
+ * 6. Preserve subscripts correctly: CO₂, CH₄, N₂O
+ * 7. Numbers must render without internal spacing: "2499.5" not "2 4 9 9 . 5"
+ * 8. Tables use clean structure, no HTML artifacts
+ * 9. Page breaks before: H1 titles, References, Legal Disclaimers
+ * 10. NEVER duplicate interface text in PDF
+ */
+
 import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, PageBreak } from "docx";
 import * as XLSX from "xlsx";
@@ -183,14 +199,37 @@ export async function exportToPDF(data: ReportData): Promise<void> {
     yPosition += 8;
   }
   
-  // Main content
+  // Main content - REBUILD FROM CLEAN TEXT (never use interface text directly)
+  // Step 1: Deep clean the content to remove ALL hidden characters and formatting issues
   const cleanedContent = cleanTextForPDF(data.content);
+  
+  // Step 2: Parse into structured sections
   const sections = parseReportSections(cleanedContent);
   
+  // Track processed content to avoid duplicates
+  const processedTitles = new Set<string>();
+  
   for (const section of sections) {
+    // Skip duplicate sections
+    if (section.title && processedTitles.has(section.title)) {
+      continue;
+    }
+    if (section.title) {
+      processedTitles.add(section.title);
+    }
+    
     // Section title
     if (section.title) {
-      if (checkPageBreak(25)) {
+      // Page break before major sections (References, Legal)
+      const isPageBreakSection = section.title.includes("REFERÊNCIAS") || 
+                                  section.title.includes("AVISO") ||
+                                  section.title.includes("LEGAL");
+      
+      if (isPageBreakSection || checkPageBreak(25)) {
+        if (isPageBreakSection) {
+          doc.addPage();
+          currentPage++;
+        }
         addPageHeader();
         yPosition = 25;
       }
@@ -261,40 +300,17 @@ export async function exportToPDF(data: ReportData): Promise<void> {
             yPosition += 5;
           }
         }
-        // Regular paragraph - with justified text
+        // Regular paragraph - LEFT ALIGNED (no manual justification to avoid letter spacing bugs)
         else {
           const lines = doc.splitTextToSize(trimmedPara, maxWidth);
-          for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-            const line = lines[lineIdx];
-            const isLastLine = lineIdx === lines.length - 1;
-            
+          for (const line of lines) {
             if (checkPageBreak(6)) {
               addPageHeader();
               yPosition = 25;
             }
-            
-            // Apply text justification for non-last lines
-            if (!isLastLine && line.trim().length > 0) {
-              const words = line.split(/\s+/);
-              if (words.length > 1) {
-                const textWidth = doc.getTextWidth(line.replace(/\s+/g, ' '));
-                const totalSpaces = words.length - 1;
-                const extraSpace = (maxWidth - textWidth + (totalSpaces * doc.getTextWidth(' '))) / totalSpaces;
-                
-                let xPos = margin;
-                for (let w = 0; w < words.length; w++) {
-                  doc.text(words[w], xPos, yPosition);
-                  if (w < words.length - 1) {
-                    xPos += doc.getTextWidth(words[w]) + extraSpace;
-                  }
-                }
-              } else {
-                doc.text(line, margin, yPosition);
-              }
-            } else {
-              // Last line or single word - left align
-              doc.text(line, margin, yPosition);
-            }
+            // Simple left-aligned text - no manual justification
+            // This prevents letter spacing issues like "E m i s s õ e s"
+            doc.text(line, margin, yPosition);
             yPosition += 5;
           }
         }
