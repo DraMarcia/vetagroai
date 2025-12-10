@@ -16,6 +16,7 @@ import {
 import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle, FileUp, RefreshCw, Stethoscope, Copy, Download, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ReportExporter } from "@/components/ReportExporter";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
@@ -748,11 +749,10 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="prose prose-sm max-w-none">
-                  <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
-                    {result}
-                  </div>
-                </div>
+                <MarkdownTableRenderer 
+                  content={result}
+                  className="prose prose-sm max-w-none bg-muted p-4 rounded-lg text-sm leading-relaxed"
+                />
 
                 {/* === EXPORT BUTTONS SECTION === */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">

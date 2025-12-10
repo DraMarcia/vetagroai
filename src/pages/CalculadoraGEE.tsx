@@ -14,11 +14,12 @@ import {
   Cloud, Loader2, HelpCircle, Flame, Wind, TreePine, RefreshCw, 
   TrendingDown, BarChart3, Leaf, User, GraduationCap, FlaskConical,
   AlertTriangle, CheckCircle, BookOpen, FileText, Copy, Info, Calculator,
-  Download, Share2, FileDown
+  Download, FileDown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportExporter } from "@/components/ReportExporter";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend } from "recharts";
 
 // MÓDULO 2 — LIMITES BIOLÓGICOS (IPCC 2019 Refinement)
@@ -1362,12 +1363,10 @@ Documento gerado pela suíte VetAgro Sustentável AI
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div 
-                  className="whitespace-pre-line bg-gradient-to-br from-teal-50/50 to-green-50/50 dark:from-teal-950/30 dark:to-green-950/30 p-6 rounded-xl border border-teal-200 dark:border-teal-800 text-sm leading-relaxed"
-                  style={{ textAlign: 'justify', textJustify: 'inter-word' }}
-                >
-                  {aiAnalysis}
-                </div>
+                <MarkdownTableRenderer 
+                  content={aiAnalysis}
+                  className="bg-gradient-to-br from-teal-50/50 to-green-50/50 dark:from-teal-950/30 dark:to-green-950/30 p-6 rounded-xl border border-teal-200 dark:border-teal-800 text-sm leading-relaxed"
+                />
                 
                 {/* BOTÕES DE EXPORTAÇÃO (MÓDULO 6) */}
                 <div className="flex flex-wrap gap-2 pt-4 border-t">
@@ -1392,10 +1391,8 @@ Documento gerado pela suíte VetAgro Sustentável AI
                       "Nível de Relatório": userLevel
                     }}
                     variant="default"
+                    showCopy={false}
                   />
-                  <Button variant="outline" size="sm" onClick={shareReport}>
-                    <Share2 className="h-4 w-4 mr-1" /> Compartilhar
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1411,12 +1408,10 @@ Documento gerado pela suíte VetAgro Sustentável AI
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div 
-                  className="whitespace-pre-line bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/30 dark:to-pink-950/30 p-6 rounded-xl border border-purple-200 dark:border-purple-800 text-sm leading-relaxed"
-                  style={{ textAlign: 'justify', textJustify: 'inter-word' }}
-                >
-                  {mitigationResult}
-                </div>
+                <MarkdownTableRenderer 
+                  content={mitigationResult}
+                  className="bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/30 dark:to-pink-950/30 p-6 rounded-xl border border-purple-200 dark:border-purple-800 text-sm leading-relaxed"
+                />
               </CardContent>
             </Card>
           )}

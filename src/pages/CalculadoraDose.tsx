@@ -9,6 +9,7 @@ import { Calculator, Loader2, Plus, X, Copy, CheckCircle, AlertTriangle } from "
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 interface ActiveIngredient {
   name: string;
@@ -614,9 +615,10 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-lg border border-border text-foreground leading-relaxed">
-                {result}
-              </div>
+              <MarkdownTableRenderer 
+                content={result}
+                className="bg-muted/50 p-4 rounded-lg border border-border text-foreground leading-relaxed"
+              />
               
               {/* Copy Button */}
               <div className="flex justify-center pt-2">
