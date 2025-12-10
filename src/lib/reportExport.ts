@@ -15,10 +15,11 @@
  */
 
 import { jsPDF } from "jspdf";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, PageBreak } from "docx";
+import autoTable from "jspdf-autotable";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, PageBreak, Table, TableRow, TableCell, WidthType } from "docx";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { cleanTextForPDF, parseReportSections } from "./textUtils";
+import { cleanTextForPDF, parseReportSections, extractTablesFromContent, TableData } from "./textUtils";
 
 // ============= Types =============
 
@@ -200,16 +201,72 @@ export async function exportToPDF(data: ReportData): Promise<void> {
   }
   
   // Main content - REBUILD FROM CLEAN TEXT (never use interface text directly)
-  // Step 1: Deep clean the content MULTIPLE TIMES to ensure no artifacts remain
-  let cleanedContent = cleanTextForPDF(data.content);
-  // Apply cleaning again to catch any remaining issues
+  // Step 1: Extract tables before cleaning (so we can render them properly)
+  const { tables, contentWithPlaceholders } = extractTablesFromContent(data.content);
+  
+  // Step 2: Deep clean the content MULTIPLE TIMES to ensure no artifacts remain
+  let cleanedContent = cleanTextForPDF(contentWithPlaceholders);
   cleanedContent = cleanTextForPDF(cleanedContent);
   
-  // Step 2: Parse into structured sections (also removes duplicates)
+  // Step 3: Parse into structured sections (also removes duplicates)
   const sections = parseReportSections(cleanedContent);
   
   // Track processed content to avoid duplicates - normalize titles for comparison
   const processedTitles = new Set<string>();
+  
+  // Helper: Render a table using autoTable
+  const renderTable = (tableData: TableData) => {
+    if (checkPageBreak(40)) {
+      addPageHeader();
+      yPosition = 25;
+    }
+    
+    const tableBody = tableData.rows.length > 0 
+      ? tableData.rows 
+      : (tableData.headers.length > 0 ? [tableData.headers] : []);
+    
+    const tableHead = tableData.rows.length > 0 && tableData.headers.length > 0 
+      ? [tableData.headers] 
+      : undefined;
+    
+    if (tableBody.length === 0) return;
+    
+    autoTable(doc, {
+      startY: yPosition,
+      head: tableHead,
+      body: tableBody,
+      margin: { left: margin, right: margin },
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        lineColor: [0, 0, 0],
+        lineWidth: 0.1,
+        textColor: [31, 31, 31],
+        overflow: 'linebreak',
+      },
+      headStyles: {
+        fillColor: [230, 230, 230],
+        textColor: [31, 31, 31],
+        fontStyle: 'bold',
+        halign: 'center',
+      },
+      bodyStyles: {
+        halign: 'left',
+      },
+      alternateRowStyles: {
+        fillColor: [250, 250, 250],
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 'auto' },
+      },
+      didDrawPage: () => {
+        currentPage = doc.getNumberOfPages();
+      },
+    });
+    
+    // Update yPosition after table
+    yPosition = (doc as any).lastAutoTable.finalY + 8;
+  };
   
   for (const section of sections) {
     // Skip duplicate sections - normalize for comparison
@@ -269,6 +326,16 @@ export async function exportToPDF(data: ReportData): Promise<void> {
           .replace(/\s+/g, ' ');
         
         if (!trimmedPara) continue;
+        
+        // Check for table placeholder
+        const tablePlaceholderMatch = trimmedPara.match(/\[\[TABLE_(\d+)\]\]/);
+        if (tablePlaceholderMatch) {
+          const tableIndex = parseInt(tablePlaceholderMatch[1], 10);
+          if (tables[tableIndex]) {
+            renderTable(tables[tableIndex]);
+          }
+          continue;
+        }
         
         if (checkPageBreak(8)) {
           addPageHeader();

@@ -620,3 +620,154 @@ export function formatForJustifiedDisplay(text: string): string {
   formatted = formatted.replace(/^[•\-–]\s*/gm, '  - ');
   return formatted;
 }
+
+// ============= Table Extraction Types =============
+
+export interface TableData {
+  headers: string[];
+  rows: string[][];
+  title?: string;
+}
+
+/**
+ * Extract tables from content for proper PDF rendering
+ * Returns both the tables and the content with tables replaced by placeholders
+ */
+export function extractTablesFromContent(content: string): {
+  tables: TableData[];
+  contentWithPlaceholders: string;
+} {
+  const tables: TableData[] = [];
+  let contentWithPlaceholders = content;
+  let tableIndex = 0;
+
+  // Pattern 1: Markdown tables (| col1 | col2 |)
+  const markdownTablePattern = /\|[^\n]+\|\n(\|[-:| ]+\|\n)?(\|[^\n]+\|\n?)*/g;
+  
+  contentWithPlaceholders = contentWithPlaceholders.replace(markdownTablePattern, (match) => {
+    const lines = match.trim().split('\n');
+    const tableData: TableData = { headers: [], rows: [] };
+    
+    let isFirstDataRow = true;
+    
+    for (const line of lines) {
+      // Skip separator lines
+      if (line.match(/^\|[\s-:|]+\|$/)) continue;
+      
+      const cells = line.split('|')
+        .filter(c => c.trim())
+        .map(c => cleanCellContent(c.trim()));
+      
+      if (cells.length === 0) continue;
+      
+      if (isFirstDataRow) {
+        tableData.headers = cells;
+        isFirstDataRow = false;
+      } else {
+        tableData.rows.push(cells);
+      }
+    }
+    
+    if (tableData.headers.length > 0 || tableData.rows.length > 0) {
+      tables.push(tableData);
+      return `[[TABLE_${tableIndex++}]]`;
+    }
+    return match;
+  });
+
+  // Pattern 2: HTML tables
+  const htmlTablePattern = /<table[^>]*>[\s\S]*?<\/table>/gi;
+  
+  contentWithPlaceholders = contentWithPlaceholders.replace(htmlTablePattern, (match) => {
+    const tableData = parseHtmlTable(match);
+    if (tableData.headers.length > 0 || tableData.rows.length > 0) {
+      tables.push(tableData);
+      return `[[TABLE_${tableIndex++}]]`;
+    }
+    return match;
+  });
+
+  return { tables, contentWithPlaceholders };
+}
+
+/**
+ * Clean individual cell content
+ */
+function cleanCellContent(cell: string): string {
+  let cleaned = cell;
+  
+  // Remove markdown formatting
+  cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1');
+  cleaned = cleaned.replace(/\*([^*]+)\*/g, '$1');
+  cleaned = cleaned.replace(/__([^_]+)__/g, '$1');
+  cleaned = cleaned.replace(/_([^_]+)_/g, '$1');
+  
+  // Convert chemical formulas
+  cleaned = cleaned
+    .replace(/CO₂/gi, 'CO2')
+    .replace(/CH₄/gi, 'CH4')
+    .replace(/N₂O/gi, 'N2O')
+    .replace(/tCO₂eq/gi, 'tCO2eq');
+  
+  // Remove hidden characters
+  cleaned = cleaned.replace(/[\u200B\u200C\u200D\uFEFF\u00AD]/g, '');
+  
+  // Fix spaced numbers
+  cleaned = cleaned.replace(/(\d)\s+(\d)/g, '$1$2');
+  
+  return cleaned.trim();
+}
+
+/**
+ * Parse HTML table to TableData
+ */
+function parseHtmlTable(tableHtml: string): TableData {
+  const tableData: TableData = { headers: [], rows: [] };
+  
+  // Extract header cells
+  const headerMatch = tableHtml.match(/<thead[^>]*>[\s\S]*?<\/thead>/i);
+  if (headerMatch) {
+    const thMatches = headerMatch[0].match(/<th[^>]*>([\s\S]*?)<\/th>/gi) || [];
+    tableData.headers = thMatches.map(th => {
+      return cleanCellContent(
+        th.replace(/<th[^>]*>/gi, '').replace(/<\/th>/gi, '').replace(/<[^>]+>/g, '')
+      );
+    });
+  }
+  
+  // Extract body rows
+  const rowMatches = tableHtml.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+  
+  for (const rowHtml of rowMatches) {
+    // Skip header rows
+    if (rowHtml.includes('<th')) {
+      if (tableData.headers.length === 0) {
+        const thMatches = rowHtml.match(/<th[^>]*>([\s\S]*?)<\/th>/gi) || [];
+        tableData.headers = thMatches.map(th => {
+          return cleanCellContent(
+            th.replace(/<th[^>]*>/gi, '').replace(/<\/th>/gi, '').replace(/<[^>]+>/g, '')
+          );
+        });
+      }
+      continue;
+    }
+    
+    const cellMatches = rowHtml.match(/<td[^>]*>([\s\S]*?)<\/td>/gi) || [];
+    if (cellMatches.length > 0) {
+      const row = cellMatches.map(td => {
+        return cleanCellContent(
+          td.replace(/<td[^>]*>/gi, '').replace(/<\/td>/gi, '').replace(/<[^>]+>/g, '')
+        );
+      });
+      
+      // If no headers yet and this is first row, use as headers
+      if (tableData.headers.length === 0 && tableData.rows.length === 0) {
+        tableData.headers = row;
+      } else {
+        tableData.rows.push(row);
+      }
+    }
+  }
+  
+  return tableData;
+}
