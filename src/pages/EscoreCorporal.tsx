@@ -64,12 +64,11 @@ const EscoreCorporal = () => {
     const lineHeight = 5;
     let pageNumber = 1;
 
-    // Função para adicionar rodapé em cada página
     const addFooter = () => {
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       doc.text(
-        "Documento gerado pela suíte VetAgro Sustentável AI — inteligência aplicada à saúde, produção e bem-estar animal.",
+        "Relatório gerado pela suíte VetAgro Sustentável AI — inteligência aplicada à saúde, produção e bem-estar animal.",
         margin,
         pageHeight - 15
       );
@@ -81,7 +80,6 @@ const EscoreCorporal = () => {
       doc.setTextColor(0, 0, 0);
     };
 
-    // Função para verificar quebra de página
     const checkPageBreak = (neededSpace: number = 30) => {
       if (yPosition > pageHeight - neededSpace) {
         addFooter();
@@ -91,15 +89,13 @@ const EscoreCorporal = () => {
       }
     };
 
-    // Função para desenhar linha divisória verde
     const drawGreenLine = () => {
-      doc.setDrawColor(13, 139, 68); // Verde VetAgro #0d8b44
+      doc.setDrawColor(13, 139, 68);
       doc.setLineWidth(0.5);
       doc.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 5;
     };
 
-    // Função para adicionar texto justificado
     const addJustifiedText = (text: string, fontSize: number = 10) => {
       doc.setFontSize(fontSize);
       doc.setFont("helvetica", "normal");
@@ -113,13 +109,12 @@ const EscoreCorporal = () => {
       });
     };
 
-    // Função para adicionar título de seção
     const addSectionTitle = (title: string) => {
       checkPageBreak(20);
       yPosition += 5;
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(13, 139, 68); // Verde VetAgro
+      doc.setTextColor(13, 139, 68);
       doc.text(title.toUpperCase(), margin, yPosition);
       yPosition += 2;
       drawGreenLine();
@@ -127,7 +122,7 @@ const EscoreCorporal = () => {
       yPosition += 3;
     };
 
-    // ========== CABEÇALHO ==========
+    // CABEÇALHO
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(13, 139, 68);
@@ -140,99 +135,74 @@ const EscoreCorporal = () => {
     doc.text("Inteligência aplicada à saúde, produção e bem-estar animal", margin, yPosition);
     yPosition += 8;
 
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text("Escore de Condição Corporal (ECC) — Relatório Técnico", margin, yPosition);
+    doc.text("ESCORE DE CONDIÇÃO CORPORAL (ECC) — RELATÓRIO TÉCNICO", margin, yPosition);
     yPosition += 5;
     drawGreenLine();
     yPosition += 5;
 
-    // ========== IDENTIFICAÇÃO DO CASO (TABELA) ==========
-    addSectionTitle("Identificação do Caso");
-
-    // Tabela de identificação
+    // IDENTIFICAÇÃO DO CASO
+    addSectionTitle("1) Identificação do Caso");
     const tableData = [
-      ["Espécie", species || "Não informado"],
-      ["Idade", age || "Não informada"],
-      ["Peso Atual", weight || "Não informado"],
-      ["Data da Análise", new Date().toLocaleDateString("pt-BR")]
+      ["Espécie:", species || "Não informado"],
+      ["Idade:", age || "Não informada"],
+      ["Peso Atual:", weight || "Não informado"],
+      ["Data da Análise:", new Date().toLocaleDateString("pt-BR")]
     ];
 
     doc.setFontSize(10);
-    const colWidth = maxWidth / 2;
     tableData.forEach(([label, value]) => {
       checkPageBreak();
       doc.setFont("helvetica", "bold");
-      doc.text(label + ":", margin, yPosition);
+      doc.text(label, margin, yPosition);
       doc.setFont("helvetica", "normal");
-      doc.text(value, margin + colWidth * 0.4, yPosition);
+      doc.text(value, margin + 35, yPosition);
       yPosition += 6;
     });
-    yPosition += 5;
+    yPosition += 3;
 
-    // ========== ANÁLISE TÉCNICA ==========
-    addSectionTitle("Análise Técnica — Escore de Condição Corporal");
-    
-    // Limpar e processar o resultado
+    // PROCESSAR CONTEÚDO POR SEÇÕES
     const cleanedResult = cleanTextForPDF(result);
+    const sections = cleanedResult.split(/\n(?=\d+\)|[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]+:)/);
     
-    // Dividir em parágrafos e processar
-    const paragraphs = cleanedResult.split(/\n\n+/);
-    paragraphs.forEach((paragraph) => {
-      if (paragraph.trim()) {
-        // Verificar se é um título de seção
-        const sectionMatch = paragraph.match(/^([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]+):/);
-        if (sectionMatch) {
-          addSectionTitle(sectionMatch[1]);
-          const content = paragraph.replace(sectionMatch[0], "").trim();
-          if (content) {
-            addJustifiedText(content);
-          }
-        } else {
-          addJustifiedText(paragraph);
+    sections.forEach((section) => {
+      if (!section.trim()) return;
+      
+      const titleMatch = section.match(/^(\d+\)\s*)?([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]+):/);
+      if (titleMatch) {
+        const sectionTitle = titleMatch[2].trim();
+        addSectionTitle(sectionTitle);
+        const content = section.replace(titleMatch[0], "").trim();
+        if (content) {
+          addJustifiedText(content);
         }
-        yPosition += 3;
+      } else {
+        addJustifiedText(section);
       }
+      yPosition += 3;
     });
 
-    // ========== AVISO LEGAL ==========
+    // AVISO LEGAL
     checkPageBreak(30);
     yPosition += 5;
     doc.setFillColor(255, 248, 220);
-    doc.rect(margin, yPosition - 3, maxWidth, 20, "F");
+    doc.rect(margin, yPosition - 3, maxWidth, 18, "F");
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(139, 90, 0);
     doc.text("AVISO IMPORTANTE", margin + 2, yPosition + 2);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    const avisoText = "Esta análise é uma estimativa baseada em imagem e algoritmos de inteligência artificial. Para avaliação precisa do escore de condição corporal e decisões clínicas ou nutricionais, consulte um médico veterinário ou zootecnista qualificado.";
+    const avisoText = "Esta análise é uma estimativa baseada em imagem e algoritmos de IA. Para avaliação precisa e decisões clínicas ou nutricionais, consulte um médico veterinário ou zootecnista qualificado.";
     const avisoLines = doc.splitTextToSize(avisoText, maxWidth - 4);
     avisoLines.forEach((line: string, index: number) => {
       doc.text(line, margin + 2, yPosition + 7 + (index * 4));
     });
-    yPosition += 25;
+    yPosition += 23;
 
-    // ========== REFERÊNCIAS ==========
-    addSectionTitle("Referências Técnicas");
-    const referencias = [
-      "NRC — Nutrient Requirements of Beef Cattle / Dairy Cattle / Horses",
-      "Henneke et al. (1983) — Sistema de Escore Corporal para Equinos",
-      "Edmonson et al. (1989) — Body Condition Scoring Chart for Holstein Dairy Cows",
-      "Embrapa — Boletins Técnicos de Nutrição Animal",
-      "Ferguson et al. (1994) — Principal Descriptors of Body Condition Score in Holstein Cows"
-    ];
-    doc.setFontSize(9);
-    referencias.forEach((ref) => {
-      checkPageBreak();
-      doc.text("• " + ref, margin, yPosition);
-      yPosition += 5;
-    });
-
-    // Adicionar rodapé na última página
     addFooter();
-
     doc.save("escore-corporal-vetagro.pdf");
     toast({
       title: "PDF gerado!",
