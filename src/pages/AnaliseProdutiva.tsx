@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { TrendingUp, Loader2, ChevronDown, Target, DollarSign, AlertTriangle, Lightbulb, BarChart3, FileText } from "lucide-react";
+import { TrendingUp, Loader2, ChevronDown, Target, DollarSign, AlertTriangle, Lightbulb, BarChart3, FileText, User, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ReportExporter } from "@/components/ReportExporter";
+import { cleanTextForDisplay } from "@/lib/textUtils";
 
 const SISTEMAS_PRODUCAO = [
   { value: "recria", label: "Recria" },
@@ -25,13 +26,28 @@ const SISTEMAS_PRODUCAO = [
   { value: "aves", label: "Aves" },
 ];
 
+const TIPOS_USUARIO = [
+  { value: "produtor", label: "Produtor Rural" },
+  { value: "tecnico", label: "Técnico Agropecuário" },
+  { value: "veterinario", label: "Médico(a) Veterinário(a)" },
+  { value: "zootecnista", label: "Zootecnista" },
+  { value: "estudante", label: "Estudante" },
+  { value: "publico", label: "Público Geral" },
+];
+
+const UFS = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
+  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
+  "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+];
+
 const REFERENCIAS_ZOOTECNICAS = [
   "EMBRAPA - Empresa Brasileira de Pesquisa Agropecuária",
+  "NRC - National Research Council (Beef Cattle)",
+  "CEPEA - Centro de Estudos Avançados em Economia Aplicada",
+  "IPCC - Intergovernmental Panel on Climate Change",
   "ABIEC - Associação Brasileira das Indústrias Exportadoras de Carnes",
   "FAO - Food and Agriculture Organization",
-  "MAPA - Ministério da Agricultura, Pecuária e Abastecimento",
-  "IPCC - Intergovernmental Panel on Climate Change",
-  "CEPEA - Centro de Estudos Avançados em Economia Aplicada",
 ];
 
 const AnaliseProdutiva = () => {
@@ -40,10 +56,18 @@ const AnaliseProdutiva = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState("");
   const [showOptional, setShowOptional] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Tipo de usuário e validação profissional
+  const [tipoUsuario, setTipoUsuario] = useState("");
+  const [nomeUsuario, setNomeUsuario] = useState("");
+  const [numeroConselho, setNumeroConselho] = useState("");
+  const [ufConselho, setUfConselho] = useState("");
 
   // Campos estruturados
   const [tipoSistema, setTipoSistema] = useState("");
   const [numeroAnimais, setNumeroAnimais] = useState("");
+  const [pesoInicial, setPesoInicial] = useState("");
   const [gmd, setGmd] = useState("");
   const [conversaoAlimentar, setConversaoAlimentar] = useState("");
   const [custoPorKg, setCustoPorKg] = useState("");
@@ -57,10 +81,28 @@ const AnaliseProdutiva = () => {
   const [datasLote, setDatasLote] = useState("");
   const [observacoesAdicionais, setObservacoesAdicionais] = useState("");
 
+  const requiresProfessionalValidation = tipoUsuario === "veterinario" || tipoUsuario === "zootecnista";
+
   const preencherExemplo = (tipo: string) => {
-    if (tipo === "engorda") {
+    if (tipo === "teste-ficticio") {
+      // Modo de teste com produtor fictício - Roraima
+      setTipoUsuario("produtor");
+      setNomeUsuario("João Almeida");
       setTipoSistema("engorda");
       setNumeroAnimais("300");
+      setPesoInicial("350");
+      setGmd("0.8");
+      setConversaoAlimentar("8");
+      setCustoPorKg("12");
+      setTaxaLotacao("2");
+      setAreaTotal("150");
+      setPrecoVenda("280");
+      setMortalidade("0.8");
+      setObservacoesAdicionais("Simular produtor fictício - Cantá/RR - Sistema de engorda a pasto com suplementação");
+    } else if (tipo === "engorda") {
+      setTipoSistema("engorda");
+      setNumeroAnimais("300");
+      setPesoInicial("350");
       setGmd("0.8");
       setConversaoAlimentar("8");
       setCustoPorKg("12");
@@ -71,6 +113,7 @@ const AnaliseProdutiva = () => {
     } else if (tipo === "confinamento") {
       setTipoSistema("confinamento");
       setNumeroAnimais("500");
+      setPesoInicial("380");
       setGmd("1.4");
       setConversaoAlimentar("6.5");
       setCustoPorKg("15");
@@ -81,6 +124,7 @@ const AnaliseProdutiva = () => {
     } else if (tipo === "ilp") {
       setTipoSistema("ilp");
       setNumeroAnimais("200");
+      setPesoInicial("300");
       setGmd("0.6");
       setConversaoAlimentar("10");
       setCustoPorKg("9");
@@ -92,7 +136,27 @@ const AnaliseProdutiva = () => {
     }
   };
 
+  const handleCopyReport = async () => {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result);
+      setCopied(true);
+      toast({
+        title: "Relatório copiado!",
+        description: "O conteúdo foi copiado para a área de transferência.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o relatório.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAnalyze = async () => {
+    // Validação básica
     if (!tipoSistema || !numeroAnimais) {
       toast({
         title: "Campos obrigatórios",
@@ -102,15 +166,46 @@ const AnaliseProdutiva = () => {
       return;
     }
 
+    // Validação de tipo de usuário
+    if (!tipoUsuario) {
+      toast({
+        title: "Identifique-se",
+        description: "Por favor, selecione seu perfil de usuário.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validação profissional obrigatória
+    if (requiresProfessionalValidation) {
+      if (!numeroConselho || !ufConselho) {
+        toast({
+          title: "Registro profissional obrigatório",
+          description: tipoUsuario === "veterinario" 
+            ? "Informe seu número de CRMV e estado de registro."
+            : "Informe seu número de CRZ e estado de registro.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (loading) return;
     setLoading(true);
+    
     try {
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
           tool: "analise-produtiva",
           plan: plan || "free",
+          tipoUsuario,
+          nomeUsuario: nomeUsuario || undefined,
+          numeroConselho: requiresProfessionalValidation ? numeroConselho : undefined,
+          ufConselho: requiresProfessionalValidation ? ufConselho : undefined,
           data: {
             tipoSistema,
             numeroAnimais: Number(numeroAnimais),
+            pesoInicial: pesoInicial ? Number(pesoInicial) : null,
             gmd: gmd ? Number(gmd) : null,
             conversaoAlimentar: conversaoAlimentar ? Number(conversaoAlimentar) : null,
             custoPorKg: custoPorKg ? Number(custoPorKg) : null,
@@ -127,7 +222,8 @@ const AnaliseProdutiva = () => {
 
       if (error) throw error;
 
-      setResult(data.answer || data.response);
+      const cleanedResult = cleanTextForDisplay(data.answer || data.response || "");
+      setResult(cleanedResult);
       toast({
         title: "Análise concluída!",
         description: "Planejamento produtivo gerado com sucesso.",
@@ -145,8 +241,14 @@ const AnaliseProdutiva = () => {
   };
 
   const getUserInputs = () => ({
+    "Tipo de Usuário": TIPOS_USUARIO.find(t => t.value === tipoUsuario)?.label || tipoUsuario,
+    ...(nomeUsuario && { "Nome": nomeUsuario }),
+    ...(requiresProfessionalValidation && numeroConselho && { 
+      "Registro Profissional": `${tipoUsuario === "veterinario" ? "CRMV" : "CRZ"} ${numeroConselho}-${ufConselho}` 
+    }),
     "Tipo de Sistema": SISTEMAS_PRODUCAO.find(s => s.value === tipoSistema)?.label || tipoSistema,
     "Número de Animais": numeroAnimais,
+    "Peso Inicial (kg)": pesoInicial || "Não informado",
     "GMD (kg/dia)": gmd || "Não informado",
     "Conversão Alimentar": conversaoAlimentar ? `${conversaoAlimentar}:1` : "Não informado",
     "Custo por kg (R$)": custoPorKg || "Não informado",
@@ -166,10 +268,10 @@ const AnaliseProdutiva = () => {
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              Planejador Produtivo & Econômico
+              Planejamento Produtivo & Econômico
             </h1>
             <p className="text-muted-foreground">
-              Avalie desempenho zootécnico, detecte gargalos e simule resultados econômicos
+              Diagnóstico técnico avançado, análise econômica e recomendações estratégicas
             </p>
           </div>
         </div>
@@ -180,23 +282,27 @@ const AnaliseProdutiva = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
               <div className="flex items-center gap-2">
                 <Target className="h-4 w-4 text-amber-600" />
-                <span>Interpreta dados de rebanho</span>
+                <span>Diagnóstico zootécnico detalhado</span>
               </div>
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-orange-600" />
-                <span>Identifica pontos de otimização</span>
+                <span>Identifica gargalos e riscos</span>
               </div>
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-green-600" />
-                <span>Calcula impacto financeiro</span>
+                <span>Análise econômica completa</span>
               </div>
               <div className="flex items-center gap-2">
                 <Lightbulb className="h-4 w-4 text-yellow-600" />
-                <span>Sugere estratégias de manejo</span>
+                <span>Cenários de otimização</span>
               </div>
               <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-600" />
-                <span>Gera relatório PDF profissional</span>
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+                <span>Estimativa de emissões CH₄</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-purple-600" />
+                <span>Plano de ação e cronograma</span>
               </div>
             </div>
           </CardContent>
@@ -206,6 +312,9 @@ const AnaliseProdutiva = () => {
       <div className="grid gap-6 max-w-4xl">
         {/* Botões de Exemplo */}
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => preencherExemplo("teste-ficticio")} className="border-amber-500 text-amber-700 hover:bg-amber-50">
+            🧪 Teste: Produtor Fictício (RR)
+          </Button>
           <Button variant="outline" size="sm" onClick={() => preencherExemplo("engorda")}>
             Exemplo: Engorda 180 dias
           </Button>
@@ -216,6 +325,75 @@ const AnaliseProdutiva = () => {
             Exemplo: Sistema ILP
           </Button>
         </div>
+
+        {/* Card: Identificação do Usuário */}
+        <Card className="border-2 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <User className="h-5 w-5 text-primary" />
+              Identificação do Usuário
+            </CardTitle>
+            <CardDescription>Informe seu perfil para personalizar a análise</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="tipoUsuario">Tipo de Usuário *</Label>
+              <Select value={tipoUsuario} onValueChange={setTipoUsuario}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione seu perfil" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  {TIPOS_USUARIO.map((tipo) => (
+                    <SelectItem key={tipo.value} value={tipo.value}>
+                      {tipo.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nomeUsuario">Nome (opcional)</Label>
+              <Input
+                id="nomeUsuario"
+                placeholder="Seu nome completo"
+                value={nomeUsuario}
+                onChange={(e) => setNomeUsuario(e.target.value)}
+              />
+            </div>
+
+            {/* Campos profissionais obrigatórios */}
+            {requiresProfessionalValidation && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="numeroConselho">
+                    {tipoUsuario === "veterinario" ? "Número do CRMV *" : "Número do CRZ *"}
+                  </Label>
+                  <Input
+                    id="numeroConselho"
+                    placeholder={tipoUsuario === "veterinario" ? "Ex: 12345" : "Ex: 54321"}
+                    value={numeroConselho}
+                    onChange={(e) => setNumeroConselho(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ufConselho">Estado de Registro *</Label>
+                  <Select value={ufConselho} onValueChange={setUfConselho}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o estado" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border shadow-lg z-50">
+                      {UFS.map((uf) => (
+                        <SelectItem key={uf} value={uf}>
+                          {uf}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Card: Sistema Produtivo */}
         <Card>
@@ -250,6 +428,16 @@ const AnaliseProdutiva = () => {
                 placeholder="Ex: 300"
                 value={numeroAnimais}
                 onChange={(e) => setNumeroAnimais(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pesoInicial">Peso Inicial (kg)</Label>
+              <Input
+                id="pesoInicial"
+                type="number"
+                placeholder="Ex: 350"
+                value={pesoInicial}
+                onChange={(e) => setPesoInicial(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -418,12 +606,12 @@ const AnaliseProdutiva = () => {
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Processando Análise...
+              Processando Análise Completa...
             </>
           ) : (
             <>
               <BarChart3 className="mr-2 h-5 w-5" />
-              Gerar Planejamento Produtivo
+              Gerar Planejamento Produtivo & Econômico
             </>
           )}
         </Button>
@@ -438,26 +626,40 @@ const AnaliseProdutiva = () => {
                   Planejamento Produtivo & Econômico
                 </CardTitle>
                 <CardDescription>
-                  Análise técnica com diagnóstico, indicadores e recomendações
+                  Diagnóstico técnico com análise econômica, cenários e recomendações
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <div className="whitespace-pre-wrap bg-muted/50 p-4 rounded-lg text-sm leading-relaxed">
+                  <div 
+                    className="whitespace-pre-wrap bg-muted/50 p-4 rounded-lg text-sm leading-relaxed"
+                    style={{ textAlign: 'justify', textJustify: 'inter-word' }}
+                  >
                     {result}
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Exportador de Relatórios */}
-            <ReportExporter
-              title="Planejador Produtivo & Econômico VetAgro"
-              content={result}
-              toolName="Planejador Produtivo"
-              references={REFERENCIAS_ZOOTECNICAS}
-              userInputs={getUserInputs()}
-            />
+            {/* Botões de Exportação */}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={handleCopyReport}
+                className="flex items-center gap-2"
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? "Copiado!" : "Copiar Relatório"}
+              </Button>
+              
+              <ReportExporter
+                title="Planejamento Produtivo & Econômico — VetAgro Sustentável AI"
+                content={result}
+                toolName="Planejamento Produtivo & Econômico"
+                references={REFERENCIAS_ZOOTECNICAS}
+                userInputs={getUserInputs()}
+              />
+            </div>
           </div>
         )}
       </div>

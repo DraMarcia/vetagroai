@@ -274,80 +274,152 @@ ANÁLISES SOLICITADAS:
 Forneça análise técnica completa seguindo a estrutura obrigatória.`;
       }
       else if (tool === "analise-produtiva") {
-        systemPrompt = `Você é um consultor zootécnico especializado em eficiência produtiva e econômica de sistemas agropecuários.
+        const { tipoUsuario, nomeUsuario, numeroConselho, ufConselho } = requestBody;
+        const isProfessional = tipoUsuario === "veterinario" || tipoUsuario === "zootecnista";
+        
+        // Detectar modo de teste
+        const isTestMode = data.observacoesAdicionais?.toLowerCase().includes("simular produtor fictício") || false;
+        
+        // Labels de tipo de usuário
+        const tipoUsuarioLabels: Record<string, string> = {
+          "produtor": "Produtor Rural",
+          "tecnico": "Técnico Agropecuário",
+          "veterinario": "Médico(a) Veterinário(a)",
+          "zootecnista": "Zootecnista",
+          "estudante": "Estudante",
+          "publico": "Público Geral"
+        };
+        const tipoUsuarioLabel = tipoUsuarioLabels[tipoUsuario as string] || "Não especificado";
+        
+        const professionalInfo = isProfessional && numeroConselho 
+          ? `\n\nPROFISSIONAL RESPONSÁVEL:\n• Nome: ${nomeUsuario || "Não informado"}\n• Registro: ${tipoUsuario === "veterinario" ? "CRMV" : "CRZ"} ${numeroConselho}-${ufConselho}` 
+          : nomeUsuario ? `\n\nUSUÁRIO:\n• Nome: ${nomeUsuario}\n• Perfil: ${tipoUsuarioLabel}` : "";
 
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+        systemPrompt = `Você é a ferramenta "Planejamento Produtivo & Econômico – VetAgro Sustentável AI". 
+Sua função é gerar diagnósticos técnicos avançados, análises econômicas, projeções de desempenho e recomendações estratégicas para sistemas de engorda, recria e terminação bovina.
 
-1. SÍNTESE EXECUTIVA
-   - Resumo em 3-4 frases do cenário analisado
+REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:
+• PROIBIDO usar asteriscos (*) em qualquer contexto
+• PROIBIDO usar hashtags (#) em qualquer contexto  
+• PROIBIDO usar markdown de qualquer tipo
+• PROIBIDO usar emojis
+• Use APENAS bullets padrão: • ou – para listas
+• Títulos de seção em MAIÚSCULAS seguidos de dois-pontos
+• Texto 100% justificado e bem estruturado
+• Nunca quebrar palavras no meio
+• Linguagem técnica, direta e assertiva
+• Tabelas quando apropriado para comparativos
 
-2. DIAGNÓSTICO ZOOTÉCNICO
-   - Análise do GMD comparado a referências do setor
-   - Avaliação da conversão alimentar (ideal vs atual)
-   - Taxa de lotação (adequação à capacidade de suporte)
-   - Eficiência do sistema produtivo
+${isTestMode ? `MODO DE TESTE ATIVADO:
+Gerar automaticamente dados completos para um produtor fictício seguindo padrões realistas.
+Local: Cantá – RR (Amazônia)
+Se algum dado estiver faltando, preencher automaticamente com valores realistas sem solicitar correção.` : ""}
 
-3. INDICADORES ECONÔMICOS
-   - ROI estimado (%)
-   - Margem por arroba/hectare (R$)
-   - Custo de produção por kg
-   - Ponto de equilíbrio
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA (9 SEÇÕES):
+${professionalInfo}
 
-4. GARGALOS IDENTIFICADOS
-   - Pontos críticos que limitam a eficiência
-   - Fatores de risco econômico
-   - Perdas potenciais identificadas
+1) SÍNTESE EXECUTIVA
+Parágrafo direto e técnico resumindo: diagnóstico geral, gargalos críticos e principais oportunidades.
 
-5. CENÁRIOS DE OTIMIZAÇÃO
-   - Cenário Conservador: ajustes mínimos
-   - Cenário Realista: melhorias moderadas
-   - Cenário Otimista: investimentos significativos
-   - Para cada: "Se ajustar X, seu lucro sobe Y"
+2) DIAGNÓSTICO ZOOTÉCNICO DETALHADO
+• GMD atual vs referências Embrapa, NRC e sistemas intensivos
+• Conversão Alimentar atual vs ideal
+• Peso inicial e peso estimado ao abate
+• Dias de ciclo até o abate
+• Mortalidade (% atual vs aceitável)
+• Taxa de lotação (UA/ha) e adequação à capacidade de suporte
 
-6. RECOMENDAÇÕES ESTRATÉGICAS
-   - Plano de ação prioritário
-   - Estratégias de manejo, nutrição e gestão
-   - Cronograma sugerido de implementação
+3) ANÁLISE ECONÔMICA COMPLETA
+Calcular e apresentar:
+• Custo total por cabeça (R$)
+• Custo por kg produzido (R$)
+• Custo total do lote (R$)
+• Receita bruta (R$)
+• Margem bruta por cabeça (R$)
+• Margem por arroba (R$/@)
+• Margem por hectare (R$/ha)
+• Ponto de equilíbrio (@ ou kg)
+• ROI estimado (%)
 
-7. REFERÊNCIAS TÉCNICAS
-   - Embrapa, ABIEC, FAO, CEPEA, literatura científica
+4) COMPARATIVO DE CENÁRIOS (TABELA OBRIGATÓRIA)
+Apresentar tabela comparativa com:
+| Indicador | Cenário Atual | Cenário Otimizado | Cenário Intensificado |
+Incluir: GMD, Conversão, Dias para abate, Custo por kg, Margem por cabeça, Margem por hectare
 
-REGRAS DE FORMATAÇÃO:
-- NÃO use asteriscos (*) ou hashtags (#)
-- Use apenas marcadores simples: • ou -
-- Estruture em parágrafos claros
-- Números sempre com unidades (kg, R$, %, ha)
-- Tabelas quando apropriado para comparativos
+5) ESTIMATIVA DE EMISSÕES DE METANO (CH₄) — IPCC TIER 1
+• Emissão diária (kg CH₄/cabeça)
+• Emissão total do lote (kg CH₄)
+• Emissão por kg de ganho (kg CH₄/kg)
+• Comparação entre cenários (Atual vs Otimizado)
+• Redução potencial com aumento de GMD
 
-${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Forneça apenas SÍNTESE EXECUTIVA, DIAGNÓSTICO básico e 2 RECOMENDAÇÕES principais (máx 200 palavras total). Indique que análises completas com cenários de otimização estão disponíveis nos planos Pro/Enterprise." : ""}
-${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todos os 7 tópicos detalhados." : ""}
-${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise completa, detalhada, com modelagem comparativa avançada entre cenários, projeções financeiras de 12 meses e recomendações estratégicas consultivas de alto nível." : ""}`;
+6) DIAGNÓSTICO DE RISCOS E GARGALOS
+Avaliar automaticamente cada área:
+• Nutrição (adequação da dieta)
+• Pastagens (capacidade de suporte)
+• Manejo (práticas operacionais)
+• Sanidade (protocolos e perdas)
+• Infraestrutura (curral, cercas, água)
+• Financeiro (fluxo de caixa, endividamento)
+• Clima (sazonalidade, eventos extremos)
+
+7) PLANO DE AÇÃO PRIORITÁRIO (CHECKLIST)
+• AÇÕES IMEDIATAS (0–15 dias): lista de ações urgentes
+• AÇÕES DE MÉDIO PRAZO (30–60 dias): ajustes estruturais
+• AÇÕES DE LONGA MATURAÇÃO (90–180 dias): investimentos e mudanças de sistema
+
+8) CRONOGRAMA OPERACIONAL
+Quadro estruturado com:
+| Atividade | Período | Responsável | Observações |
+Incluir: Manejo, Alimentação, Suplementação, Monitoramento, Sanidade, Avaliação de desempenho
+
+9) REFERÊNCIAS TÉCNICAS
+• Embrapa – Empresa Brasileira de Pesquisa Agropecuária
+• NRC – Nutrient Requirements of Beef Cattle
+• CEPEA – Centro de Estudos Avançados em Economia Aplicada
+• IPCC – Intergovernmental Panel on Climate Change
+• Fontes científicas revisadas por pares
+
+AVISO FINAL:
+"Este relatório foi gerado pela suíte VetAgro Sustentável AI e tem caráter técnico-consultivo. Recomenda-se validação por profissional habilitado para tomadas de decisão definitivas."
+
+${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Forneça apenas SÍNTESE EXECUTIVA, DIAGNÓSTICO ZOOTÉCNICO resumido e 3 RECOMENDAÇÕES principais (máx 300 palavras total). Indique que análises completas com cenários, emissões e plano de ação estão disponíveis nos planos Pro/Enterprise." : ""}
+${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todas as 9 seções detalhadas." : ""}
+${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise completa, ultra-detalhada, com modelagem comparativa avançada entre cenários, projeções financeiras de 12 meses, análise de sensibilidade e recomendações estratégicas consultivas de alto nível." : ""}`;
 
         const sistemaLabel = data.tipoSistema || "Não especificado";
         
         userPrompt = `Realize uma análise produtiva e econômica completa com os seguintes dados:
 
+IDENTIFICAÇÃO DO USUÁRIO:
+• Tipo: ${tipoUsuarioLabel}
+${nomeUsuario ? `• Nome: ${nomeUsuario}` : ""}
+${isProfessional && numeroConselho ? `• Registro: ${tipoUsuario === "veterinario" ? "CRMV" : "CRZ"} ${numeroConselho}-${ufConselho}` : ""}
+
 DADOS DO SISTEMA PRODUTIVO:
-- Tipo de Sistema: ${sistemaLabel}
-- Número de Animais: ${data.numeroAnimais || "Não informado"}
-- Área Total: ${data.areaTotal ? data.areaTotal + " hectares" : "Não informado"}
-- Taxa de Lotação: ${data.taxaLotacao ? data.taxaLotacao + " UA/ha" : "Não informado"}
+• Tipo de Sistema: ${sistemaLabel}
+• Número de Animais: ${data.numeroAnimais || "Não informado"}
+• Peso Inicial: ${data.pesoInicial ? data.pesoInicial + " kg" : "Não informado"}
+• Área Total: ${data.areaTotal ? data.areaTotal + " hectares" : "Não informado"}
+• Taxa de Lotação: ${data.taxaLotacao ? data.taxaLotacao + " UA/ha" : "Não informado"}
 
 INDICADORES ZOOTÉCNICOS:
-- GMD (Ganho Médio Diário): ${data.gmd ? data.gmd + " kg/dia" : "Não informado"}
-- Conversão Alimentar: ${data.conversaoAlimentar ? data.conversaoAlimentar + ":1" : "Não informado"}
+• GMD (Ganho Médio Diário): ${data.gmd ? data.gmd + " kg/dia" : "Não informado"}
+• Conversão Alimentar: ${data.conversaoAlimentar ? data.conversaoAlimentar + ":1" : "Não informado"}
 
 INDICADORES ECONÔMICOS:
-- Custo por kg Produzido: ${data.custoPorKg ? "R$ " + data.custoPorKg : "Não informado"}
-- Preço de Venda: ${data.precoVenda ? "R$ " + data.precoVenda + "/@" : "Não informado"}
+• Custo por kg Produzido: ${data.custoPorKg ? "R$ " + data.custoPorKg : "Não informado"}
+• Preço de Venda: ${data.precoVenda ? "R$ " + data.precoVenda + "/@" : "Não informado"}
 
 DADOS ADICIONAIS:
-- Mortalidade: ${data.mortalidade ? data.mortalidade + "%" : "Não informado"}
-- Eficiência Reprodutiva: ${data.eficienciaReprodutiva ? data.eficienciaReprodutiva + "%" : "Não informado"}
-- Período do Lote: ${data.datasLote || "Não informado"}
-${data.observacoesAdicionais ? `- Observações: ${data.observacoesAdicionais}` : ""}
+• Mortalidade: ${data.mortalidade ? data.mortalidade + "%" : "Não informado"}
+• Eficiência Reprodutiva: ${data.eficienciaReprodutiva ? data.eficienciaReprodutiva + "%" : "Não informado"}
+• Período do Lote: ${data.datasLote || "Não informado"}
+${data.observacoesAdicionais ? `• Observações: ${data.observacoesAdicionais}` : ""}
 
-Forneça diagnóstico técnico completo, identifique gargalos, calcule indicadores econômicos, projete cenários de otimização e recomende estratégias práticas para melhorar a rentabilidade.`;
+${isTestMode ? "ATENÇÃO: MODO DE TESTE ATIVADO. Preencha automaticamente valores realistas para dados faltantes e gere análise completa." : ""}
+
+Forneça diagnóstico técnico completo seguindo rigorosamente a estrutura de 9 seções obrigatórias.`;
       }
       else if (tool === "calculadora-dose") {
         const isProfessional = requestBody.isProfessional === true;
