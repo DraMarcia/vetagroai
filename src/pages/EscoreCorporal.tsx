@@ -265,12 +265,18 @@ const EscoreCorporal = () => {
     setResult("");
     
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-equine", {
+      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
+          tool: "escore-corporal",
+          plan: "enterprise",
+          tipoUsuario: "profissional",
+          nomeUsuario: "Usuário VetAgro",
           images: [image],
-          breed: species,
-          age,
-          purpose: `Avaliar Escore de Condição Corporal (ECC). Peso atual: ${weight}. 
+          data: {
+            especie: species,
+            idade: age,
+            peso: weight,
+            objetivo: `Avaliar Escore de Condição Corporal (ECC). 
 
 INSTRUÇÕES DE FORMATAÇÃO:
 - NÃO use asteriscos, hashtags ou emojis
@@ -301,16 +307,17 @@ Frequência de reavaliação e metas de escore corporal.
 
 REFERÊNCIAS:
 Liste as fontes técnicas utilizadas (NRC, Henneke, Edmonson, Ferguson, Embrapa).`,
+          },
         },
       });
 
       if (error) throw error;
 
-      if (!data?.review) {
+      if (!data?.answer) {
         throw new Error("Resposta vazia do servidor");
       }
 
-      const cleanedResult = cleanTextForDisplay(data.review);
+      const cleanedResult = cleanTextForDisplay(data.answer);
       const finalResult = cleanedResult + "\n\n⚠️ Esta análise é uma estimativa baseada em imagem. Para avaliação precisa, consulte um médico veterinário ou zootecnista.";
 
       setResult(finalResult);
