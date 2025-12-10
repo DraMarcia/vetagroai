@@ -9,13 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Leaf, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { UFS, useCrmvValidation } from "@/hooks/useCrmvValidation";
+import { UFS } from "@/hooks/useCrmvValidation";
+
+const COUNCIL_TYPES = [
+  { value: "CREA", label: "CREA - Engenharia e Agronomia" },
+  { value: "CRBio", label: "CRBio - Biologia" },
+  { value: "CFTA", label: "CFTA - Técnicos Agrícolas" },
+  { value: "Outro", label: "Outro" },
+];
 
 const IdentificadorPlantas = () => {
   const { toast } = useToast();
-  const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
   const [isProfessional, setIsProfessional] = useState<string>("");
+  const [councilType, setCouncilType] = useState("");
   const [councilNumber, setCouncilNumber] = useState("");
   const [councilUF, setCouncilUF] = useState("");
   const [description, setDescription] = useState("");
@@ -47,10 +54,16 @@ const IdentificadorPlantas = () => {
       return;
     }
 
-    // Validate council number for professionals
+    // Validate council info for professionals
     if (isProfessional === "sim") {
-      const validation = validateAndNotify(true, councilNumber, councilUF);
-      if (!validation.isValid) return;
+      if (!councilType || !councilNumber.trim() || !councilUF) {
+        toast({
+          title: "Campos obrigatórios",
+          description: "Informe o tipo de conselho, número e UF.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (!image && !description.trim()) {
@@ -70,6 +83,7 @@ const IdentificadorPlantas = () => {
           images: image ? [image] : [],
           description: description || "Sem descrição adicional",
           isProfessional: isProfessional === "sim",
+          councilType: isProfessional === "sim" ? councilType : undefined,
           councilNumber: isProfessional === "sim" ? councilNumber : undefined,
           councilUF: isProfessional === "sim" ? councilUF : undefined,
         },
@@ -134,30 +148,47 @@ const IdentificadorPlantas = () => {
             </RadioGroup>
 
             {isProfessional === "sim" && (
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div className="space-y-4 pt-4 border-t">
                 <div className="space-y-2">
-                  <Label htmlFor="councilNumber">Número do Conselho *</Label>
-                  <Input
-                    id="councilNumber"
-                    placeholder="Ex: 12345"
-                    value={councilNumber}
-                    onChange={(e) => setCouncilNumber(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="councilUF">UF *</Label>
-                  <Select value={councilUF} onValueChange={setCouncilUF}>
+                  <Label htmlFor="councilType">Tipo de Conselho *</Label>
+                  <Select value={councilType} onValueChange={setCouncilType}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder="Selecione o conselho" />
                     </SelectTrigger>
                     <SelectContent>
-                      {UFS.map((uf) => (
-                        <SelectItem key={uf} value={uf}>
-                          {uf}
+                      {COUNCIL_TYPES.map((council) => (
+                        <SelectItem key={council.value} value={council.value}>
+                          {council.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="councilNumber">Número do Registro *</Label>
+                    <Input
+                      id="councilNumber"
+                      placeholder="Ex: 12345"
+                      value={councilNumber}
+                      onChange={(e) => setCouncilNumber(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="councilUF">UF *</Label>
+                    <Select value={councilUF} onValueChange={setCouncilUF}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UFS.map((uf) => (
+                          <SelectItem key={uf} value={uf}>
+                            {uf}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             )}
