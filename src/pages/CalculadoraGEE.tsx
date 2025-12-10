@@ -1,152 +1,448 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
-import { Cloud, Loader2, HelpCircle, Flame, Droplets, Wind, TreePine, RefreshCw, Award, TrendingDown, BarChart3, Leaf } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Cloud, Loader2, HelpCircle, Flame, Wind, TreePine, RefreshCw, 
+  TrendingDown, BarChart3, Leaf, User, GraduationCap, FlaskConical,
+  AlertTriangle, CheckCircle, BookOpen, FileText, Copy, Info, Calculator
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportExporter } from "@/components/ReportExporter";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend } from "recharts";
 
+// MÓDULO 2 — LIMITES BIOLÓGICOS (IPCC 2019 Refinement)
+const BIOLOGICAL_LIMITS = {
+  VS: { min: 2, max: 8, unit: "kg/animal/dia", description: "Sólidos voláteis" },
+  IMS_PERCENT: { min: 1.8, max: 3.2, unit: "% do PV", description: "Ingestão de matéria seca" },
+  Nex: { min: 25, max: 50, unit: "kg N/animal/ano", description: "Nitrogênio excretado" },
+  CH4_DEJETOS_RATIO: { max: 0.15, description: "CH₄ dejetos ≤ 15% do CH₄ entérico (pasto)" },
+  EB: { min: 17.5, max: 19.5, unit: "MJ/kg MS", description: "Energia bruta" },
+  DIVMS: { min: 45, max: 70, unit: "%", description: "Digestibilidade da matéria seca" },
+  Ym_PASTO: { value: 6.5, unit: "%", description: "Ym pasto tropical" },
+  Ym_CONFINAMENTO: { min: 3.0, max: 3.5, unit: "%", description: "Ym confinamento" },
+};
+
+// GWP-100 (IPCC AR6)
+const GWP = {
+  CH4: 27.2,
+  N2O: 273,
+  CO2: 1,
+};
+
+// Fatores de emissão padrão
+const EMISSION_FACTORS = {
+  B0_CORTE: 0.10, // kg CH₄/kg VS (boi de corte)
+  MCF_PASTO: 0.015, // 1.5% para pasto
+  MCF_CONFINAMENTO: 0.02, // 2% para confinamento
+  EF_N2O_DIRETO: 0.02, // kg N₂O-N/kg N excretado
+  EF_N2O_VOLATILIZACAO: 0.01,
+  EF_N2O_LIXIVIACAO: 0.0075,
+  FRAC_GAS: 0.20, // Fração volatilizada
+  FRAC_LEACH: 0.30, // Fração lixiviada
+};
+
+// Categorias animais com pesos médios
+const ANIMAL_CATEGORIES = [
+  { id: "matrizes", name: "Matrizes", defaultWeight: 450 },
+  { id: "bezerros", name: "Bezerros (até desmama)", defaultWeight: 180 },
+  { id: "novilhos", name: "Novilhos/Novilhas", defaultWeight: 350 },
+  { id: "touros", name: "Touros", defaultWeight: 700 },
+  { id: "boi_engorda", name: "Boi de Engorda", defaultWeight: 450 },
+];
+
+const PRODUCTION_SYSTEMS = [
+  { id: "extensivo", name: "Extensivo (pasto)", Ym: 6.5, MCF: 0.015 },
+  { id: "semi_intensivo", name: "Semi-intensivo", Ym: 5.5, MCF: 0.018 },
+  { id: "confinamento", name: "Confinamento", Ym: 3.0, MCF: 0.02 },
+  { id: "ilpf", name: "ILPF", Ym: 5.0, MCF: 0.015 },
+];
+
+type UserLevel = "produtor" | "profissional" | "pesquisador";
+
+interface AnimalInput {
+  category: string;
+  count: number;
+  weight: number;
+}
+
+interface CalculationResult {
+  totalCO2eq: number;
+  ch4Enterico: number;
+  ch4Dejetos: number;
+  n2oDireto: number;
+  n2oIndireto: number;
+  warnings: string[];
+  details: {
+    IMS: number;
+    EB: number;
+    DE: number;
+    ME: number;
+    VS: number;
+    Nex: number;
+  };
+  byCategory: { name: string; emissions: number }[];
+}
+
 const CalculadoraGEE = () => {
   const { toast } = useToast();
+  
+  // Estados
+  const [userLevel, setUserLevel] = useState<UserLevel>("profissional");
   const [loading, setLoading] = useState(false);
-  const [loadingRecalc, setLoadingRecalc] = useState(false);
-  const [herdData, setHerdData] = useState("");
-  const [result, setResult] = useState("");
-  const [recalcResult, setRecalcResult] = useState("");
-  const [emissionData, setEmissionData] = useState<{name: string, value: number, color: string}[]>([]);
-  const [totalEmissions, setTotalEmissions] = useState<number | null>(null);
+  const [animals, setAnimals] = useState<AnimalInput[]>([
+    { category: "boi_engorda", count: 100, weight: 450 }
+  ]);
+  const [productionSystem, setProductionSystem] = useState("semi_intensivo");
+  const [pastureArea, setPastureArea] = useState(100);
+  const [divms, setDivms] = useState(55);
+  const [showMethodology, setShowMethodology] = useState(false);
+  const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
+  const [aiAnalysis, setAiAnalysis] = useState("");
+  const [mitigationResult, setMitigationResult] = useState("");
+  const [loadingMitigation, setLoadingMitigation] = useState(false);
 
-  const handleCalculate = async (withIntervention = false) => {
-    if (!herdData.trim()) {
+  // Referências obrigatórias (MÓDULO 7)
+  const references = [
+    "IPCC 2006 Guidelines for National Greenhouse Gas Inventories — Volume 4: Agriculture, Forestry and Other Land Use",
+    "IPCC 2019 Refinement to the 2006 Guidelines for National Greenhouse Gas Inventories",
+    "NRC - Nutrient Requirements of Beef Cattle (8th Revised Edition)",
+    "EMBRAPA Gado de Corte - Emissões de Gases de Efeito Estufa na Pecuária",
+    "Gerber, P.J. et al. (2013) Tackling Climate Change Through Livestock — FAO"
+  ];
+
+  // Função de validação com limites biológicos (MÓDULO 2)
+  const validateAndAdjust = (value: number, limit: { min?: number; max?: number }, name: string): { value: number; warning: string | null } => {
+    let adjusted = value;
+    let warning: string | null = null;
+
+    if (limit.min !== undefined && value < limit.min) {
+      adjusted = limit.min;
+      warning = `${name}: Valor ${value.toFixed(2)} ajustado para ${limit.min} (mínimo fisiológico)`;
+    }
+    if (limit.max !== undefined && value > limit.max) {
+      adjusted = limit.max;
+      warning = `${name}: Valor ${value.toFixed(2)} ajustado para ${limit.max} (máximo fisiológico)`;
+    }
+    
+    return { value: adjusted, warning };
+  };
+
+  // MÓDULO 3 — CÁLCULOS TIER 2 IPCC
+  const calculateEmissions = (): CalculationResult => {
+    const warnings: string[] = [];
+    const system = PRODUCTION_SYSTEMS.find(s => s.id === productionSystem) || PRODUCTION_SYSTEMS[0];
+    
+    let totalCH4Enterico = 0;
+    let totalCH4Dejetos = 0;
+    let totalN2ODireto = 0;
+    let totalN2OIndireto = 0;
+    let totalDetails = { IMS: 0, EB: 0, DE: 0, ME: 0, VS: 0, Nex: 0 };
+    const byCategory: { name: string; emissions: number }[] = [];
+
+    const totalAnimals = animals.reduce((sum, a) => sum + a.count, 0);
+
+    animals.forEach(animal => {
+      if (animal.count <= 0) return;
+
+      const categoryInfo = ANIMAL_CATEGORIES.find(c => c.id === animal.category);
+      const categoryName = categoryInfo?.name || animal.category;
+      const weight = animal.weight || categoryInfo?.defaultWeight || 400;
+
+      // 3.1 IMS (kg MS/dia) = 2.3% do PV (modelo empírico se não informado)
+      let imsPercent = 2.3;
+      const imsValidation = validateAndAdjust(imsPercent, BIOLOGICAL_LIMITS.IMS_PERCENT, "IMS %");
+      imsPercent = imsValidation.value;
+      if (imsValidation.warning) warnings.push(imsValidation.warning);
+      
+      const IMS = (imsPercent / 100) * weight; // kg/dia
+
+      // 3.2 Energia Bruta (MJ/dia)
+      const EB_factor = 18.45; // MJ/kg MS (IPCC default)
+      const EB = IMS * EB_factor;
+
+      // Validar DIVMS
+      const divmsValidation = validateAndAdjust(divms, BIOLOGICAL_LIMITS.DIVMS, "DIVMS");
+      const validatedDIVMS = divmsValidation.value / 100;
+      if (divmsValidation.warning) warnings.push(divmsValidation.warning);
+
+      // 3.3 Energia Digerida (MJ/dia)
+      const DE = EB * validatedDIVMS;
+
+      // 3.4 Energia Metabolizável (MJ/dia)
+      const ME = DE * 0.82;
+
+      // 3.5 Metano Entérico (kg CH₄/ano) — Tier 2
+      // CH₄ = (Ym/100) × EB × 365 / 55.65
+      const Ym = system.Ym;
+      const ch4EntericoAnimal = (Ym / 100) * EB * 365 / 55.65; // kg CH₄/animal/ano
+      const ch4EntericoTotal = ch4EntericoAnimal * animal.count;
+
+      // 3.6 Sólidos Voláteis (kg VS/dia)
+      // VS = IMS × (1 - DIVMS) × 0.92
+      let VS = IMS * (1 - validatedDIVMS) * 0.92;
+      const vsValidation = validateAndAdjust(VS, BIOLOGICAL_LIMITS.VS, "VS");
+      VS = vsValidation.value;
+      if (vsValidation.warning) warnings.push(vsValidation.warning);
+
+      // 3.7 CH₄ de Dejetos (kg CH₄/ano)
+      // CH₄ = VS × B₀ × MCF × 365
+      const B0 = EMISSION_FACTORS.B0_CORTE;
+      const MCF = system.MCF;
+      const ch4DejetosAnimal = VS * B0 * MCF * 365;
+      let ch4DejetosTotal = ch4DejetosAnimal * animal.count;
+
+      // Validar limite CH₄ dejetos ≤ 15% do entérico (para pasto)
+      if (productionSystem === "extensivo" || productionSystem === "semi_intensivo") {
+        const maxDejetos = ch4EntericoTotal * BIOLOGICAL_LIMITS.CH4_DEJETOS_RATIO.max;
+        if (ch4DejetosTotal > maxDejetos) {
+          warnings.push(`CH₄ dejetos ajustado: ${ch4DejetosTotal.toFixed(1)} → ${maxDejetos.toFixed(1)} kg (limite 15% do entérico)`);
+          ch4DejetosTotal = maxDejetos;
+        }
+      }
+
+      // 3.8 N excretado (kg N/ano)
+      // Usando valor padrão IPCC: 30-45 kg N/ano por animal
+      let Nex = 37.5 * animal.count; // média
+      const nexValidation = validateAndAdjust(Nex / animal.count, BIOLOGICAL_LIMITS.Nex, "Nex");
+      Nex = nexValidation.value * animal.count;
+      if (nexValidation.warning) warnings.push(nexValidation.warning);
+
+      // 3.9 N₂O Direto e Indireto
+      // N₂O direto = Nex × EF × 44/28
+      const n2oDiretoKg = Nex * EMISSION_FACTORS.EF_N2O_DIRETO * (44/28);
+      
+      // N₂O indireto (volatilização + lixiviação)
+      const nVolatilizado = Nex * EMISSION_FACTORS.FRAC_GAS;
+      const nLixiviado = Nex * EMISSION_FACTORS.FRAC_LEACH;
+      const n2oVolatilizacao = nVolatilizado * EMISSION_FACTORS.EF_N2O_VOLATILIZACAO * (44/28);
+      const n2oLixiviacao = nLixiviado * EMISSION_FACTORS.EF_N2O_LIXIVIACAO * (44/28);
+      const n2oIndiretoKg = n2oVolatilizacao + n2oLixiviacao;
+
+      // Acumular totais
+      totalCH4Enterico += ch4EntericoTotal;
+      totalCH4Dejetos += ch4DejetosTotal;
+      totalN2ODireto += n2oDiretoKg;
+      totalN2OIndireto += n2oIndiretoKg;
+
+      // Detalhes médios
+      totalDetails.IMS += IMS * animal.count;
+      totalDetails.EB += EB * animal.count;
+      totalDetails.DE += DE * animal.count;
+      totalDetails.ME += ME * animal.count;
+      totalDetails.VS += VS * animal.count;
+      totalDetails.Nex += Nex;
+
+      // Emissões por categoria em CO₂eq
+      const categoryCO2eq = (ch4EntericoTotal + ch4DejetosTotal) * GWP.CH4 + 
+                           (n2oDiretoKg + n2oIndiretoKg) * GWP.N2O;
+      byCategory.push({ name: categoryName, emissions: categoryCO2eq / 1000 }); // em toneladas
+    });
+
+    // Normalizar detalhes
+    if (totalAnimals > 0) {
+      totalDetails.IMS /= totalAnimals;
+      totalDetails.EB /= totalAnimals;
+      totalDetails.DE /= totalAnimals;
+      totalDetails.ME /= totalAnimals;
+      totalDetails.VS /= totalAnimals;
+    }
+
+    // 3.10 Conversão para CO₂eq (toneladas)
+    const ch4TotalCO2eq = (totalCH4Enterico + totalCH4Dejetos) * GWP.CH4 / 1000;
+    const n2oTotalCO2eq = (totalN2ODireto + totalN2OIndireto) * GWP.N2O / 1000;
+    const totalCO2eq = ch4TotalCO2eq + n2oTotalCO2eq;
+
+    return {
+      totalCO2eq,
+      ch4Enterico: totalCH4Enterico * GWP.CH4 / 1000,
+      ch4Dejetos: totalCH4Dejetos * GWP.CH4 / 1000,
+      n2oDireto: totalN2ODireto * GWP.N2O / 1000,
+      n2oIndireto: totalN2OIndireto * GWP.N2O / 1000,
+      warnings,
+      details: totalDetails,
+      byCategory,
+    };
+  };
+
+  // Gerar prompt baseado no nível de usuário (MÓDULO 1 e 4)
+  const generatePrompt = (result: CalculationResult): string => {
+    const totalAnimals = animals.reduce((sum, a) => sum + a.count, 0);
+    const system = PRODUCTION_SYSTEMS.find(s => s.id === productionSystem);
+
+    const baseData = `
+DADOS DO SISTEMA:
+- Total de animais: ${totalAnimals}
+- Sistema de produção: ${system?.name}
+- Área de pastagem: ${pastureArea} ha
+- Digestibilidade (DIVMS): ${divms}%
+- Taxa de lotação: ${(totalAnimals / pastureArea).toFixed(2)} UA/ha
+
+RESULTADOS CALCULADOS (Tier 2 IPCC):
+- Emissão total: ${result.totalCO2eq.toFixed(2)} tCO₂eq/ano
+- CH₄ entérico: ${result.ch4Enterico.toFixed(2)} tCO₂eq
+- CH₄ dejetos: ${result.ch4Dejetos.toFixed(2)} tCO₂eq
+- N₂O direto: ${result.n2oDireto.toFixed(2)} tCO₂eq
+- N₂O indireto: ${result.n2oIndireto.toFixed(2)} tCO₂eq
+
+PARÂMETROS TÉCNICOS CALCULADOS:
+- IMS média: ${result.details.IMS.toFixed(2)} kg MS/dia
+- Energia Bruta média: ${result.details.EB.toFixed(2)} MJ/dia
+- VS médio: ${result.details.VS.toFixed(2)} kg/dia
+- Nex total: ${result.details.Nex.toFixed(2)} kg N/ano`;
+
+    if (userLevel === "produtor") {
+      return `${baseData}
+
+GERE UM RELATÓRIO PARA PRODUTOR RURAL com:
+1. SUMÁRIO EXECUTIVO (máximo 5 frases simples)
+   - Emissão total em linguagem clara
+   - Principal fonte de emissão
+   - O que reduzir primeiro
+   - Potencial estimado de redução
+
+2. RECOMENDAÇÕES PRÁTICAS (lista com bullets)
+   - Ações imediatas e de baixo custo
+   - Ações de médio prazo
+   
+3. COMPARATIVO SIMPLES
+   - Compare com média do setor
+
+REGRAS: linguagem simples, frases curtas, SEM fórmulas, SEM termos técnicos complexos, máximo 1.5 páginas.`;
+    }
+
+    if (userLevel === "profissional") {
+      return `${baseData}
+
+GERE UM RELATÓRIO TÉCNICO PARA PROFISSIONAL (Veterinário/Zootecnista/Agrônomo):
+
+1. DIAGNÓSTICO TÉCNICO
+   - IMS e eficiência de conversão
+   - VS ajustado e implicações
+   - Nex e balanço de nitrogênio
+   - Eficiência alimentar vs emissões
+
+2. ANÁLISE POR CATEGORIA
+   - Ranking de emissores
+   - Oportunidades de melhoria por categoria
+
+3. INDICADORES DE DESEMPENHO
+   - kg CO₂eq/kg de carne produzido
+   - kg CO₂eq/ha/ano
+   - Comparativo com benchmarks nacionais e internacionais
+
+4. RECOMENDAÇÕES TÉCNICAS DETALHADAS
+   - Manejo nutricional
+   - Genética e seleção
+   - Sistemas integrados
+   - Alertas sanitários e ambientais
+
+5. ESTRATÉGIAS DE MITIGAÇÃO
+   - Aditivos alimentares (taninos, 3-NOP, óleos essenciais)
+   - Manejo de pastagem
+   - ILPF
+   - Potencial de redução estimado para cada estratégia
+
+REGRAS: manter cálculos simplificados, indicadores técnicos, recomendações detalhadas, máximo 3 páginas.`;
+    }
+
+    // Pesquisador/Técnico Avançado
+    return `${baseData}
+
+GERE UM RELATÓRIO CIENTÍFICO COMPLETO (Nível Pesquisador):
+
+1. METODOLOGIA DETALHADA
+   - Equações Tier 2 utilizadas:
+     • CH₄ entérico = (Ym/100) × EB × 365 / 55.65
+     • VS = IMS × (1 - DIVMS) × 0.92
+     • CH₄ dejetos = VS × B₀ × MCF × 365
+     • N₂O direto = Nex × EF × 44/28
+   - Fatores de emissão aplicados (IPCC 2019):
+     • Ym = ${system?.Ym}% (${system?.name})
+     • B₀ = ${EMISSION_FACTORS.B0_CORTE} kg CH₄/kg VS
+     • MCF = ${system?.MCF * 100}%
+     • EF N₂O direto = ${EMISSION_FACTORS.EF_N2O_DIRETO}
+   - GWP-100 (AR6): CH₄ = 27.2, N₂O = 273
+
+2. TABELAS DE PARÂMETROS
+   - Valores calculados vs limites fisiológicos
+   - Incertezas associadas
+
+3. ANÁLISE DE SENSIBILIDADE
+   - Impacto da variação de DIVMS
+   - Impacto da variação de Ym
+   - Impacto do sistema de manejo
+
+4. COMPARATIVO METODOLÓGICO
+   - Tier 1 vs Tier 2: diferenças estimadas
+   - Limitações do modelo
+
+5. POTENCIAL DE MITIGAÇÃO QUANTIFICADO
+   - Por estratégia com referências científicas
+   - Custo-benefício por prática
+
+6. REFERÊNCIAS CIENTÍFICAS COMPLETAS
+   - IPCC 2006 Guidelines Vol. 4
+   - IPCC 2019 Refinement
+   - NRC Beef Cattle
+   - Gerber et al. 2013 (FAO)
+
+REGRAS: incluir todas as fórmulas, tabelas detalhadas, metodologia IPCC 2019 Refinement, referências completas, máximo 6 páginas.`;
+  };
+
+  // Handler principal de cálculo
+  const handleCalculate = async () => {
+    if (animals.length === 0 || animals.every(a => a.count <= 0)) {
       toast({
-        title: "Campo obrigatório",
-        description: "Forneça os dados do rebanho para calcular as emissões.",
+        title: "Dados insuficientes",
+        description: "Adicione pelo menos uma categoria de animais.",
         variant: "destructive",
       });
       return;
     }
 
-    if (withIntervention) {
-      setLoadingRecalc(true);
-    } else {
-      setLoading(true);
-    }
+    setLoading(true);
+    setMitigationResult("");
 
     try {
-      const basePrompt = `Calcule as emissões de Gases de Efeito Estufa (GEE) com base nos seguintes dados:
+      // Cálculos locais Tier 2
+      const result = calculateEmissions();
+      setCalculationResult(result);
 
-DADOS DO REBANHO:
-${herdData}
+      // Mostrar avisos de ajustes
+      if (result.warnings.length > 0) {
+        toast({
+          title: "Ajustes fisiológicos aplicados",
+          description: "Alguns valores foram ajustados conforme limites IPCC 2019.",
+        });
+      }
 
-FORNEÇA:
-
-1. EMISSÕES TOTAIS
-Formato: TOTAL: XX.X tCO₂eq/ano
-
-2. EMISSÕES POR GÁS
-Detalhe as emissões separadas:
-- CH₄ (Metano): XX.X tCO₂eq (fermentação entérica + dejetos)
-- N₂O (Óxido Nitroso): XX.X tCO₂eq (manejo de dejetos + solo)
-- CO₂ (Dióxido de Carbono): XX.X tCO₂eq (energia + transporte)
-
-Formato JSON: GASES: {"CH4": XX.X, "N2O": XX.X, "CO2": XX.X}
-
-3. EMISSÕES POR CATEGORIA ANIMAL
-Distribua as emissões por categoria (matrizes, bezerros, novilhos, touros, etc.)
-
-4. RANKING DOS MAIORES EMISSORES
-Identifique os 5 principais fatores de emissão na propriedade
-
-5. COMPARATIVO COM BENCHMARKS
-Compare com sistemas semelhantes:
-- Média do setor brasileiro
-- Melhores práticas internacionais
-- Potencial de redução
-
-6. METODOLOGIA DE CÁLCULO
-Explique brevemente os fatores de emissão utilizados (base IPCC)`;
-
-      const interventionAddition = withIntervention ? `
-
-7. RECÁLCULO COM INTERVENÇÕES
-Considere a implementação das seguintes práticas mitigadoras:
-- Aditivos alimentares (Tanino, 3-NOP, Óleos essenciais)
-- Manejo rotacionado intensivo
-- Integração Lavoura-Pecuária-Floresta (ILPF)
-- Biodigestores
-- Melhoramento genético
-- Confinamento estratégico
-
-Para cada prática, calcule:
-- Redução estimada em tCO₂eq
-- Custo-benefício aproximado
-- Viabilidade de implementação
-
-8. SIMULAÇÃO DE CRÉDITOS DE CARBONO
-Com as intervenções sugeridas, estime:
-- Créditos potenciais (tCO₂e)
-- Valor estimado (US$ 5-15/tCO₂e)
-- Elegibilidade para programas (Verra, Gold Standard, ABC)` : `
-
-7. ESTRATÉGIAS DE MITIGAÇÃO
-Sugira práticas específicas para redução:
-- Aditivos alimentares
-- Manejo de pastagem
-- ILPF
-- Biodigestores
-- Genética
-- Confinamento estratégico
-
-8. REFERÊNCIAS TÉCNICAS
-Base metodológica IPCC e fontes científicas`;
+      // Gerar análise via IA
+      const prompt = generatePrompt(result);
 
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
-          question: basePrompt + interventionAddition,
-          isProfessional: true,
-          context: "Cálculo de emissões de GEE e pegada de carbono",
+          question: prompt,
+          isProfessional: userLevel !== "produtor",
+          context: "Cálculo de emissões de GEE - Metodologia IPCC Tier 2",
         },
       });
 
       if (error) throw error;
-
-      if (withIntervention) {
-        setRecalcResult(data.answer);
-      } else {
-        setResult(data.answer);
-
-        // Parse emissions data for charts
-        const gasMatch = data.answer.match(/GASES:\s*\{([^}]+)\}/);
-        if (gasMatch) {
-          try {
-            const gasJson = JSON.parse(`{${gasMatch[1]}}`);
-            const chartData = [
-              { name: "CH₄ (Metano)", value: gasJson.CH4 || 0, color: "#f97316" },
-              { name: "N₂O (Óxido Nitroso)", value: gasJson.N2O || 0, color: "#84cc16" },
-              { name: "CO₂ (Dióxido)", value: gasJson.CO2 || 0, color: "#64748b" },
-            ];
-            setEmissionData(chartData);
-          } catch (e) {
-            console.log("Could not parse gas data");
-          }
-        }
-
-        // Parse total emissions
-        const totalMatch = data.answer.match(/TOTAL:\s*([\d.,]+)\s*tCO₂eq/i);
-        if (totalMatch) {
-          setTotalEmissions(parseFloat(totalMatch[1].replace(',', '.')));
-        }
-      }
+      setAiAnalysis(data.answer);
 
       toast({
-        title: withIntervention ? "Recálculo concluído!" : "Cálculo concluído!",
-        description: withIntervention ? "Simulação com intervenções gerada." : "Emissões de GEE calculadas com sucesso.",
+        title: "Cálculo concluído",
+        description: "Emissões calculadas com metodologia IPCC Tier 2.",
       });
     } catch (error: any) {
       console.error("Erro:", error);
@@ -156,22 +452,119 @@ Base metodológica IPCC e fontes científicas`;
         variant: "destructive",
       });
     } finally {
-      if (withIntervention) {
-        setLoadingRecalc(false);
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
-  const geeReferences = [
-    "IPCC - Painel Intergovernamental sobre Mudanças Climáticas",
-    "EMBRAPA - Empresa Brasileira de Pesquisa Agropecuária",
-    "MAPA - Ministério da Agricultura, Pecuária e Abastecimento",
-    "Programa ABC (Agricultura de Baixa Emissão de Carbono)",
-    "SEEG - Sistema de Estimativas de Emissões de Gases",
-    "GHG Protocol - Protocolo de Gases de Efeito Estufa"
-  ];
+  // Simulação de mitigação
+  const handleMitigationSimulation = async () => {
+    if (!calculationResult) return;
+
+    setLoadingMitigation(true);
+    try {
+      const prompt = `
+DADOS ATUAIS:
+- Emissão total: ${calculationResult.totalCO2eq.toFixed(2)} tCO₂eq/ano
+- CH₄ entérico: ${calculationResult.ch4Enterico.toFixed(2)} tCO₂eq
+- Sistema: ${PRODUCTION_SYSTEMS.find(s => s.id === productionSystem)?.name}
+
+SIMULE A IMPLEMENTAÇÃO DAS SEGUINTES PRÁTICAS MITIGADORAS:
+1. Aditivos alimentares (Tanino -8%, 3-NOP -25%, Óleos essenciais -5%)
+2. Manejo rotacionado intensivo (-10%)
+3. ILPF (-15% a -25%)
+4. Biodigestores (captura 70% CH₄ dejetos)
+5. Melhoramento genético (-5% a -10%)
+6. Confinamento estratégico (reduz Ym para 3-3.5%)
+
+FORNEÇA:
+1. CENÁRIO COM INTERVENÇÕES
+   - Nova emissão total estimada
+   - Redução absoluta e percentual
+   - Ranking das práticas por impacto
+
+2. SIMULAÇÃO DE CRÉDITOS DE CARBONO
+   - Créditos potenciais (tCO₂e)
+   - Valor estimado: US$ 5-15/tCO₂e
+   - Elegibilidade para programas (Verra, Gold Standard, ABC+)
+
+3. ANÁLISE CUSTO-BENEFÍCIO
+   - Investimento estimado por prática
+   - Payback esperado
+   - Viabilidade de implementação
+
+4. PLANO DE AÇÃO PRIORITÁRIO
+   - Curto prazo (0-6 meses)
+   - Médio prazo (6-24 meses)
+   - Longo prazo (>24 meses)
+
+Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO - incluir referências e metodologias" : userLevel === "profissional" ? "TÉCNICO" : "SIMPLIFICADO"}`;
+
+      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
+        body: {
+          question: prompt,
+          isProfessional: true,
+          context: "Simulação de mitigação de GEE",
+        },
+      });
+
+      if (error) throw error;
+      setMitigationResult(data.answer);
+
+      toast({
+        title: "Simulação concluída",
+        description: "Cenário de mitigação calculado.",
+      });
+    } catch (error: any) {
+      console.error("Erro:", error);
+      toast({
+        title: "Erro na simulação",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingMitigation(false);
+    }
+  };
+
+  // Adicionar categoria animal
+  const addAnimalCategory = () => {
+    setAnimals([...animals, { category: "novilhos", count: 0, weight: 350 }]);
+  };
+
+  // Remover categoria animal
+  const removeAnimalCategory = (index: number) => {
+    setAnimals(animals.filter((_, i) => i !== index));
+  };
+
+  // Atualizar categoria animal
+  const updateAnimal = (index: number, field: keyof AnimalInput, value: string | number) => {
+    const updated = [...animals];
+    if (field === "category") {
+      const cat = ANIMAL_CATEGORIES.find(c => c.id === value);
+      updated[index] = { ...updated[index], category: value as string, weight: cat?.defaultWeight || updated[index].weight };
+    } else {
+      updated[index] = { ...updated[index], [field]: Number(value) };
+    }
+    setAnimals(updated);
+  };
+
+  // Dados para gráficos
+  const emissionChartData = useMemo(() => {
+    if (!calculationResult) return [];
+    return [
+      { name: "CH₄ Entérico", value: calculationResult.ch4Enterico, color: "#f97316" },
+      { name: "CH₄ Dejetos", value: calculationResult.ch4Dejetos, color: "#fb923c" },
+      { name: "N₂O Direto", value: calculationResult.n2oDireto, color: "#84cc16" },
+      { name: "N₂O Indireto", value: calculationResult.n2oIndireto, color: "#a3e635" },
+    ];
+  }, [calculationResult]);
+
+  // Copiar relatório
+  const copyReport = () => {
+    const text = aiAnalysis + (mitigationResult ? "\n\n--- SIMULAÇÃO DE MITIGAÇÃO ---\n\n" + mitigationResult : "");
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copiado", description: "Relatório copiado para a área de transferência." });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -183,24 +576,142 @@ Base metodológica IPCC e fontes científicas`;
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Calculadora Integrada de Emissões de GEE</h1>
-            <p className="text-muted-foreground">Estime emissões totais (CO₂, CH₄, N₂O), identifique fontes e simule mitigação</p>
+            <p className="text-muted-foreground">Metodologia IPCC Tier 2 — Cálculos científicos com limites fisiológicos</p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+
+        {/* Badges de gases */}
+        <div className="flex flex-wrap gap-2 mb-4">
           <Badge variant="outline" className="bg-orange-50 dark:bg-orange-950 border-orange-300">
-            <Flame className="h-3 w-3 mr-1 text-orange-500" /> Metano (CH₄)
+            <Flame className="h-3 w-3 mr-1 text-orange-500" /> CH₄ (Metano)
           </Badge>
           <Badge variant="outline" className="bg-lime-50 dark:bg-lime-950 border-lime-300">
-            <Wind className="h-3 w-3 mr-1 text-lime-500" /> Óxido Nitroso (N₂O)
+            <Wind className="h-3 w-3 mr-1 text-lime-500" /> N₂O (Óxido Nitroso)
           </Badge>
           <Badge variant="outline" className="bg-slate-50 dark:bg-slate-950 border-slate-300">
-            <Cloud className="h-3 w-3 mr-1 text-slate-500" /> Dióxido de Carbono (CO₂)
+            <Cloud className="h-3 w-3 mr-1 text-slate-500" /> CO₂ (Dióxido de Carbono)
           </Badge>
+        </div>
+
+        {/* Seletor de nível de usuário (MÓDULO 1) */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={userLevel === "produtor" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setUserLevel("produtor")}
+            className={userLevel === "produtor" ? "bg-green-600 hover:bg-green-700" : ""}
+          >
+            <User className="h-4 w-4 mr-1" /> Produtor Rural
+          </Button>
+          <Button
+            variant={userLevel === "profissional" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setUserLevel("profissional")}
+            className={userLevel === "profissional" ? "bg-blue-600 hover:bg-blue-700" : ""}
+          >
+            <GraduationCap className="h-4 w-4 mr-1" /> Profissional
+          </Button>
+          <Button
+            variant={userLevel === "pesquisador" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setUserLevel("pesquisador")}
+            className={userLevel === "pesquisador" ? "bg-purple-600 hover:bg-purple-700" : ""}
+          >
+            <FlaskConical className="h-4 w-4 mr-1" /> Pesquisador
+          </Button>
+
+          {/* Botão metodologia */}
+          <Dialog open={showMethodology} onOpenChange={setShowMethodology}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <BookOpen className="h-4 w-4 mr-1" /> Ver Metodologia IPCC
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[80vh]">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" /> Metodologia IPCC Tier 2
+                </DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="h-[60vh] pr-4">
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Equações Principais</h3>
+                    <div className="bg-muted p-3 rounded-lg font-mono text-xs space-y-2">
+                      <p><strong>IMS:</strong> IMS = 2,3% × PV (modelo empírico)</p>
+                      <p><strong>Energia Bruta:</strong> EB = IMS × 18,45 MJ</p>
+                      <p><strong>Energia Digerida:</strong> DE = EB × DIVMS</p>
+                      <p><strong>Energia Metabolizável:</strong> ME = DE × 0,82</p>
+                      <p><strong>CH₄ Entérico:</strong> CH₄ = (Ym/100) × EB × 365 / 55,65</p>
+                      <p><strong>Sólidos Voláteis:</strong> VS = IMS × (1 - DIVMS) × 0,92</p>
+                      <p><strong>CH₄ Dejetos:</strong> CH₄ = VS × B₀ × MCF × 365</p>
+                      <p><strong>N₂O Direto:</strong> N₂O = Nex × EF × (44/28)</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Fatores de Emissão</h3>
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-muted">
+                          <th className="border p-2 text-left">Parâmetro</th>
+                          <th className="border p-2 text-left">Valor</th>
+                          <th className="border p-2 text-left">Unidade</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr><td className="border p-2">Ym (pasto tropical)</td><td className="border p-2">6,5</td><td className="border p-2">%</td></tr>
+                        <tr><td className="border p-2">Ym (confinamento)</td><td className="border p-2">3,0-3,5</td><td className="border p-2">%</td></tr>
+                        <tr><td className="border p-2">B₀ (corte)</td><td className="border p-2">0,10</td><td className="border p-2">kg CH₄/kg VS</td></tr>
+                        <tr><td className="border p-2">MCF (pasto)</td><td className="border p-2">1,5</td><td className="border p-2">%</td></tr>
+                        <tr><td className="border p-2">EF N₂O direto</td><td className="border p-2">0,02</td><td className="border p-2">kg N₂O-N/kg N</td></tr>
+                        <tr><td className="border p-2">GWP CH₄ (AR6)</td><td className="border p-2">27,2</td><td className="border p-2">-</td></tr>
+                        <tr><td className="border p-2">GWP N₂O (AR6)</td><td className="border p-2">273</td><td className="border p-2">-</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Limites Fisiológicos</h3>
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-muted">
+                          <th className="border p-2 text-left">Parâmetro</th>
+                          <th className="border p-2 text-left">Mínimo</th>
+                          <th className="border p-2 text-left">Máximo</th>
+                          <th className="border p-2 text-left">Unidade</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(BIOLOGICAL_LIMITS).map(([key, limit]) => (
+                          <tr key={key}>
+                            <td className="border p-2">{limit.description || key}</td>
+                            <td className="border p-2">{'min' in limit ? (limit as any).min : '-'}</td>
+                            <td className="border p-2">{'max' in limit ? (limit as any).max : ('value' in limit ? (limit as any).value : '-')}</td>
+                            <td className="border p-2">{'unit' in limit ? (limit as any).unit : '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Referências</h3>
+                    <ul className="list-disc pl-4 space-y-1">
+                      {references.map((ref, i) => (
+                        <li key={i}>{ref}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Input Panel */}
+        {/* Painel de Entrada (MÓDULO 6) */}
         <div className="lg:col-span-1 space-y-4">
           <Card className="border-2 border-teal-200 dark:border-teal-800">
             <CardHeader className="bg-gradient-to-r from-teal-50 to-green-50 dark:from-teal-950 dark:to-green-950">
@@ -209,41 +720,126 @@ Base metodológica IPCC e fontes científicas`;
                 Dados do Rebanho
               </CardTitle>
               <CardDescription>
-                Informe detalhes sobre sua produção
+                Configure os parâmetros do seu sistema
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
+              {/* Sistema de produção */}
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Label htmlFor="herdData">Informações do Sistema</Label>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Inclua: número de animais por categoria (matrizes, bezerros, novilhos, touros), peso médio, sistema de produção (extensivo, semi-intensivo, confinamento, ILP, ILPF), área de pastagem, e práticas já adotadas.</p>
-                    </TooltipContent>
-                  </Tooltip>
+                <Label>Sistema de Produção</Label>
+                <Select value={productionSystem} onValueChange={setProductionSystem}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRODUCTION_SYSTEMS.map(sys => (
+                      <SelectItem key={sys.id} value={sys.id}>
+                        {sys.name} (Ym={sys.Ym}%)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Área e DIVMS */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="flex items-center gap-1">
+                    Área (ha)
+                    <Tooltip>
+                      <TooltipTrigger><HelpCircle className="h-3 w-3" /></TooltipTrigger>
+                      <TooltipContent>Área total de pastagem em hectares</TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <Input
+                    type="number"
+                    value={pastureArea}
+                    onChange={(e) => setPastureArea(Number(e.target.value))}
+                    min={1}
+                  />
                 </div>
-                <Textarea
-                  id="herdData"
-                  placeholder="Ex: 500 cabeças de gado de corte Nelore
-- 200 matrizes (450kg)
-- 150 bezerros (180kg)
-- 100 novilhos (350kg)
-- 50 touros (700kg)
-Sistema semi-intensivo
-800 hectares de pastagem rotacionada
-Suplementação mineral + sal proteinado na seca..."
-                  value={herdData}
-                  onChange={(e) => setHerdData(e.target.value)}
-                  className="min-h-[220px]"
-                />
+                <div>
+                  <Label className="flex items-center gap-1">
+                    DIVMS (%)
+                    <Tooltip>
+                      <TooltipTrigger><HelpCircle className="h-3 w-3" /></TooltipTrigger>
+                      <TooltipContent>Digestibilidade da matéria seca (45-70%)</TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <Input
+                    type="number"
+                    value={divms}
+                    onChange={(e) => setDivms(Number(e.target.value))}
+                    min={45}
+                    max={70}
+                  />
+                </div>
+              </div>
+
+              {/* Categorias animais */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Categorias Animais</Label>
+                  <Button variant="outline" size="sm" onClick={addAnimalCategory}>
+                    + Adicionar
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {animals.map((animal, index) => (
+                    <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={animal.category}
+                          onValueChange={(v) => updateAnimal(index, "category", v)}
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ANIMAL_CATEGORIES.map(cat => (
+                              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {animals.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeAnimalCategory(index)}
+                            className="text-destructive"
+                          >
+                            ×
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Quantidade</Label>
+                          <Input
+                            type="number"
+                            value={animal.count}
+                            onChange={(e) => updateAnimal(index, "count", e.target.value)}
+                            min={0}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Peso (kg)</Label>
+                          <Input
+                            type="number"
+                            value={animal.weight}
+                            onChange={(e) => updateAnimal(index, "weight", e.target.value)}
+                            min={100}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <Button
-                onClick={() => handleCalculate(false)}
-                disabled={loading || loadingRecalc}
+                onClick={handleCalculate}
+                disabled={loading}
                 size="lg"
                 className="w-full bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700"
               >
@@ -254,195 +850,273 @@ Suplementação mineral + sal proteinado na seca..."
                   </>
                 ) : (
                   <>
-                    <Cloud className="mr-2 h-5 w-5" />
-                    Calcular Emissões
+                    <Calculator className="mr-2 h-5 w-5" />
+                    Calcular Emissões (Tier 2)
                   </>
                 )}
               </Button>
             </CardContent>
           </Card>
 
-          {/* Info Card */}
-          <Card className="bg-teal-50 dark:bg-teal-950 border-teal-200 dark:border-teal-800">
+          {/* Card de limites fisiológicos */}
+          <Card className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800">
             <CardContent className="pt-4">
               <div className="flex items-start gap-3">
-                <Leaf className="h-5 w-5 text-teal-600 mt-0.5" />
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium text-teal-800 dark:text-teal-200">Metodologia IPCC</p>
-                  <p className="text-teal-700 dark:text-teal-300">Cálculos baseados em fatores de emissão do IPCC e adaptados para condições brasileiras.</p>
+                  <p className="font-medium text-amber-800 dark:text-amber-200">Limites Fisiológicos Ativos</p>
+                  <p className="text-amber-700 dark:text-amber-300 text-xs mt-1">
+                    VS: 2-8 kg/dia • IMS: 1,8-3,2% PV • Nex: 25-50 kg N/ano • DIVMS: 45-70%
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Results Panel */}
+        {/* Painel de Resultados */}
         <div className="lg:col-span-2 space-y-4">
-          {totalEmissions !== null && (
-            <Card className="border-l-4 border-l-teal-500">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingDown className="h-5 w-5 text-teal-600" />
-                  Emissões Totais
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-4xl font-bold text-teal-600">{totalEmissions.toFixed(1)}</span>
-                  <span className="text-xl text-muted-foreground">tCO₂eq/ano</span>
-                </div>
-                <Progress value={Math.min((totalEmissions / 1000) * 100, 100)} className="h-3" />
-                <p className="text-xs text-muted-foreground mt-2">Escala referencial: 0 - 1000 tCO₂eq/ano</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {emissionData.length > 0 && (
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Distribuição por Gás</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={emissionData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={40}
-                          outerRadius={70}
-                          paddingAngle={2}
-                          dataKey="value"
-                        >
-                          {emissionData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2 justify-center">
-                    {emissionData.map((entry, idx) => (
-                      <Badge key={idx} style={{ backgroundColor: entry.color }} className="text-white text-xs">
-                        {entry.name}: {entry.value.toFixed(1)}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Emissões por Fonte</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={emissionData} layout="vertical">
-                        <XAxis type="number" />
-                        <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 10 }} />
-                        <RechartsTooltip />
-                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                          {emissionData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {result && (
+          {/* Emissões totais */}
+          {calculationResult && (
             <>
-              <Card className="border-l-4 border-l-green-500">
+              <Card className="border-l-4 border-l-teal-500">
                 <CardHeader>
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <CardTitle className="flex items-center gap-2">
-                      <Droplets className="h-5 w-5 text-green-600" />
-                      Análise Completa de Emissões
-                    </CardTitle>
-                    <Button
-                      onClick={() => handleCalculate(true)}
-                      disabled={loadingRecalc || loading}
-                      variant="outline"
-                      size="sm"
-                      className="border-green-300 hover:bg-green-50 dark:hover:bg-green-950"
-                    >
-                      {loadingRecalc ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                      )}
-                      Recalcular com Intervenção
-                    </Button>
-                  </div>
-                  <CardDescription>
-                    Detalhamento por gás, categoria e estratégias de mitigação
-                  </CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingDown className="h-5 w-5 text-teal-600" />
+                    Emissões Totais — Tier 2 IPCC
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="prose prose-sm max-w-none">
-                    <div className="whitespace-pre-wrap bg-gradient-to-br from-teal-50/50 to-green-50/50 dark:from-teal-950/30 dark:to-green-950/30 p-6 rounded-xl border border-teal-200 dark:border-teal-800">
-                      {result}
+                <CardContent>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-4xl font-bold text-teal-600">{calculationResult.totalCO2eq.toFixed(2)}</span>
+                    <span className="text-xl text-muted-foreground">tCO₂eq/ano</span>
+                  </div>
+                  <Progress value={Math.min((calculationResult.totalCO2eq / 500) * 100, 100)} className="h-3 mb-2" />
+                  
+                  {/* Indicadores rápidos */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+                    <div className="text-center p-2 bg-orange-50 dark:bg-orange-950 rounded">
+                      <Flame className="h-4 w-4 mx-auto text-orange-500 mb-1" />
+                      <p className="text-xs text-muted-foreground">CH₄ Entérico</p>
+                      <p className="font-semibold text-sm">{calculationResult.ch4Enterico.toFixed(1)} t</p>
+                    </div>
+                    <div className="text-center p-2 bg-orange-50/50 dark:bg-orange-950/50 rounded">
+                      <Flame className="h-4 w-4 mx-auto text-orange-400 mb-1" />
+                      <p className="text-xs text-muted-foreground">CH₄ Dejetos</p>
+                      <p className="font-semibold text-sm">{calculationResult.ch4Dejetos.toFixed(1)} t</p>
+                    </div>
+                    <div className="text-center p-2 bg-lime-50 dark:bg-lime-950 rounded">
+                      <Wind className="h-4 w-4 mx-auto text-lime-500 mb-1" />
+                      <p className="text-xs text-muted-foreground">N₂O Direto</p>
+                      <p className="font-semibold text-sm">{calculationResult.n2oDireto.toFixed(1)} t</p>
+                    </div>
+                    <div className="text-center p-2 bg-lime-50/50 dark:bg-lime-950/50 rounded">
+                      <Wind className="h-4 w-4 mx-auto text-lime-400 mb-1" />
+                      <p className="text-xs text-muted-foreground">N₂O Indireto</p>
+                      <p className="font-semibold text-sm">{calculationResult.n2oIndireto.toFixed(1)} t</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <ReportExporter
-                      title="Calculadora de Emissões de GEE - VetAgro IA"
-                      content={result}
-                      toolName="Calculadora de GEE VetAgro IA"
-                      references={geeReferences}
-                      userInputs={{ 
-                        "Dados do Rebanho": herdData,
-                        "Emissões Totais": totalEmissions ? `${totalEmissions.toFixed(1)} tCO₂eq/ano` : "N/A"
-                      }}
-                      variant="default"
-                    />
-                  </div>
+
+                  {/* Avisos de ajustes */}
+                  {calculationResult.warnings.length > 0 && (
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200 flex items-center gap-1">
+                        <AlertTriangle className="h-4 w-4" /> Ajustes fisiológicos aplicados:
+                      </p>
+                      <ul className="text-xs text-amber-700 dark:text-amber-300 mt-1 space-y-1">
+                        {calculationResult.warnings.slice(0, 3).map((w, i) => (
+                          <li key={i}>• {w}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
-              {recalcResult && (
-                <Card className="border-l-4 border-l-purple-500">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Award className="h-5 w-5 text-purple-600" />
-                      Simulação com Intervenções
+              {/* Gráficos */}
+              {emissionChartData.length > 0 && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">Distribuição por Fonte</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={emissionChartData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={40}
+                              outerRadius={70}
+                              paddingAngle={2}
+                              dataKey="value"
+                            >
+                              {emissionChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <RechartsTooltip formatter={(value: number) => `${value.toFixed(2)} tCO₂eq`} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2 justify-center">
+                        {emissionChartData.map((entry, idx) => (
+                          <Badge key={idx} style={{ backgroundColor: entry.color }} className="text-white text-xs">
+                            {entry.name}: {entry.value.toFixed(1)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">Comparativo por Gás</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={emissionChartData} layout="vertical">
+                            <XAxis type="number" tickFormatter={(v) => `${v.toFixed(0)}t`} />
+                            <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 9 }} />
+                            <RechartsTooltip formatter={(value: number) => `${value.toFixed(2)} tCO₂eq`} />
+                            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                              {emissionChartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Detalhes técnicos (para profissional/pesquisador) */}
+              {userLevel !== "produtor" && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Info className="h-4 w-4" /> Parâmetros Técnicos Calculados
                     </CardTitle>
-                    <CardDescription>
-                      Projeção de redução e potencial de créditos de carbono
-                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="prose prose-sm max-w-none">
-                      <div className="whitespace-pre-wrap bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/30 dark:to-pink-950/30 p-6 rounded-xl border border-purple-200 dark:border-purple-800">
-                        {recalcResult}
+                  <CardContent>
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-center text-xs">
+                      <div className="p-2 bg-muted rounded">
+                        <p className="text-muted-foreground">IMS</p>
+                        <p className="font-semibold">{calculationResult.details.IMS.toFixed(2)} kg/dia</p>
+                      </div>
+                      <div className="p-2 bg-muted rounded">
+                        <p className="text-muted-foreground">EB</p>
+                        <p className="font-semibold">{calculationResult.details.EB.toFixed(1)} MJ/dia</p>
+                      </div>
+                      <div className="p-2 bg-muted rounded">
+                        <p className="text-muted-foreground">DE</p>
+                        <p className="font-semibold">{calculationResult.details.DE.toFixed(1)} MJ/dia</p>
+                      </div>
+                      <div className="p-2 bg-muted rounded">
+                        <p className="text-muted-foreground">ME</p>
+                        <p className="font-semibold">{calculationResult.details.ME.toFixed(1)} MJ/dia</p>
+                      </div>
+                      <div className="p-2 bg-muted rounded">
+                        <p className="text-muted-foreground">VS</p>
+                        <p className="font-semibold">{calculationResult.details.VS.toFixed(2)} kg/dia</p>
+                      </div>
+                      <div className="p-2 bg-muted rounded">
+                        <p className="text-muted-foreground">Nex total</p>
+                        <p className="font-semibold">{calculationResult.details.Nex.toFixed(0)} kg N/ano</p>
                       </div>
                     </div>
-                    <ReportExporter
-                      title="Simulação de Mitigação de GEE - VetAgro IA"
-                      content={recalcResult}
-                      toolName="Calculadora de GEE VetAgro IA"
-                      references={geeReferences}
-                      userInputs={{ 
-                        "Dados do Rebanho": herdData,
-                        "Tipo de Análise": "Simulação com Intervenções"
-                      }}
-                      variant="outline"
-                    />
                   </CardContent>
                 </Card>
               )}
             </>
           )}
 
-          {!result && (
+          {/* Análise IA */}
+          {aiAnalysis && (
+            <Card className="border-l-4 border-l-green-500">
+              <CardHeader>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-green-600" />
+                    Relatório — Nível {userLevel === "produtor" ? "Produtor" : userLevel === "profissional" ? "Profissional" : "Pesquisador"}
+                  </CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleMitigationSimulation}
+                      disabled={loadingMitigation || loading}
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950"
+                    >
+                      {loadingMitigation ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                      )}
+                      Simular Mitigação
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div 
+                  className="whitespace-pre-line bg-gradient-to-br from-teal-50/50 to-green-50/50 dark:from-teal-950/30 dark:to-green-950/30 p-6 rounded-xl border border-teal-200 dark:border-teal-800 text-sm leading-relaxed"
+                  style={{ textAlign: 'justify', textJustify: 'inter-word' }}
+                >
+                  {aiAnalysis}
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={copyReport}>
+                    <Copy className="h-4 w-4 mr-1" /> Copiar Relatório
+                  </Button>
+                  <ReportExporter
+                    title="Calculadora de Emissões de GEE - VetAgro IA"
+                    content={aiAnalysis + (mitigationResult ? "\n\n--- SIMULAÇÃO DE MITIGAÇÃO ---\n\n" + mitigationResult : "")}
+                    toolName="Calculadora de GEE VetAgro IA — Tier 2 IPCC"
+                    references={references}
+                    userInputs={{ 
+                      "Sistema": PRODUCTION_SYSTEMS.find(s => s.id === productionSystem)?.name || "",
+                      "Área": `${pastureArea} ha`,
+                      "DIVMS": `${divms}%`,
+                      "Total Animais": animals.reduce((sum, a) => sum + a.count, 0).toString(),
+                      "Emissões Totais": calculationResult ? `${calculationResult.totalCO2eq.toFixed(2)} tCO₂eq/ano` : "N/A",
+                      "Nível de Relatório": userLevel
+                    }}
+                    variant="default"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Resultado de mitigação */}
+          {mitigationResult && (
+            <Card className="border-l-4 border-l-purple-500">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TreePine className="h-5 w-5 text-purple-600" />
+                  Simulação de Mitigação e Créditos de Carbono
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div 
+                  className="whitespace-pre-line bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-950/30 dark:to-pink-950/30 p-6 rounded-xl border border-purple-200 dark:border-purple-800 text-sm leading-relaxed"
+                  style={{ textAlign: 'justify', textJustify: 'inter-word' }}
+                >
+                  {mitigationResult}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Estado vazio */}
+          {!calculationResult && (
             <Card className="border-dashed border-2">
               <CardContent className="py-12 text-center">
                 <TreePine className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -450,8 +1124,13 @@ Suplementação mineral + sal proteinado na seca..."
                   Calcule sua Pegada de Carbono
                 </h3>
                 <p className="text-muted-foreground max-w-md mx-auto">
-                  Informe os dados do seu rebanho para receber uma análise completa de emissões de GEE (CH₄, N₂O, CO₂), comparativos com benchmarks e estratégias de mitigação.
+                  Configure os dados do rebanho para receber uma análise completa de emissões com metodologia IPCC Tier 2, limites fisiológicos validados e relatório adaptado ao seu perfil.
                 </p>
+                <div className="flex justify-center gap-2 mt-4">
+                  <Badge variant="outline"><CheckCircle className="h-3 w-3 mr-1" /> Tier 2 IPCC</Badge>
+                  <Badge variant="outline"><CheckCircle className="h-3 w-3 mr-1" /> Limites Fisiológicos</Badge>
+                  <Badge variant="outline"><CheckCircle className="h-3 w-3 mr-1" /> GWP-100 AR6</Badge>
+                </div>
               </CardContent>
             </Card>
           )}
