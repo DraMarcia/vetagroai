@@ -7,13 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Cloud, Loader2, HelpCircle, Flame, Wind, TreePine, RefreshCw, 
   TrendingDown, BarChart3, Leaf, User, GraduationCap, FlaskConical,
-  AlertTriangle, CheckCircle, BookOpen, FileText, Copy, Info, Calculator
+  AlertTriangle, CheckCircle, BookOpen, FileText, Copy, Info, Calculator,
+  Download, Share2, FileDown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,14 +42,14 @@ const GWP = {
 
 // Fatores de emissão padrão
 const EMISSION_FACTORS = {
-  B0_CORTE: 0.10, // kg CH₄/kg VS (boi de corte)
-  MCF_PASTO: 0.015, // 1.5% para pasto
-  MCF_CONFINAMENTO: 0.02, // 2% para confinamento
-  EF_N2O_DIRETO: 0.02, // kg N₂O-N/kg N excretado
+  B0_CORTE: 0.10,
+  MCF_PASTO: 0.015,
+  MCF_CONFINAMENTO: 0.02,
+  EF_N2O_DIRETO: 0.02,
   EF_N2O_VOLATILIZACAO: 0.01,
   EF_N2O_LIXIVIACAO: 0.0075,
-  FRAC_GAS: 0.20, // Fração volatilizada
-  FRAC_LEACH: 0.30, // Fração lixiviada
+  FRAC_GAS: 0.20,
+  FRAC_LEACH: 0.30,
 };
 
 // Categorias animais com pesos médios
@@ -105,6 +106,8 @@ const CalculadoraGEE = () => {
   const [productionSystem, setProductionSystem] = useState("semi_intensivo");
   const [pastureArea, setPastureArea] = useState(100);
   const [divms, setDivms] = useState(55);
+  const [location, setLocation] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState("");
   const [showMethodology, setShowMethodology] = useState(false);
   const [calculationResult, setCalculationResult] = useState<CalculationResult | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState("");
@@ -117,7 +120,8 @@ const CalculadoraGEE = () => {
     "IPCC 2019 Refinement to the 2006 Guidelines for National Greenhouse Gas Inventories",
     "NRC - Nutrient Requirements of Beef Cattle (8th Revised Edition)",
     "EMBRAPA Gado de Corte - Emissões de Gases de Efeito Estufa na Pecuária",
-    "Gerber, P.J. et al. (2013) Tackling Climate Change Through Livestock — FAO"
+    "Gerber, P.J. et al. (2013) Tackling Climate Change Through Livestock — FAO",
+    "CEPEA/ESALQ - Centro de Estudos Avançados em Economia Aplicada"
   ];
 
   // Função de validação com limites biológicos (MÓDULO 2)
@@ -158,16 +162,16 @@ const CalculadoraGEE = () => {
       const categoryName = categoryInfo?.name || animal.category;
       const weight = animal.weight || categoryInfo?.defaultWeight || 400;
 
-      // 3.1 IMS (kg MS/dia) = 2.3% do PV (modelo empírico se não informado)
+      // 3.1 IMS
       let imsPercent = 2.3;
       const imsValidation = validateAndAdjust(imsPercent, BIOLOGICAL_LIMITS.IMS_PERCENT, "IMS %");
       imsPercent = imsValidation.value;
       if (imsValidation.warning) warnings.push(imsValidation.warning);
       
-      const IMS = (imsPercent / 100) * weight; // kg/dia
+      const IMS = (imsPercent / 100) * weight;
 
-      // 3.2 Energia Bruta (MJ/dia)
-      const EB_factor = 18.45; // MJ/kg MS (IPCC default)
+      // 3.2 Energia Bruta
+      const EB_factor = 18.45;
       const EB = IMS * EB_factor;
 
       // Validar DIVMS
@@ -175,33 +179,30 @@ const CalculadoraGEE = () => {
       const validatedDIVMS = divmsValidation.value / 100;
       if (divmsValidation.warning) warnings.push(divmsValidation.warning);
 
-      // 3.3 Energia Digerida (MJ/dia)
+      // 3.3 Energia Digerida
       const DE = EB * validatedDIVMS;
 
-      // 3.4 Energia Metabolizável (MJ/dia)
+      // 3.4 Energia Metabolizável
       const ME = DE * 0.82;
 
-      // 3.5 Metano Entérico (kg CH₄/ano) — Tier 2
-      // CH₄ = (Ym/100) × EB × 365 / 55.65
+      // 3.5 Metano Entérico
       const Ym = system.Ym;
-      const ch4EntericoAnimal = (Ym / 100) * EB * 365 / 55.65; // kg CH₄/animal/ano
+      const ch4EntericoAnimal = (Ym / 100) * EB * 365 / 55.65;
       const ch4EntericoTotal = ch4EntericoAnimal * animal.count;
 
-      // 3.6 Sólidos Voláteis (kg VS/dia)
-      // VS = IMS × (1 - DIVMS) × 0.92
+      // 3.6 Sólidos Voláteis
       let VS = IMS * (1 - validatedDIVMS) * 0.92;
       const vsValidation = validateAndAdjust(VS, BIOLOGICAL_LIMITS.VS, "VS");
       VS = vsValidation.value;
       if (vsValidation.warning) warnings.push(vsValidation.warning);
 
-      // 3.7 CH₄ de Dejetos (kg CH₄/ano)
-      // CH₄ = VS × B₀ × MCF × 365
+      // 3.7 CH₄ de Dejetos
       const B0 = EMISSION_FACTORS.B0_CORTE;
       const MCF = system.MCF;
       const ch4DejetosAnimal = VS * B0 * MCF * 365;
       let ch4DejetosTotal = ch4DejetosAnimal * animal.count;
 
-      // Validar limite CH₄ dejetos ≤ 15% do entérico (para pasto)
+      // Validar limite CH₄ dejetos
       if (productionSystem === "extensivo" || productionSystem === "semi_intensivo") {
         const maxDejetos = ch4EntericoTotal * BIOLOGICAL_LIMITS.CH4_DEJETOS_RATIO.max;
         if (ch4DejetosTotal > maxDejetos) {
@@ -210,18 +211,14 @@ const CalculadoraGEE = () => {
         }
       }
 
-      // 3.8 N excretado (kg N/ano)
-      // Usando valor padrão IPCC: 30-45 kg N/ano por animal
-      let Nex = 37.5 * animal.count; // média
+      // 3.8 N excretado
+      let Nex = 37.5 * animal.count;
       const nexValidation = validateAndAdjust(Nex / animal.count, BIOLOGICAL_LIMITS.Nex, "Nex");
       Nex = nexValidation.value * animal.count;
       if (nexValidation.warning) warnings.push(nexValidation.warning);
 
       // 3.9 N₂O Direto e Indireto
-      // N₂O direto = Nex × EF × 44/28
       const n2oDiretoKg = Nex * EMISSION_FACTORS.EF_N2O_DIRETO * (44/28);
-      
-      // N₂O indireto (volatilização + lixiviação)
       const nVolatilizado = Nex * EMISSION_FACTORS.FRAC_GAS;
       const nLixiviado = Nex * EMISSION_FACTORS.FRAC_LEACH;
       const n2oVolatilizacao = nVolatilizado * EMISSION_FACTORS.EF_N2O_VOLATILIZACAO * (44/28);
@@ -245,7 +242,7 @@ const CalculadoraGEE = () => {
       // Emissões por categoria em CO₂eq
       const categoryCO2eq = (ch4EntericoTotal + ch4DejetosTotal) * GWP.CH4 + 
                            (n2oDiretoKg + n2oIndiretoKg) * GWP.N2O;
-      byCategory.push({ name: categoryName, emissions: categoryCO2eq / 1000 }); // em toneladas
+      byCategory.push({ name: categoryName, emissions: categoryCO2eq / 1000 });
     });
 
     // Normalizar detalhes
@@ -257,7 +254,7 @@ const CalculadoraGEE = () => {
       totalDetails.VS /= totalAnimals;
     }
 
-    // 3.10 Conversão para CO₂eq (toneladas)
+    // 3.10 Conversão para CO₂eq
     const ch4TotalCO2eq = (totalCH4Enterico + totalCH4Dejetos) * GWP.CH4 / 1000;
     const n2oTotalCO2eq = (totalN2ODireto + totalN2OIndireto) * GWP.N2O / 1000;
     const totalCO2eq = ch4TotalCO2eq + n2oTotalCO2eq;
@@ -274,133 +271,263 @@ const CalculadoraGEE = () => {
     };
   };
 
-  // Gerar prompt baseado no nível de usuário (MÓDULO 1 e 4)
+  // Gerar prompt com ARQUITETURA COMPLETA
   const generatePrompt = (result: CalculationResult): string => {
     const totalAnimals = animals.reduce((sum, a) => sum + a.count, 0);
     const system = PRODUCTION_SYSTEMS.find(s => s.id === productionSystem);
+    const totalWeight = animals.reduce((sum, a) => sum + (a.count * a.weight), 0);
+    const avgWeight = totalAnimals > 0 ? totalWeight / totalAnimals : 0;
+    const lotacao = pastureArea > 0 ? (totalAnimals * avgWeight / 450 / pastureArea).toFixed(2) : "N/A";
 
     const baseData = `
-DADOS DO SISTEMA:
-- Total de animais: ${totalAnimals}
+DADOS DO SISTEMA PECUÁRIO:
+- Localização: ${location || "Brasil"}
+- Total de animais: ${totalAnimals} cabeças
+- Peso médio: ${avgWeight.toFixed(0)} kg
 - Sistema de produção: ${system?.name}
-- Área de pastagem: ${pastureArea} ha
+- Área de pastagem: ${pastureArea} hectares
+- Taxa de lotação: ${lotacao} UA/ha
 - Digestibilidade (DIVMS): ${divms}%
-- Taxa de lotação: ${(totalAnimals / pastureArea).toFixed(2)} UA/ha
+${additionalNotes ? `- Observações do usuário: ${additionalNotes}` : ""}
 
-RESULTADOS CALCULADOS (Tier 2 IPCC):
-- Emissão total: ${result.totalCO2eq.toFixed(2)} tCO₂eq/ano
-- CH₄ entérico: ${result.ch4Enterico.toFixed(2)} tCO₂eq
-- CH₄ dejetos: ${result.ch4Dejetos.toFixed(2)} tCO₂eq
-- N₂O direto: ${result.n2oDireto.toFixed(2)} tCO₂eq
-- N₂O indireto: ${result.n2oIndireto.toFixed(2)} tCO₂eq
+CATEGORIAS DO REBANHO:
+${animals.map(a => {
+  const cat = ANIMAL_CATEGORIES.find(c => c.id === a.category);
+  return `- ${cat?.name || a.category}: ${a.count} animais (${a.weight} kg cada)`;
+}).join("\n")}
 
-PARÂMETROS TÉCNICOS CALCULADOS:
+RESULTADOS CALCULADOS (Metodologia IPCC Tier 2):
+- Emissão TOTAL: ${result.totalCO2eq.toFixed(2)} tCO₂eq/ano
+- CH₄ entérico: ${result.ch4Enterico.toFixed(2)} tCO₂eq (${((result.ch4Enterico / result.totalCO2eq) * 100).toFixed(1)}%)
+- CH₄ dejetos: ${result.ch4Dejetos.toFixed(2)} tCO₂eq (${((result.ch4Dejetos / result.totalCO2eq) * 100).toFixed(1)}%)
+- N₂O direto: ${result.n2oDireto.toFixed(2)} tCO₂eq (${((result.n2oDireto / result.totalCO2eq) * 100).toFixed(1)}%)
+- N₂O indireto: ${result.n2oIndireto.toFixed(2)} tCO₂eq (${((result.n2oIndireto / result.totalCO2eq) * 100).toFixed(1)}%)
+
+INDICADORES CALCULADOS:
+- kg CO₂eq/cabeça/ano: ${(result.totalCO2eq * 1000 / totalAnimals).toFixed(1)}
+- kg CO₂eq/ha/ano: ${(result.totalCO2eq * 1000 / pastureArea).toFixed(1)}
 - IMS média: ${result.details.IMS.toFixed(2)} kg MS/dia
-- Energia Bruta média: ${result.details.EB.toFixed(2)} MJ/dia
+- Energia Bruta: ${result.details.EB.toFixed(1)} MJ/dia
 - VS médio: ${result.details.VS.toFixed(2)} kg/dia
-- Nex total: ${result.details.Nex.toFixed(2)} kg N/ano`;
+- Nex total: ${result.details.Nex.toFixed(1)} kg N/ano
+
+FATORES UTILIZADOS (IPCC 2019):
+- Ym: ${system?.Ym}%
+- MCF: ${(system?.MCF || 0) * 100}%
+- B₀: ${EMISSION_FACTORS.B0_CORTE} kg CH₄/kg VS
+- GWP CH₄: ${GWP.CH4} | GWP N₂O: ${GWP.N2O}`;
+
+    const commonInstructions = `
+
+INSTRUÇÕES DE FORMATAÇÃO (OBRIGATÓRIO):
+- NUNCA use hashtags (#), asteriscos (*), ou símbolos markdown
+- Use apenas bullets com • ou - para listas
+- Títulos de seção devem usar formato "TÍTULO DA SEÇÃO:" em maiúsculas
+- Texto deve ser claro, organizado e sem redundâncias
+- Tabelas devem usar formato simples com | para separadores
+- Números devem ter no máximo 2 casas decimais
+- Inclua SEMPRE a seção de REFERÊNCIAS TÉCNICAS ao final
+
+AVISO LEGAL OBRIGATÓRIO (incluir ao final):
+"Este relatório é gerado automaticamente pela suíte VetAgro Sustentável AI. Decisões de manejo devem ser confirmadas por profissional habilitado (Médico Veterinário, Zootecnista ou Engenheiro Agrônomo registrado no respectivo Conselho)."`;
 
     if (userLevel === "produtor") {
       return `${baseData}
 
-GERE UM RELATÓRIO PARA PRODUTOR RURAL com:
-1. SUMÁRIO EXECUTIVO (máximo 5 frases simples)
-   - Emissão total em linguagem clara
-   - Principal fonte de emissão
-   - O que reduzir primeiro
-   - Potencial estimado de redução
+GERE UM RELATÓRIO PARA PRODUTOR RURAL seguindo EXATAMENTE esta estrutura:
 
-2. RECOMENDAÇÕES PRÁTICAS (lista com bullets)
-   - Ações imediatas e de baixo custo
-   - Ações de médio prazo
-   
-3. COMPARATIVO SIMPLES
-   - Compare com média do setor
+1) IDENTIFICAÇÃO DO CASO:
+   - Sistema avaliado
+   - Localização
+   - Total de animais
+   - Período de análise
 
-REGRAS: linguagem simples, frases curtas, SEM fórmulas, SEM termos técnicos complexos, máximo 1.5 páginas.`;
+2) SÍNTESE EXECUTIVA:
+   - Frase simples sobre a emissão total
+   - Principal fonte de emissão (em linguagem clara)
+   - O que isso significa na prática
+   - Potencial de redução estimado
+
+3) ANÁLISE SIMPLIFICADA:
+   - Comparação com média do setor (média Brasil: 2.000 kg CO₂eq/cabeça/ano)
+   - Classificação: ABAIXO / NA MÉDIA / ACIMA da média nacional
+
+4) RECOMENDAÇÕES PRÁTICAS:
+   - 3 a 5 ações imediatas de baixo custo
+   - 2 a 3 ações de médio prazo
+   - Benefícios esperados de cada ação
+
+5) COMPARATIVO VISUAL:
+   - Seu rebanho vs média regional
+   - Meta de redução sugerida (%)
+
+6) MONITORAMENTO:
+   - Frequência de reavaliação sugerida
+   - Indicadores simples para acompanhar
+
+7) REFERÊNCIAS TÉCNICAS:
+   - IPCC 2019 Refinement
+   - EMBRAPA Gado de Corte
+   - NRC Beef Cattle
+
+REGRAS: Linguagem SIMPLES, frases CURTAS, SEM fórmulas, SEM jargões técnicos. Máximo 1,5 páginas.
+${commonInstructions}`;
     }
 
     if (userLevel === "profissional") {
       return `${baseData}
 
-GERE UM RELATÓRIO TÉCNICO PARA PROFISSIONAL (Veterinário/Zootecnista/Agrônomo):
+GERE UM RELATÓRIO TÉCNICO PARA PROFISSIONAL (Veterinário/Zootecnista/Agrônomo) seguindo EXATAMENTE esta estrutura:
 
-1. DIAGNÓSTICO TÉCNICO
-   - IMS e eficiência de conversão
-   - VS ajustado e implicações
-   - Nex e balanço de nitrogênio
-   - Eficiência alimentar vs emissões
+1) IDENTIFICAÇÃO DO CASO:
+   - Sistema produtivo avaliado
+   - Localização e características regionais
+   - Composição do rebanho por categoria
+   - Período e escopo da análise
 
-2. ANÁLISE POR CATEGORIA
-   - Ranking de emissores
-   - Oportunidades de melhoria por categoria
+2) SÍNTESE EXECUTIVA:
+   - Emissão total em tCO₂eq/ano
+   - Distribuição percentual por fonte
+   - Principais oportunidades de mitigação
+   - Indicadores de eficiência (kg CO₂eq/kg carne, kg CO₂eq/ha)
 
-3. INDICADORES DE DESEMPENHO
-   - kg CO₂eq/kg de carne produzido
-   - kg CO₂eq/ha/ano
+3) ANÁLISE TÉCNICA DETALHADA:
+   - Avaliação da IMS e eficiência de conversão
+   - Análise dos sólidos voláteis (VS) e implicações
+   - Balanço de nitrogênio e excreção (Nex)
+   - Eficiência alimentar vs perfil de emissões
+   - Fatores limitantes identificados
+
+4) CÁLCULOS E INDICADORES:
+   - Tabela com parâmetros calculados
    - Comparativo com benchmarks nacionais e internacionais
+   - Análise de sensibilidade (variação de DIVMS e Ym)
 
-4. RECOMENDAÇÕES TÉCNICAS DETALHADAS
-   - Manejo nutricional
-   - Genética e seleção
-   - Sistemas integrados
+5) RECOMENDAÇÕES TÉCNICAS DETALHADAS:
+   - Manejo nutricional (aditivos, suplementação, dieta)
+   - Genética e seleção para eficiência
+   - Sistemas integrados (ILPF, rotacionado)
    - Alertas sanitários e ambientais
 
-5. ESTRATÉGIAS DE MITIGAÇÃO
-   - Aditivos alimentares (taninos, 3-NOP, óleos essenciais)
-   - Manejo de pastagem
-   - ILPF
-   - Potencial de redução estimado para cada estratégia
+6) ESTRATÉGIAS DE MITIGAÇÃO:
+   - Aditivos alimentares: taninos (-8%), 3-NOP (-25%), óleos essenciais (-5%)
+   - Manejo de pastagem: rotacionado intensivo (-10%)
+   - Integração: ILPF (-15 a -25%)
+   - Biodigestores: captura até 70% CH₄ dejetos
+   - Potencial de redução quantificado para cada estratégia
 
-REGRAS: manter cálculos simplificados, indicadores técnicos, recomendações detalhadas, máximo 3 páginas.`;
+7) COMPARATIVO DE CENÁRIOS:
+   - Cenário atual
+   - Cenário otimizado (com práticas de mitigação)
+   - Cenário intensificado
+   - Delta de emissões e custo-benefício
+
+8) MONITORAMENTO E METAS:
+   - Indicadores-chave de desempenho (KPIs)
+   - Frequência de reavaliação
+   - Metas de curto, médio e longo prazo
+
+9) REFERÊNCIAS TÉCNICAS:
+   - IPCC 2006 Guidelines Vol. 4
+   - IPCC 2019 Refinement
+   - NRC Beef Cattle (8th Ed.)
+   - EMBRAPA Gado de Corte
+   - Gerber et al. 2013 (FAO)
+   - CEPEA/ESALQ
+
+REGRAS: Manter cálculos com explicação, indicadores técnicos, recomendações detalhadas. Máximo 3 páginas.
+${commonInstructions}`;
     }
 
     // Pesquisador/Técnico Avançado
     return `${baseData}
 
-GERE UM RELATÓRIO CIENTÍFICO COMPLETO (Nível Pesquisador):
+GERE UM RELATÓRIO CIENTÍFICO COMPLETO (Nível Pesquisador/Técnico Avançado) seguindo EXATAMENTE esta estrutura:
 
-1. METODOLOGIA DETALHADA
-   - Equações Tier 2 utilizadas:
-     • CH₄ entérico = (Ym/100) × EB × 365 / 55.65
-     • VS = IMS × (1 - DIVMS) × 0.92
-     • CH₄ dejetos = VS × B₀ × MCF × 365
-     • N₂O direto = Nex × EF × 44/28
-   - Fatores de emissão aplicados (IPCC 2019):
-     • Ym = ${system?.Ym}% (${system?.name})
-     • B₀ = ${EMISSION_FACTORS.B0_CORTE} kg CH₄/kg VS
-     • MCF = ${system?.MCF * 100}%
-     • EF N₂O direto = ${EMISSION_FACTORS.EF_N2O_DIRETO}
-   - GWP-100 (AR6): CH₄ = 27.2, N₂O = 273
+1) IDENTIFICAÇÃO DO CASO:
+   - Caracterização completa do sistema
+   - Localização geográfica e climática
+   - Composição detalhada do rebanho
+   - Período de análise e metodologia aplicada
 
-2. TABELAS DE PARÂMETROS
+2) SÍNTESE EXECUTIVA:
+   - Emissão total: ${result.totalCO2eq.toFixed(2)} tCO₂eq/ano
+   - Distribuição por fonte com precisão
+   - Indicadores de intensidade de emissão
+   - Principais achados e recomendações
+
+3) METODOLOGIA DETALHADA (IPCC Tier 2):
+   EQUAÇÕES UTILIZADAS:
+   - IMS = 2,3% × PV (modelo empírico IPCC)
+   - EB = IMS × 18,45 MJ/kg MS
+   - DE = EB × DIVMS
+   - ME = DE × 0,82
+   - CH₄ entérico = (Ym/100) × EB × 365 / 55,65 MJ/kg CH₄
+   - VS = IMS × (1 - DIVMS) × 0,92
+   - CH₄ dejetos = VS × B₀ × MCF × 365
+   - N₂O direto = Nex × EF × (44/28)
+   - N₂O indireto = (Nvol × EF_vol + Nlix × EF_lix) × (44/28)
+   
+   FATORES DE EMISSÃO APLICADOS:
+   - Ym = ${system?.Ym}% (${system?.name})
+   - B₀ = ${EMISSION_FACTORS.B0_CORTE} kg CH₄/kg VS
+   - MCF = ${(system?.MCF || 0) * 100}%
+   - EF N₂O direto = ${EMISSION_FACTORS.EF_N2O_DIRETO}
+   - Frac_GAS = ${EMISSION_FACTORS.FRAC_GAS} | Frac_LEACH = ${EMISSION_FACTORS.FRAC_LEACH}
+   - GWP-100 (AR6): CH₄ = ${GWP.CH4}, N₂O = ${GWP.N2O}
+
+4) TABELAS DE PARÂMETROS:
    - Valores calculados vs limites fisiológicos
-   - Incertezas associadas
+   - Incertezas associadas (±15-25% para Tier 2)
+   - Comparativo com valores de referência IPCC
 
-3. ANÁLISE DE SENSIBILIDADE
-   - Impacto da variação de DIVMS
-   - Impacto da variação de Ym
-   - Impacto do sistema de manejo
+5) ANÁLISE DE SENSIBILIDADE:
+   - Impacto da variação de DIVMS (±5%): estimativa de mudança em emissões
+   - Impacto da variação de Ym (±0,5%): estimativa de mudança em CH₄
+   - Impacto do sistema de manejo: comparativo extensivo vs confinamento
 
-4. COMPARATIVO METODOLÓGICO
-   - Tier 1 vs Tier 2: diferenças estimadas
-   - Limitações do modelo
+6) COMPARATIVO METODOLÓGICO:
+   - Tier 1 vs Tier 2: diferenças estimadas (Tier 1 usa EF fixo de ~50-60 kg CH₄/cab/ano)
+   - Limitações do modelo atual
+   - Oportunidades para refinamento (Tier 3)
 
-5. POTENCIAL DE MITIGAÇÃO QUANTIFICADO
-   - Por estratégia com referências científicas
-   - Custo-benefício por prática
+7) POTENCIAL DE MITIGAÇÃO QUANTIFICADO:
+   | Prática | Redução CH₄ | Redução N₂O | Custo Relativo | Referência |
+   - Aditivos (3-NOP): -20 a -30% | - | Médio | Hristov et al. 2015
+   - ILPF: -15 a -25% | -10% | Alto inicial | EMBRAPA
+   - Biodigestor: -70% dejetos | - | Alto | IPCC 2019
+   - Rotacionado: -10% | -5% | Baixo | Oliveira et al. 2020
 
-6. REFERÊNCIAS CIENTÍFICAS COMPLETAS
-   - IPCC 2006 Guidelines Vol. 4
-   - IPCC 2019 Refinement
-   - NRC Beef Cattle
-   - Gerber et al. 2013 (FAO)
+8) ANÁLISE CUSTO-BENEFÍCIO:
+   - Investimento estimado por prática
+   - Payback esperado
+   - Elegibilidade para créditos de carbono (Verra, Gold Standard, ABC+)
 
-REGRAS: incluir todas as fórmulas, tabelas detalhadas, metodologia IPCC 2019 Refinement, referências completas, máximo 6 páginas.`;
+9) COMPARATIVO DE CENÁRIOS:
+   - Cenário base (atual)
+   - Cenário com melhoramento genético (-5 a -10%)
+   - Cenário com suplementação proteica na seca
+   - Cenário com confinamento estratégico
+   - Cenário com intensificação sustentável (ILPF + aditivos)
+   - Projeção de redução total alcançável
+
+10) REFERÊNCIAS CIENTÍFICAS COMPLETAS:
+    - IPCC 2006 Guidelines Vol. 4 (Chapter 10 & 11)
+    - IPCC 2019 Refinement to 2006 Guidelines
+    - NRC Nutrient Requirements of Beef Cattle (8th Ed. 2016)
+    - Gerber, P.J. et al. (2013) FAO - Tackling Climate Change Through Livestock
+    - Hristov, A.N. et al. (2015) J. Dairy Sci.
+    - EMBRAPA Gado de Corte - Documentos Técnicos
+    - CEPEA/ESALQ - Indicadores Econômicos
+
+REGRAS: Incluir TODAS as fórmulas, tabelas detalhadas, metodologia IPCC 2019 Refinement completa, análise de sensibilidade, referências científicas com citações. Máximo 6 páginas.
+${commonInstructions}`;
   };
 
   // Handler principal de cálculo
   const handleCalculate = async () => {
+    if (loading) return;
+    
     if (animals.length === 0 || animals.every(a => a.count <= 0)) {
       toast({
         title: "Dados insuficientes",
@@ -414,11 +541,9 @@ REGRAS: incluir todas as fórmulas, tabelas detalhadas, metodologia IPCC 2019 Re
     setMitigationResult("");
 
     try {
-      // Cálculos locais Tier 2
       const result = calculateEmissions();
       setCalculationResult(result);
 
-      // Mostrar avisos de ajustes
       if (result.warnings.length > 0) {
         toast({
           title: "Ajustes fisiológicos aplicados",
@@ -426,19 +551,18 @@ REGRAS: incluir todas as fórmulas, tabelas detalhadas, metodologia IPCC 2019 Re
         });
       }
 
-      // Gerar análise via IA
       const prompt = generatePrompt(result);
 
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
           question: prompt,
           isProfessional: userLevel !== "produtor",
-          context: "Cálculo de emissões de GEE - Metodologia IPCC Tier 2",
+          context: "Calculadora de Emissões de GEE - Metodologia IPCC Tier 2",
         },
       });
 
       if (error) throw error;
-      setAiAnalysis(data.answer);
+      setAiAnalysis(data.answer || "");
 
       toast({
         title: "Cálculo concluído",
@@ -458,61 +582,118 @@ REGRAS: incluir todas as fórmulas, tabelas detalhadas, metodologia IPCC 2019 Re
 
   // Simulação de mitigação
   const handleMitigationSimulation = async () => {
-    if (!calculationResult) return;
+    if (!calculationResult || loadingMitigation) return;
 
     setLoadingMitigation(true);
     try {
       const prompt = `
-DADOS ATUAIS:
+DADOS ATUAIS DO SISTEMA:
 - Emissão total: ${calculationResult.totalCO2eq.toFixed(2)} tCO₂eq/ano
 - CH₄ entérico: ${calculationResult.ch4Enterico.toFixed(2)} tCO₂eq
+- CH₄ dejetos: ${calculationResult.ch4Dejetos.toFixed(2)} tCO₂eq
+- N₂O total: ${(calculationResult.n2oDireto + calculationResult.n2oIndireto).toFixed(2)} tCO₂eq
 - Sistema: ${PRODUCTION_SYSTEMS.find(s => s.id === productionSystem)?.name}
+- Total de animais: ${animals.reduce((sum, a) => sum + a.count, 0)} cabeças
 
 SIMULE A IMPLEMENTAÇÃO DAS SEGUINTES PRÁTICAS MITIGADORAS:
-1. Aditivos alimentares (Tanino -8%, 3-NOP -25%, Óleos essenciais -5%)
-2. Manejo rotacionado intensivo (-10%)
-3. ILPF (-15% a -25%)
-4. Biodigestores (captura 70% CH₄ dejetos)
-5. Melhoramento genético (-5% a -10%)
-6. Confinamento estratégico (reduz Ym para 3-3.5%)
 
-FORNEÇA:
-1. CENÁRIO COM INTERVENÇÕES
-   - Nova emissão total estimada
+1. ADITIVOS ALIMENTARES:
+   - Taninos condensados: -8% CH₄ entérico
+   - 3-NOP (Bovaer): -25% CH₄ entérico
+   - Óleos essenciais: -5% CH₄ entérico
+   - Nitrato de cálcio: -10% CH₄ entérico
+
+2. MANEJO DE PASTAGEM:
+   - Rotacionado intensivo (Voisin): -10% emissões
+   - Recuperação de pastagem degradada: -15% por área
+
+3. SISTEMAS INTEGRADOS:
+   - ILPF: -15 a -25% emissões totais
+   - IPF (Integração Pecuária-Floresta): -20%
+
+4. TRATAMENTO DE DEJETOS:
+   - Biodigestores: captura 70% CH₄ de dejetos
+   - Compostagem: redução de emissões fugitivas
+
+5. MELHORAMENTO GENÉTICO:
+   - Seleção para eficiência alimentar: -5 a -10% CH₄
+
+6. INTENSIFICAÇÃO ESTRATÉGICA:
+   - Confinamento parcial (seca): reduz Ym para 3-3,5%
+   - Suplementação proteica na seca: melhora conversão
+
+FORNEÇA UM RELATÓRIO ESTRUTURADO COM:
+
+1) CENÁRIO COM INTERVENÇÕES:
+   - Nova emissão total estimada (tCO₂eq/ano)
    - Redução absoluta e percentual
    - Ranking das práticas por impacto
+   - Combinações sinérgicas recomendadas
 
-2. SIMULAÇÃO DE CRÉDITOS DE CARBONO
-   - Créditos potenciais (tCO₂e)
-   - Valor estimado: US$ 5-15/tCO₂e
-   - Elegibilidade para programas (Verra, Gold Standard, ABC+)
+2) SIMULAÇÃO DE CRÉDITOS DE CARBONO:
+   - Créditos potenciais gerados (tCO₂e evitados)
+   - Valor estimado: US$ 5-15/tCO₂e (mercado voluntário)
+   - Receita anual potencial em R$
+   - Elegibilidade para programas:
+     • Verra/VCS
+     • Gold Standard
+     • ABC+ (Plano Brasileiro)
+     • Renovabio (se aplicável)
 
-3. ANÁLISE CUSTO-BENEFÍCIO
-   - Investimento estimado por prática
-   - Payback esperado
-   - Viabilidade de implementação
+3) ANÁLISE CUSTO-BENEFÍCIO:
+   - Investimento estimado por prática (R$/animal ou R$/ha)
+   - Payback esperado (anos)
+   - Viabilidade de implementação (Alta/Média/Baixa)
+   - Cobenefícios (produtividade, sanidade, solo)
 
-4. PLANO DE AÇÃO PRIORITÁRIO
-   - Curto prazo (0-6 meses)
-   - Médio prazo (6-24 meses)
-   - Longo prazo (>24 meses)
+4) COMPARATIVO DE CENÁRIOS:
+   | Cenário | Emissão Total | Redução | Investimento | Payback |
+   - Atual
+   - Otimizado baixo custo
+   - Otimizado alta performance
+   - Máxima mitigação
 
-Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO - incluir referências e metodologias" : userLevel === "profissional" ? "TÉCNICO" : "SIMPLIFICADO"}`;
+5) PLANO DE AÇÃO PRIORITÁRIO:
+   CURTO PRAZO (0-6 meses):
+   - Ações imediatas e de baixo investimento
+   
+   MÉDIO PRAZO (6-24 meses):
+   - Implementação de sistemas e aditivos
+   
+   LONGO PRAZO (>24 meses):
+   - Transformações estruturais (ILPF, biodigestores)
+
+6) MONITORAMENTO E VERIFICAÇÃO:
+   - Indicadores de acompanhamento
+   - Frequência de medição
+   - Documentação necessária para certificação
+
+INSTRUÇÕES:
+- Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO com referências e metodologias" : userLevel === "profissional" ? "TÉCNICO com cálculos" : "SIMPLIFICADO e prático"}
+- NUNCA use hashtags, asteriscos ou markdown
+- Use bullets com • ou -
+- Tabelas com formato simples usando |
+
+REFERÊNCIAS OBRIGATÓRIAS:
+- IPCC 2019 Refinement
+- Gerber et al. 2013 (FAO)
+- EMBRAPA - Carne Carbono Neutro
+- ABC+ / MAPA`;
 
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
           question: prompt,
           isProfessional: true,
-          context: "Simulação de mitigação de GEE",
+          context: "Simulação de mitigação de GEE - Créditos de Carbono",
         },
       });
 
       if (error) throw error;
-      setMitigationResult(data.answer);
+      setMitigationResult(data.answer || "");
 
       toast({
         title: "Simulação concluída",
-        description: "Cenário de mitigação calculado.",
+        description: "Cenário de mitigação e créditos de carbono calculados.",
       });
     } catch (error: any) {
       console.error("Erro:", error);
@@ -561,9 +742,105 @@ Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO - incluir referênci
 
   // Copiar relatório
   const copyReport = () => {
-    const text = aiAnalysis + (mitigationResult ? "\n\n--- SIMULAÇÃO DE MITIGAÇÃO ---\n\n" + mitigationResult : "");
-    navigator.clipboard.writeText(text);
+    const fullReport = generateFullReport();
+    navigator.clipboard.writeText(fullReport);
     toast({ title: "Copiado", description: "Relatório copiado para a área de transferência." });
+  };
+
+  // Gerar relatório completo para exportação
+  const generateFullReport = () => {
+    const totalAnimals = animals.reduce((sum, a) => sum + a.count, 0);
+    const system = PRODUCTION_SYSTEMS.find(s => s.id === productionSystem);
+    
+    let report = `RELATÓRIO DE EMISSÕES DE GASES DE EFEITO ESTUFA
+VetAgro Sustentável AI - Metodologia IPCC Tier 2
+Data: ${new Date().toLocaleDateString('pt-BR')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IDENTIFICAÇÃO DO CASO:
+• Sistema: ${system?.name}
+• Localização: ${location || "Brasil"}
+• Total de animais: ${totalAnimals} cabeças
+• Área de pastagem: ${pastureArea} hectares
+• Digestibilidade (DIVMS): ${divms}%
+
+COMPOSIÇÃO DO REBANHO:
+${animals.map(a => {
+  const cat = ANIMAL_CATEGORIES.find(c => c.id === a.category);
+  return `• ${cat?.name || a.category}: ${a.count} animais (${a.weight} kg)`;
+}).join("\n")}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RESULTADOS CALCULADOS (Tier 2 IPCC):
+• Emissão TOTAL: ${calculationResult?.totalCO2eq.toFixed(2) || "N/A"} tCO₂eq/ano
+• CH₄ entérico: ${calculationResult?.ch4Enterico.toFixed(2) || "N/A"} tCO₂eq
+• CH₄ dejetos: ${calculationResult?.ch4Dejetos.toFixed(2) || "N/A"} tCO₂eq
+• N₂O direto: ${calculationResult?.n2oDireto.toFixed(2) || "N/A"} tCO₂eq
+• N₂O indireto: ${calculationResult?.n2oIndireto.toFixed(2) || "N/A"} tCO₂eq
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ANÁLISE DETALHADA:
+
+${aiAnalysis}
+
+${mitigationResult ? `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SIMULAÇÃO DE MITIGAÇÃO:
+
+${mitigationResult}
+` : ""}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+REFERÊNCIAS TÉCNICAS:
+${references.map(ref => `• ${ref}`).join("\n")}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AVISO LEGAL:
+Este relatório é gerado automaticamente pela suíte VetAgro Sustentável AI. Decisões de manejo devem ser confirmadas por profissional habilitado (Médico Veterinário, Zootecnista ou Engenheiro Agrônomo registrado no respectivo Conselho).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Documento gerado pela suíte VetAgro Sustentável AI
+© VetAgro 2025 — www.vetagroai.com.br
+`;
+    return report;
+  };
+
+  // Download TXT
+  const downloadTXT = () => {
+    const report = generateFullReport();
+    const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `relatorio-gee-vetagro-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({ title: "Download concluído", description: "Arquivo TXT baixado com sucesso." });
+  };
+
+  // Compartilhar
+  const shareReport = async () => {
+    const report = generateFullReport();
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Relatório de Emissões GEE - VetAgro AI",
+          text: report.substring(0, 500) + "...",
+        });
+      } catch (err) {
+        copyReport();
+      }
+    } else {
+      copyReport();
+    }
   };
 
   return (
@@ -593,7 +870,7 @@ Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO - incluir referênci
           </Badge>
         </div>
 
-        {/* Seletor de nível de usuário (MÓDULO 1) */}
+        {/* Seletor de nível de usuário */}
         <div className="flex flex-wrap gap-2">
           <Button
             variant={userLevel === "produtor" ? "default" : "outline"}
@@ -711,7 +988,7 @@ Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO - incluir referênci
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Painel de Entrada (MÓDULO 6) */}
+        {/* Painel de Entrada */}
         <div className="lg:col-span-1 space-y-4">
           <Card className="border-2 border-teal-200 dark:border-teal-800">
             <CardHeader className="bg-gradient-to-r from-teal-50 to-green-50 dark:from-teal-950 dark:to-green-950">
@@ -724,6 +1001,16 @@ Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO - incluir referênci
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
+              {/* Localização */}
+              <div>
+                <Label>Localização (opcional)</Label>
+                <Input
+                  placeholder="Ex: Roraima, Brasil"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
+
               {/* Sistema de produção */}
               <div>
                 <Label>Sistema de Produção</Label>
@@ -835,6 +1122,17 @@ Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO - incluir referênci
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Observações adicionais */}
+              <div>
+                <Label>Observações (opcional)</Label>
+                <Textarea
+                  placeholder="Informações adicionais sobre o sistema..."
+                  value={additionalNotes}
+                  onChange={(e) => setAdditionalNotes(e.target.value)}
+                  rows={2}
+                />
               </div>
 
               <Button
@@ -1071,17 +1369,22 @@ Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO - incluir referênci
                   {aiAnalysis}
                 </div>
                 
-                <div className="flex flex-wrap gap-2">
+                {/* BOTÕES DE EXPORTAÇÃO (MÓDULO 6) */}
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
                   <Button variant="outline" size="sm" onClick={copyReport}>
                     <Copy className="h-4 w-4 mr-1" /> Copiar Relatório
                   </Button>
+                  <Button variant="outline" size="sm" onClick={downloadTXT}>
+                    <FileDown className="h-4 w-4 mr-1" /> Baixar TXT
+                  </Button>
                   <ReportExporter
-                    title="Calculadora de Emissões de GEE - VetAgro IA"
-                    content={aiAnalysis + (mitigationResult ? "\n\n--- SIMULAÇÃO DE MITIGAÇÃO ---\n\n" + mitigationResult : "")}
-                    toolName="Calculadora de GEE VetAgro IA — Tier 2 IPCC"
+                    title="Relatório de Emissões de GEE - VetAgro Sustentável AI"
+                    content={generateFullReport()}
+                    toolName="Calculadora Integrada de Emissões de GEE — Metodologia IPCC Tier 2"
                     references={references}
                     userInputs={{ 
                       "Sistema": PRODUCTION_SYSTEMS.find(s => s.id === productionSystem)?.name || "",
+                      "Localização": location || "Brasil",
                       "Área": `${pastureArea} ha`,
                       "DIVMS": `${divms}%`,
                       "Total Animais": animals.reduce((sum, a) => sum + a.count, 0).toString(),
@@ -1090,6 +1393,9 @@ Nível de detalhe: ${userLevel === "pesquisador" ? "MÁXIMO - incluir referênci
                     }}
                     variant="default"
                   />
+                  <Button variant="outline" size="sm" onClick={shareReport}>
+                    <Share2 className="h-4 w-4 mr-1" /> Compartilhar
+                  </Button>
                 </div>
               </CardContent>
             </Card>
