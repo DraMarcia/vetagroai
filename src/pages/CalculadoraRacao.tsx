@@ -12,16 +12,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calculator, Loader2, Download } from "lucide-react";
+import { Calculator, Loader2, Copy, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportExporter } from "@/components/ReportExporter";
+import { cleanTextForDisplay } from "@/lib/textUtils";
+import { UFS } from "@/hooks/useCrmvValidation";
 
 const CalculadoraRacao = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isProfessional, setIsProfessional] = useState<string>("");
   const [result, setResult] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  // Campos profissionais
+  const [professionalName, setProfessionalName] = useState("");
+  const [councilNumber, setCouncilNumber] = useState("");
+  const [councilType, setCouncilType] = useState("CRMV");
+  const [professionalUF, setProfessionalUF] = useState("");
 
   const [species, setSpecies] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -29,6 +38,8 @@ const CalculadoraRacao = () => {
   const [age, setAge] = useState("");
   const [ingredients, setIngredients] = useState("");
   const [animalCount, setAnimalCount] = useState("");
+
+  const councilTypes = ["CRMV", "CRZ", "CREA", "Outro"];
 
   const speciesOptions = [
     "Bovino de Corte",
@@ -64,6 +75,26 @@ const CalculadoraRacao = () => {
       return;
     }
 
+    // Validação profissional
+    if (isProfessional === "sim") {
+      if (!professionalName.trim()) {
+        toast({
+          title: "Nome obrigatório",
+          description: "Informe o nome do profissional responsável.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!councilNumber.trim() || !professionalUF) {
+        toast({
+          title: "Registro profissional obrigatório",
+          description: "Informe o número do conselho e o estado (UF).",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (!species || !purpose || !weight) {
       toast({
         title: "Campos obrigatórios",
@@ -75,9 +106,15 @@ const CalculadoraRacao = () => {
 
     setLoading(true);
     try {
+      const professionalInfo = isProfessional === "sim" 
+        ? `\n\nPROFISSIONAL RESPONSÁVEL:\n• Nome: ${professionalName}\n• Registro: ${councilType} ${councilNumber} - ${professionalUF}`
+        : "";
+
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
+          tool: "calculadora-racao",
           question: `Formule uma ração balanceada com base nos seguintes dados:
+${professionalInfo}
 
 DADOS DO ANIMAL:
 • Espécie: ${species}
@@ -94,19 +131,17 @@ INSTRUÇÕES DE FORMATAÇÃO:
 4. Organize a resposta em seções claras: Formulação, Composição Nutricional, Preparo, Observações
 5. Inclua referências técnicas no final`,
           isProfessional: isProfessional === "sim",
+          professionalName: professionalName,
+          councilNumber: `${councilType} ${councilNumber}`,
+          councilUF: professionalUF,
           context: "Formulação de ração animal balanceada",
         },
       });
 
       if (error) throw error;
 
-      // Limpar formatação indesejada
-      let cleanResult = data.answer
-        .replace(/\*\*/g, '')
-        .replace(/##/g, '')
-        .replace(/###/g, '')
-        .replace(/\*/g, '•')
-        .replace(/#+\s*/g, '');
+      // Limpar formatação usando utilitário
+      const cleanResult = cleanTextForDisplay(data.answer);
       
       setResult(cleanResult);
       toast({
@@ -123,6 +158,17 @@ INSTRUÇÕES DE FORMATAÇÃO:
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCopyReport = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    toast({
+      title: "Copiado!",
+      description: "Relatório copiado para a área de transferência.",
+    });
+    setTimeout(() => setCopied(false), 2000);
   };
 
   // Função para renderizar resultado com tabelas formatadas
@@ -255,7 +301,7 @@ INSTRUÇÕES DE FORMATAÇÃO:
               Informe se você é um profissional da área
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <RadioGroup value={isProfessional} onValueChange={setIsProfessional}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="sim" id="prof-sim" />
@@ -266,6 +312,64 @@ INSTRUÇÕES DE FORMATAÇÃO:
                 <Label htmlFor="prof-nao">Não sou profissional da área</Label>
               </div>
             </RadioGroup>
+
+            {isProfessional === "sim" && (
+              <div className="mt-4 p-4 border border-border rounded-lg bg-muted/30 space-y-4">
+                <p className="text-sm text-muted-foreground font-medium">
+                  Dados do profissional responsável (obrigatórios)
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="professionalName">Nome completo *</Label>
+                  <Input
+                    id="professionalName"
+                    placeholder="Ex: Dr. João da Silva"
+                    value={professionalName}
+                    onChange={(e) => setProfessionalName(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="councilType">Conselho *</Label>
+                    <Select value={councilType} onValueChange={setCouncilType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {councilTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="councilNumber">Número *</Label>
+                    <Input
+                      id="councilNumber"
+                      placeholder="Ex: 12345"
+                      value={councilNumber}
+                      onChange={(e) => setCouncilNumber(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="professionalUF">UF *</Label>
+                    <Select value={professionalUF} onValueChange={setProfessionalUF}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UFS.map((uf) => (
+                          <SelectItem key={uf} value={uf}>
+                            {uf}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -380,21 +484,53 @@ INSTRUÇÕES DE FORMATAÇÃO:
 
         {result && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
               <div>
                 <CardTitle className="text-lg">Formulação Calculada</CardTitle>
                 <CardDescription>
                   Revise os ingredientes e proporções
                 </CardDescription>
               </div>
-              <ReportExporter
-                title="Formulação de Ração"
-                content={result}
-                toolName="Calculadora de Ração"
-              />
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyReport}
+                  className="gap-2"
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      Copiado
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copiar
+                    </>
+                  )}
+                </Button>
+                <ReportExporter
+                  title="Formulação de Ração"
+                  content={result}
+                  toolName="Calculadora de Ração"
+                  userInputs={{
+                    "Profissional": isProfessional === "sim" ? `${professionalName} - ${councilType} ${councilNumber}/${professionalUF}` : "Não informado",
+                    "Espécie": species,
+                    "Finalidade": purpose,
+                    "Peso médio": weight,
+                    "Idade": age || "Não informada",
+                    "Nº de animais": animalCount || "1",
+                    "Ingredientes": ingredients || "Não especificados"
+                  }}
+                />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none">
+              <div 
+                className="prose prose-sm max-w-none"
+                style={{ textAlign: 'justify', textJustify: 'inter-word' }}
+              >
                 {renderResult()}
               </div>
             </CardContent>
