@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Leaf, Loader2, Upload } from "lucide-react";
+import { Leaf, Loader2, Upload, Copy, X, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UFS } from "@/hooks/useCrmvValidation";
+import { ReportExporter } from "@/components/ReportExporter";
 
 const COUNCIL_TYPES = [
   { value: "CREA", label: "CREA - Engenharia e Agronomia" },
@@ -26,25 +27,63 @@ const IdentificadorPlantas = () => {
   const [councilNumber, setCouncilNumber] = useState("");
   const [councilUF, setCouncilUF] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState<string>("");
+  const [images, setImages] = useState<string[]>([]);
   const [result, setResult] = useState("");
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImage(reader.result as string);
+    if (images.length + files.length > 5) {
       toast({
-        title: "Imagem carregada",
-        description: "Pronto para identificação.",
+        title: "Limite de imagens",
+        description: "Máximo de 5 imagens permitidas.",
+        variant: "destructive",
       });
-    };
-    reader.readAsDataURL(file);
+      return;
+    }
+
+    const newImages: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        newImages.push(reader.result as string);
+        if (newImages.length === files.length) {
+          setImages((prev) => [...prev, ...newImages]);
+          toast({
+            title: "Imagens carregadas",
+            description: `${newImages.length} imagem(ns) adicionada(s).`,
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleCopyResult = async () => {
+    try {
+      await navigator.clipboard.writeText(result);
+      toast({
+        title: "Copiado!",
+        description: "Relatório copiado para a área de transferência.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao copiar",
+        description: "Não foi possível copiar o texto.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleIdentify = async () => {
+    if (loading) return;
+
     if (!isProfessional) {
       toast({
         title: "Campo obrigatório",
@@ -54,7 +93,6 @@ const IdentificadorPlantas = () => {
       return;
     }
 
-    // Validate council info for professionals
     if (isProfessional === "sim") {
       if (!councilType || !councilNumber.trim() || !councilUF) {
         toast({
@@ -66,21 +104,28 @@ const IdentificadorPlantas = () => {
       }
     }
 
-    if (!image && !description.trim()) {
+    if (images.length === 0 && !description.trim()) {
       toast({
         title: "Campos obrigatórios",
-        description: "Envie uma imagem ou forneça uma descrição da planta.",
+        description: "Envie pelo menos uma imagem ou forneça uma descrição da planta/pastagem.",
         variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
+    setResult("");
+
     try {
+      toast({
+        title: "Analisando...",
+        description: "Processando imagens e dados fornecidos.",
+      });
+
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
           tool: "identificador-plantas",
-          images: image ? [image] : [],
+          images: images,
           description: description || "Sem descrição adicional",
           isProfessional: isProfessional === "sim",
           councilType: isProfessional === "sim" ? councilType : undefined,
@@ -91,15 +136,14 @@ const IdentificadorPlantas = () => {
 
       if (error) throw error;
 
-      let finalResult = data.answer;
-      if (isProfessional === "nao") {
-        finalResult += "\n\n⚠️ Esta é uma identificação preliminar. Para segurança do seu animal, consulte um médico veterinário antes de qualquer ação.";
+      if (!data?.answer) {
+        throw new Error("Resposta vazia do servidor. Tente novamente.");
       }
 
-      setResult(finalResult);
+      setResult(data.answer);
       toast({
         title: "Identificação concluída!",
-        description: "A planta foi identificada com sucesso.",
+        description: "Relatório gerado com sucesso.",
       });
     } catch (error: any) {
       console.error("Erro:", error);
@@ -122,7 +166,7 @@ const IdentificadorPlantas = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Identificador de Plantas e Toxicidade</h1>
-            <p className="text-muted-foreground">Identifique plantas por imagem ou descrição e verifique sua toxicidade</p>
+            <p className="text-muted-foreground">Identificação botânica, fitossanidade, toxicidade e manejo de pastagens</p>
           </div>
         </div>
       </div>
@@ -130,9 +174,9 @@ const IdentificadorPlantas = () => {
       <div className="grid gap-6 max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle>Identificação</CardTitle>
+            <CardTitle>Identificação Profissional</CardTitle>
             <CardDescription>
-              Informe se você é um profissional da área
+              Informe se você é um profissional da área (agrônomo, engenheiro florestal, biólogo, etc.)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -197,44 +241,77 @@ const IdentificadorPlantas = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Imagem da Planta (Opcional)</CardTitle>
+            <CardTitle>Imagens da Planta/Pastagem</CardTitle>
             <CardDescription>
-              Envie uma foto clara da planta para melhor identificação
+              Envie até 5 imagens claras (folhas, caule, flores, frutos, raízes ou pastagem)
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
               <Input
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleImageUpload}
                 className="flex-1"
               />
               <Upload className="h-5 w-5 text-muted-foreground" />
             </div>
+            
+            {images.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {images.length} de 5 imagens carregadas
+                  </span>
+                  <span className="text-xs text-green-600 font-medium">
+                    ✓ Pronto para análise
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {images.map((img, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={img}
+                        alt={`Imagem ${index + 1}`}
+                        className="w-full h-16 object-cover rounded border"
+                      />
+                      <button
+                        onClick={() => removeImage(index)}
+                        className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {images.length === 0 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <ImageIcon className="h-4 w-4" />
+                <span>Nenhuma imagem carregada</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Descrição da Planta (Opcional)</CardTitle>
+            <CardTitle>Descrição Adicional (Opcional)</CardTitle>
             <CardDescription>
-              Ou descreva as características da planta
+              Descreva características da planta, local encontrado, bioma, sintomas observados em animais
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="description">Características</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Ex: Planta com folhas verdes escuras, formato de coração, flores brancas pequenas, encontrada no jardim..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="min-h-[100px]"
-                />
-              </div>
-            </div>
+            <Textarea
+              id="description"
+              placeholder="Ex: Planta com folhas verdes escuras, formato de coração, encontrada em pastagem de bovinos no Cerrado. Alguns animais apresentaram salivação excessiva..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="min-h-[120px]"
+            />
           </CardContent>
         </Card>
 
@@ -247,12 +324,12 @@ const IdentificadorPlantas = () => {
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Identificando...
+              Analisando...
             </>
           ) : (
             <>
               <Leaf className="mr-2 h-5 w-5" />
-              Identificar Planta
+              Identificar e Analisar
             </>
           )}
         </Button>
@@ -260,16 +337,28 @@ const IdentificadorPlantas = () => {
         {result && (
           <Card>
             <CardHeader>
-              <CardTitle>Resultado da Identificação</CardTitle>
+              <CardTitle>Relatório de Identificação</CardTitle>
               <CardDescription>
-                Informações sobre a planta e sua toxicidade
+                Identificação botânica, fitossanidade, toxicidade e recomendações de manejo
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg">
+                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
                   {result}
                 </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 pt-4 border-t">
+                <Button variant="outline" size="sm" onClick={handleCopyResult}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copiar Relatório
+                </Button>
+                <ReportExporter
+                  title="Identificador de Plantas e Toxicidade"
+                  content={result}
+                  variant="outline"
+                />
               </div>
             </CardContent>
           </Card>
