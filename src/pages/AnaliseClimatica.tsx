@@ -9,6 +9,7 @@ import { CloudRain, Loader2, HelpCircle, Sun, Thermometer, Droplets, Wind, Calen
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportExporter } from "@/components/ReportExporter";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 const AnaliseClimatica = () => {
   const { toast } = useToast();
@@ -315,11 +316,10 @@ Bases científicas e normativas consultadas`,
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="prose prose-sm max-w-none">
-                    <div className="whitespace-pre-wrap bg-gradient-to-br from-blue-50/50 to-cyan-50/50 dark:from-blue-950/30 dark:to-cyan-950/30 p-6 rounded-xl border border-blue-200 dark:border-blue-800">
-                      {result}
-                    </div>
-                  </div>
+                  <MarkdownTableRenderer 
+                    content={result}
+                    className="prose prose-sm max-w-none bg-gradient-to-br from-blue-50/50 to-cyan-50/50 dark:from-blue-950/30 dark:to-cyan-950/30 p-6 rounded-xl border border-blue-200 dark:border-blue-800"
+                  />
                   <div className="flex flex-wrap gap-2">
                     <ReportExporter
                       title="Análise Climática Estratégica - VetAgro IA"

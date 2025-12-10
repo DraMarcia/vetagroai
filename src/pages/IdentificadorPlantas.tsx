@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UFS } from "@/hooks/useCrmvValidation";
 import { ReportExporter } from "@/components/ReportExporter";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 const COUNCIL_TYPES = [
   { value: "CREA", label: "CREA - Engenharia e Agronomia" },
@@ -343,12 +344,10 @@ const IdentificadorPlantas = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div 
-                className="bg-muted p-4 rounded-lg text-sm leading-relaxed whitespace-pre-line"
-                style={{ textAlign: 'justify', textJustify: 'inter-word' }}
-              >
-                {result}
-              </div>
+              <MarkdownTableRenderer 
+                content={result}
+                className="bg-muted p-4 rounded-lg text-sm leading-relaxed"
+              />
               
               <div className="flex flex-wrap gap-2 pt-4 border-t">
                 <Button variant="outline" size="sm" onClick={handleCopyResult}>

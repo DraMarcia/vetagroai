@@ -10,6 +10,7 @@ import { Eye, Loader2, Upload, Copy, CheckCircle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 const AnaliseMucosa = () => {
   const { toast } = useToast();
@@ -380,11 +381,10 @@ const AnaliseMucosa = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
-                  {result}
-                </div>
-              </div>
+              <MarkdownTableRenderer 
+                content={result}
+                className="prose prose-sm max-w-none bg-muted p-4 rounded-lg text-sm leading-relaxed"
+              />
 
               <div className="pt-2 border-t">
                 <p className="text-xs text-muted-foreground mb-3 italic">

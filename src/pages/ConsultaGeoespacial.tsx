@@ -11,6 +11,7 @@ import { UpgradeModal } from "@/components/UpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 const biomas = [
   "Amazônia",
@@ -349,9 +350,10 @@ const ConsultaGeoespacial = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <div className="whitespace-pre-wrap text-sm">{resposta}</div>
-                  </div>
+                  <MarkdownTableRenderer 
+                    content={resposta}
+                    className="prose prose-sm max-w-none dark:prose-invert text-sm"
+                  />
                   
                   {plan === "free" && (
                     <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">

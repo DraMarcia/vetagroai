@@ -9,6 +9,7 @@ import { BookOpen, Loader2, Copy, Check, User, Stethoscope } from "lucide-react"
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportExporter } from "@/components/ReportExporter";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { useCrmvValidation, UFS } from "@/hooks/useCrmvValidation";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 // Pharmacological categories
@@ -420,19 +421,10 @@ REGRAS OBRIGATÓRIAS:
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               {/* Result Display - Justified professional text */}
-              <div className="prose prose-sm max-w-none">
-                <div 
-                  className="whitespace-pre-wrap bg-muted/50 p-6 rounded-lg text-sm leading-relaxed border"
-                  style={{ 
-                    textAlign: 'justify', 
-                    textJustify: 'inter-word',
-                    fontFamily: 'Inter, Roboto, system-ui, sans-serif',
-                    lineHeight: '1.6'
-                  }}
-                >
-                  {result}
-                </div>
-              </div>
+              <MarkdownTableRenderer 
+                content={result}
+                className="prose prose-sm max-w-none bg-muted/50 p-6 rounded-lg text-sm leading-relaxed border"
+              />
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 pt-4 border-t">

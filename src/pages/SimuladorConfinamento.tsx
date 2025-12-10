@@ -14,6 +14,7 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { ReportExporter } from "@/components/ReportExporter";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 const categoriasAnimal = [
   "Boi gordo (Nelore)",
@@ -662,12 +663,10 @@ const SimuladorConfinamento = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div 
-                className="prose prose-sm max-w-none dark:prose-invert mb-4"
-                style={{ textAlign: 'justify', textJustify: 'inter-word' }}
-              >
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">{resposta}</div>
-              </div>
+              <MarkdownTableRenderer 
+                content={resposta}
+                className="prose prose-sm max-w-none dark:prose-invert mb-4 text-sm leading-relaxed"
+              />
               
               <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
                 <Button variant="outline" onClick={handleCopiar} className="flex items-center gap-2">

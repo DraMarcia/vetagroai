@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 const DiagnosticoDiferencial = () => {
   const { toast } = useToast();
@@ -425,11 +426,10 @@ REFERÊNCIAS:
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed">
-                  {result}
-                </div>
-              </div>
+              <MarkdownTableRenderer 
+                content={result}
+                className="prose prose-sm max-w-none bg-muted p-4 rounded-lg text-sm leading-relaxed"
+              />
 
               {isProfessional === "nao" && (
                 <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">

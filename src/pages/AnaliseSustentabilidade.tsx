@@ -10,6 +10,7 @@ import { Leaf, Loader2, HelpCircle, TreePine, Droplets, Recycle, Award, Trending
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportExporter } from "@/components/ReportExporter";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 const AnaliseSustentabilidade = () => {
   const { toast } = useToast();
@@ -300,11 +301,10 @@ Normas, legislações e bases científicas consultadas`,
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="prose prose-sm max-w-none">
-                  <div className="whitespace-pre-wrap bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/30 dark:to-emerald-950/30 p-6 rounded-xl border border-green-200 dark:border-green-800">
-                    {result}
-                  </div>
-                </div>
+                <MarkdownTableRenderer 
+                  content={result}
+                  className="prose prose-sm max-w-none bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/30 dark:to-emerald-950/30 p-6 rounded-xl border border-green-200 dark:border-green-800"
+                />
                 <div className="flex flex-wrap gap-2">
                   <ReportExporter
                     title="Análise de Sustentabilidade - VetAgro IA"

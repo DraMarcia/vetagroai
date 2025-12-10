@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay, cleanTextForPDF } from "@/lib/textUtils";
 import { ReportExporter } from "@/components/ReportExporter";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import jsPDF from "jspdf";
 
 const EscoreCorporal = () => {
@@ -419,12 +420,10 @@ Liste as fontes técnicas utilizadas (NRC, Henneke, Edmonson, Ferguson, Embrapa)
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div 
-                  className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm leading-relaxed"
-                  style={{ textAlign: "justify", textJustify: "inter-word" }}
-                >
-                  {result}
-                </div>
+                <MarkdownTableRenderer 
+                  content={result}
+                  className="bg-muted p-4 rounded-lg text-sm leading-relaxed"
+                />
                 
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Button
