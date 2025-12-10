@@ -261,7 +261,7 @@ export async function exportToPDF(data: ReportData): Promise<void> {
             yPosition += 5;
           }
         }
-        // Regular paragraph
+        // Regular paragraph - with justified text
         else {
           const lines = doc.splitTextToSize(trimmedPara, maxWidth);
           for (const line of lines) {
@@ -269,7 +269,8 @@ export async function exportToPDF(data: ReportData): Promise<void> {
               addPageHeader();
               yPosition = 25;
             }
-            doc.text(line, margin, yPosition);
+            // Justify text by adding spacing between words for full lines
+            doc.text(line, margin, yPosition, { maxWidth: maxWidth });
             yPosition += 5;
           }
         }

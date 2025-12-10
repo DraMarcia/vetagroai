@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ReportExporter } from "@/components/ReportExporter";
-import { cleanTextForDisplay } from "@/lib/textUtils";
+// Text cleaning is only applied during PDF export, not display
 
 const SISTEMAS_PRODUCAO = [
   { value: "recria", label: "Recria" },
@@ -222,8 +222,8 @@ const AnaliseProdutiva = () => {
 
       if (error) throw error;
 
-      const cleanedResult = cleanTextForDisplay(data.answer || data.response || "");
-      setResult(cleanedResult);
+      // Keep original HTML for display - cleaning only happens during PDF export
+      setResult(data.answer || data.response || "");
       toast({
         title: "Análise concluída!",
         description: "Planejamento produtivo gerado com sucesso.",
