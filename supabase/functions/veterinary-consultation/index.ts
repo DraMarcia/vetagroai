@@ -54,59 +54,224 @@ ${data.informacoes ? `**Informações Adicionais:** ${data.informacoes}` : ""}
 Forneça análise técnica completa sobre sustentabilidade, riscos, oportunidades e recomendações para esta região e atividade.`;
       } 
       else if (tool === "simulador-confinamento") {
-        const ganhoTotal = data.pesoFinal - data.pesoInicial;
-        const diasNecessarios = Math.ceil(ganhoTotal / data.gmdEsperado);
-        const custoTotal = data.custoDiario * data.diasConfinamento;
-        const arrobasGanhas = ganhoTotal / 15;
-        const custoArroba = custoTotal / arrobasGanhas;
+        // Parâmetros básicos
+        const numeroAnimais = data.numeroAnimais || 1;
+        const pesoInicial = data.pesoInicial || 380;
+        const pesoFinal = data.pesoFinal || 520;
+        const diasConfinamento = data.diasConfinamento || 85;
+        const gmdEsperado = data.gmdEsperado || 1.65;
+        const mortalidade = data.mortalidade || 0.25;
+        const nivelSustentabilidade = data.nivelSustentabilidade || "convencional";
+        
+        // Parâmetros econômicos avançados (com defaults realistas)
+        const precoBoiMagro = data.precoBoiMagro || 260.00;
+        const pesoBoiMagroArrobas = data.pesoBoiMagroArrobas || (pesoInicial / 30);
+        const custoKgMS = data.custoKgMS || 2.05;
+        const consumoMSPercentual = data.consumoMSPercentual || 2.4;
+        const custoMaoObraDia = data.custoMaoObraDia || 0.42;
+        const custoSanidade = data.custoSanidade || 18.00;
+        const custoImplantacao = data.custoImplantacao || 12.00;
+        const custoDespesasGeraisDia = data.custoDespesasGeraisDia || 0.38;
+        const precoArrobaVenda = data.precoArrobaVenda || 255.00;
+        const bonificacaoCarcaca = data.bonificacaoCarcaca || 3.00;
+        const rendimentoCarcaca = data.rendimentoCarcaca || 53;
+        const conversaoAlimentar = data.conversaoAlimentar || 7.0;
+        const custoDiario = data.custoDiario || 0;
+        
+        // Cálculos zootécnicos
+        const ganhoTotal = pesoFinal - pesoInicial;
+        const animaisFinais = Math.round(numeroAnimais * (1 - mortalidade / 100));
+        const arrobasGanhas = ganhoTotal / 30;
+        const arrobasFinal = pesoFinal / 30 * (rendimentoCarcaca / 100);
+        const pesoMedioConfinamento = (pesoInicial + pesoFinal) / 2;
+        
+        // Cálculos de alimentação
+        const consumoMSDia = pesoMedioConfinamento * (consumoMSPercentual / 100);
+        const consumoMSTotal = consumoMSDia * diasConfinamento;
+        const custoAlimentacao = consumoMSTotal * custoKgMS;
+        
+        // Cálculos de custos operacionais
+        const custoMaoObra = custoMaoObraDia * diasConfinamento;
+        const custoDespesasGerais = custoDespesasGeraisDia * diasConfinamento;
+        const custoOperacional = custoMaoObra + custoSanidade + custoImplantacao + custoDespesasGerais;
+        
+        // Custo do boi de entrada
+        const custoBoiMagro = precoBoiMagro * pesoBoiMagroArrobas;
+        
+        // Custo total por cabeça
+        const custoTotalCabeca = custoBoiMagro + custoAlimentacao + custoOperacional;
+        
+        // Receita por cabeça
+        const precoVendaEfetivo = precoArrobaVenda + bonificacaoCarcaca;
+        const receitaCabeca = arrobasFinal * precoVendaEfetivo;
+        
+        // Margens
+        const margemLiquidaCabeca = receitaCabeca - custoTotalCabeca;
+        const margemLiquidaTotal = margemLiquidaCabeca * animaisFinais;
+        
+        // Custo de produção por arroba
+        const custoProducaoArroba = (custoAlimentacao + custoOperacional) / arrobasGanhas;
+        
+        // Break-even
+        const breakEvenArroba = custoTotalCabeca / arrobasFinal;
+        
+        // Cálculos de emissões de metano (IPCC Tier 2)
+        const fatoresEmissao: Record<string, number> = {
+          "convencional": 56,
+          "melhorado": 48,
+          "baixo_carbono": 35,
+          "carbono_neutro": 20
+        };
+        const fatorEmissao = fatoresEmissao[nivelSustentabilidade] || 56;
+        const ch4PorAnimal = fatorEmissao * (diasConfinamento / 365);
+        const co2Equivalente = ch4PorAnimal * 28;
+        const ch4Total = ch4PorAnimal * animaisFinais;
+        
+        systemPrompt = `Você é um consultor especializado em pecuária de corte sustentável e confinamento bovino no Brasil, com expertise em análise econômica, zootécnica e ambiental.
 
-        systemPrompt = `Você é um especialista em pecuária de corte sustentável e confinamento bovino.
-Analise dados de confinamento e forneça projeções técnicas sobre desempenho, custos e emissões.
+REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:
+- NUNCA use asteriscos (*) ou hashtags (#)
+- Use apenas marcadores simples: • ou -
+- Títulos de seção em MAIÚSCULAS seguidos de dois-pontos
+- Números sempre formatados com unidades (kg, R$, %, dias)
+- Tabelas quando apropriado para comparativos
+- Parágrafos curtos e objetivos
 
-ESTRUTURA DA RESPOSTA:
-1. **SÍNTESE EXECUTIVA** - Resumo do cenário simulado
-2. **PROJEÇÕES ZOOTÉCNICAS**
-   - Peso projetado final
-   - GMD ajustado
-   - Conversão alimentar estimada
-3. **ANÁLISE ECONÔMICA**
-   - Custo por arroba
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+
+1. SÍNTESE EXECUTIVA
+   - Resumo do cenário simulado (3-4 linhas)
+   - Conclusão sobre viabilidade (LUCRATIVO/DEFICITÁRIO)
+
+2. DADOS DO PRODUTOR E OPERAÇÃO
+   - Localização e finalidade
+   - Número de animais, categoria, período
+
+3. PROJEÇÕES ZOOTÉCNICAS
+   - Peso entrada vs saída
+   - GMD projetado e realizado
+   - Conversão alimentar
+   - Mortalidade esperada e animais finais
+   - Rendimento de carcaça
+
+4. ANÁLISE ECONÔMICA DETALHADA
+   
+   4.1 CUSTOS DE ENTRADA:
+   - Custo do boi magro (por cabeça)
+   
+   4.2 CUSTOS DE ALIMENTAÇÃO:
+   - Consumo de MS diário e total
+   - Custo de alimentação por cabeça
+   
+   4.3 CUSTOS OPERACIONAIS:
+   - Mão de obra
+   - Sanidade
+   - Implantação
+   - Despesas gerais
+   - Total operacional
+   
+   4.4 ANÁLISE DE RESULTADO:
    - Custo total por cabeça
-   - Ponto de equilíbrio
-4. **ANÁLISE DE EMISSÕES**
-   - CH₄ estimado (kg/animal)
-   - CO₂ equivalente
-   - Comparativo por nível de sustentabilidade
-5. **RECOMENDAÇÕES TÉCNICAS**
-   - Estratégias para eficiência
+   - Receita bruta por cabeça
+   - Margem líquida por cabeça
+   - Margem líquida total do lote
+   - Custo de produção por arroba
+   - Break-even da arroba
+
+5. ANÁLISE DE SENSIBILIDADE
+   - Cenário 1: CA piorando para 7.8
+   - Cenário 2: Preço da arroba caindo para R$ 245
+   - Impacto na margem em cada cenário
+
+6. ANÁLISE DE EMISSÕES E SUSTENTABILIDADE
+   - CH4 estimado (kg/animal/período)
+   - CO2 equivalente
+   - Comparativo com outros níveis de sustentabilidade
+   - Potencial de créditos de carbono
+
+7. VIABILIDADE COM GIROS ANUAIS
+   - Projeção para 3 ciclos/ano
+   - Rotatividade de curral
+   - Lucratividade anual estimada
+
+8. RECOMENDAÇÕES TÉCNICAS
+   - Estratégias para melhorar eficiência
    - Redução de metano
    - Manejo sustentável
+   - Alternativas nutricionais
 
-${plan === "free" ? "IMPORTANTE: Este é um usuário do plano FREE. Forneça apenas SÍNTESE EXECUTIVA e valores básicos de custo/arroba e emissões (máx 150 palavras). Indique que análises detalhadas estão disponíveis nos planos Pro/Enterprise." : ""}
-${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todos os tópicos." : ""}
-${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise completa com modelagem comparativa entre cenários e recomendações estratégicas consultivas." : ""}
+9. REFERÊNCIAS TÉCNICAS
+   - Embrapa Gado de Corte
+   - IPCC (Tier 2 para emissões)
+   - CEPEA/Esalq
+   - ABIEC
 
-Use referências técnicas (Embrapa, IPCC Tier 2, literatura científica).`;
+${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Forneça apenas SÍNTESE EXECUTIVA, valores básicos de custo/arroba, margem e conclusão sobre viabilidade (máx 200 palavras). Indique que análises detalhadas estão disponíveis nos planos Pro/Enterprise." : ""}
+${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todos os 9 tópicos detalhados." : ""}
+${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise completa ultra-detalhada com modelagem comparativa entre cenários, análise de sensibilidade avançada, projeções para múltiplos ciclos e recomendações estratégicas consultivas." : ""}`;
 
-        userPrompt = `Simule um confinamento sustentável com os seguintes parâmetros:
+        userPrompt = `Realize uma SIMULAÇÃO COMPLETA DE CONFINAMENTO com os seguintes parâmetros:
 
-**Categoria Animal:** ${data.categoria}
-**Peso Inicial:** ${data.pesoInicial} kg
-**Peso Final Desejado:** ${data.pesoFinal} kg
-**Dias de Confinamento:** ${data.diasConfinamento} dias
-**GMD Esperado:** ${data.gmdEsperado} kg/dia
-**Custo Diário da Dieta:** R$ ${data.custoDiario}/cab
-**Mortalidade Esperada:** ${data.mortalidade}%
-**Nível de Sustentabilidade:** ${data.nivelSustentabilidade}
+DADOS DO PRODUTOR:
+• Nome: ${data.nomeProdutor || "Produtor"}
+• Estado: ${data.estado || "Não informado"}
+• Município: ${data.municipio || "Não informado"}
+• Finalidade: ${data.finalidade || "Engorda intensiva em confinamento"}
 
-**Cálculos preliminares:**
-- Ganho total necessário: ${ganhoTotal} kg
-- Dias necessários para atingir GMD: ${diasNecessarios} dias
-- Custo total estimado: R$ ${custoTotal.toFixed(2)}/cab
-- Arrobas ganhas: ${arrobasGanhas.toFixed(2)}@
-- Custo por arroba (estimado): R$ ${custoArroba.toFixed(2)}/@
+DADOS DO CONFINAMENTO:
+• Número de animais na entrada: ${numeroAnimais} cabeças
+• Categoria: ${data.categoria || "Bovinos machos – Nelore, 24 meses"}
+• Peso médio inicial: ${pesoInicial} kg
+• Peso médio de saída desejado: ${pesoFinal} kg
+• Período de confinamento: ${diasConfinamento} dias
+• GMD estimado: ${gmdEsperado} kg/dia
+• Conversão alimentar: ${conversaoAlimentar}:1
+• Rendimento de carcaça: ${rendimentoCarcaca}%
+• Mortalidade esperada: ${mortalidade}%
 
-Forneça análise técnica completa sobre projeções de desempenho, custos, emissões e recomendações sustentáveis.`;
+CUSTOS DO CONFINAMENTO:
+• Custo do boi magro: R$ ${precoBoiMagro}/@ (${pesoBoiMagroArrobas.toFixed(1)}@)
+• Custo do kg de MS: R$ ${custoKgMS}
+• Consumo médio de MS: ${consumoMSPercentual}% PV/dia
+• Mão de obra: R$ ${custoMaoObraDia}/cab/dia
+• Sanidade: R$ ${custoSanidade}/cab
+• Implantação: R$ ${custoImplantacao}/cab
+• Despesas gerais: R$ ${custoDespesasGeraisDia}/cab/dia
+• Preço arroba venda: R$ ${precoArrobaVenda}/@
+• Bonificação carcaça: R$ ${bonificacaoCarcaca}/@
+
+NÍVEL DE SUSTENTABILIDADE: ${nivelSustentabilidade}
+
+CÁLCULOS PRELIMINARES (para referência):
+• Ganho total por animal: ${ganhoTotal} kg
+• Animais finais (após mortalidade): ${animaisFinais} cabeças
+• Arrobas ganhas por animal: ${arrobasGanhas.toFixed(2)}@
+• Arrobas de carcaça final: ${arrobasFinal.toFixed(2)}@
+• Peso médio no confinamento: ${pesoMedioConfinamento.toFixed(0)} kg
+• Consumo MS diário: ${consumoMSDia.toFixed(2)} kg
+• Consumo MS total: ${consumoMSTotal.toFixed(2)} kg
+• Custo alimentação: R$ ${custoAlimentacao.toFixed(2)}/cab
+• Custo operacional: R$ ${custoOperacional.toFixed(2)}/cab
+• Custo boi magro: R$ ${custoBoiMagro.toFixed(2)}/cab
+• Custo total: R$ ${custoTotalCabeca.toFixed(2)}/cab
+• Receita bruta: R$ ${receitaCabeca.toFixed(2)}/cab
+• Margem líquida/cab: R$ ${margemLiquidaCabeca.toFixed(2)}
+• Margem líquida total: R$ ${margemLiquidaTotal.toFixed(2)}
+• Custo produção/arroba: R$ ${custoProducaoArroba.toFixed(2)}/@
+• Break-even arroba: R$ ${breakEvenArroba.toFixed(2)}/@
+• CH4/animal (período): ${ch4PorAnimal.toFixed(2)} kg
+• CO2 equivalente/animal: ${co2Equivalente.toFixed(2)} kg
+• CH4 total do lote: ${ch4Total.toFixed(2)} kg
+
+ANÁLISES SOLICITADAS:
+1. Avaliar rentabilidade do confinamento
+2. Simular impacto de: CA piorando para 7.8 e preço arroba caindo para R$ 245
+3. Gerar recomendações técnicas
+4. Gerar recomendações de mitigação de metano
+5. Avaliar viabilidade com 3 giros anuais
+6. Informar se o confinamento é LUCRATIVO ou DEFICITÁRIO
+
+Forneça análise técnica completa seguindo a estrutura obrigatória.`;
       }
       else if (tool === "analise-produtiva") {
         systemPrompt = `Você é um consultor zootécnico especializado em eficiência produtiva e econômica de sistemas agropecuários.
