@@ -5,14 +5,19 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Leaf, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { UFS, useCrmvValidation } from "@/hooks/useCrmvValidation";
 
 const IdentificadorPlantas = () => {
   const { toast } = useToast();
+  const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
   const [isProfessional, setIsProfessional] = useState<string>("");
+  const [councilNumber, setCouncilNumber] = useState("");
+  const [councilUF, setCouncilUF] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState<string>("");
   const [result, setResult] = useState("");
@@ -42,6 +47,12 @@ const IdentificadorPlantas = () => {
       return;
     }
 
+    // Validate council number for professionals
+    if (isProfessional === "sim") {
+      const validation = validateAndNotify(true, councilNumber, councilUF);
+      if (!validation.isValid) return;
+    }
+
     if (!image && !description.trim()) {
       toast({
         title: "Campos obrigatórios",
@@ -59,6 +70,8 @@ const IdentificadorPlantas = () => {
           images: image ? [image] : [],
           description: description || "Sem descrição adicional",
           isProfessional: isProfessional === "sim",
+          councilNumber: isProfessional === "sim" ? councilNumber : undefined,
+          councilUF: isProfessional === "sim" ? councilUF : undefined,
         },
       });
 
@@ -105,20 +118,49 @@ const IdentificadorPlantas = () => {
           <CardHeader>
             <CardTitle>Identificação</CardTitle>
             <CardDescription>
-              Informe se você é um profissional da área veterinária
+              Informe se você é um profissional da área
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <RadioGroup value={isProfessional} onValueChange={setIsProfessional}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="sim" id="prof-sim" />
-                <Label htmlFor="prof-sim">Sou profissional da área veterinária</Label>
+                <Label htmlFor="prof-sim">Sou profissional da área</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="nao" id="prof-nao" />
                 <Label htmlFor="prof-nao">Não sou profissional da área</Label>
               </div>
             </RadioGroup>
+
+            {isProfessional === "sim" && (
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div className="space-y-2">
+                  <Label htmlFor="councilNumber">Número do Conselho *</Label>
+                  <Input
+                    id="councilNumber"
+                    placeholder="Ex: 12345"
+                    value={councilNumber}
+                    onChange={(e) => setCouncilNumber(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="councilUF">UF *</Label>
+                  <Select value={councilUF} onValueChange={setCouncilUF}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UFS.map((uf) => (
+                        <SelectItem key={uf} value={uf}>
+                          {uf}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
