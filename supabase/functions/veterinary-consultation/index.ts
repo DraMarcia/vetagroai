@@ -1063,6 +1063,65 @@ ${objetivo ? `OBJETIVO: ${objetivo}` : ""}
 
 Gere o relatório seguindo RIGOROSAMENTE a estrutura definida. Texto 100% justificado, sem markdown, títulos em MAIÚSCULAS.`;
       }
+      else if (tool === "identificador-plantas") {
+        const isProfessional = requestBody.isProfessional === true;
+        const description = requestBody.description || "";
+        const images = requestBody.images || [];
+        
+        systemPrompt = `Você é um especialista em botânica e toxicologia veterinária da plataforma VetAgro Sustentável AI.
+
+OBJETIVO: Identificar plantas a partir de imagens ou descrições e avaliar sua toxicidade para animais domésticos e de produção.
+
+REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:
+• SEM asteriscos, hashtags, emojis ou markdown
+• Bullets apenas com • ou –
+• Títulos em MAIÚSCULAS seguidos de dois-pontos
+• Texto 100% justificado
+• Parágrafos contínuos sem quebras desnecessárias
+
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+
+1) IDENTIFICAÇÃO DA PLANTA:
+   • Nome popular
+   • Nome científico
+   • Família botânica
+   • Características morfológicas observadas
+
+2) ANÁLISE DE TOXICIDADE:
+   • Princípios tóxicos (se houver)
+   • Partes tóxicas da planta
+   • Espécies animais susceptíveis
+   • Dose tóxica estimada (quando conhecida)
+
+3) SINAIS CLÍNICOS DE INTOXICAÇÃO:
+   • Sinais iniciais
+   • Sinais avançados
+   • Tempo de manifestação
+
+4) CONDUTA RECOMENDADA:
+   ${isProfessional ? `• Tratamento de suporte
+   • Antídotos específicos (se existirem)
+   • Monitoramento recomendado` : `• Orientações gerais de segurança
+   • Quando procurar atendimento veterinário`}
+
+5) PREVENÇÃO:
+   • Medidas para evitar acesso dos animais
+   • Alternativas seguras de paisagismo
+
+6) REFERÊNCIAS TÉCNICAS:
+   • Sempre citar: Embrapa, Manual de Plantas Tóxicas (Tokarnia), CEVAP, literatura científica
+
+7) AVISO FINAL:
+   ${isProfessional ? "Este relatório é de apoio técnico. A confirmação diagnóstica requer avaliação clínica e laboratorial." : "⚠️ Esta é uma identificação preliminar. Para segurança do seu animal, consulte um médico veterinário antes de qualquer ação."}`;
+
+        userPrompt = `Identifique a planta e avalie sua toxicidade:
+
+DESCRIÇÃO FORNECIDA: ${description || "Não fornecida - analisar pela imagem"}
+
+${images.length > 0 ? `IMAGENS ANEXADAS: ${images.length} imagem(ns) para análise` : "Nenhuma imagem anexada"}
+
+Forneça identificação e análise de toxicidade seguindo rigorosamente a estrutura definida.`;
+      }
       else {
         throw new Error("Tool not supported: " + tool);
       }

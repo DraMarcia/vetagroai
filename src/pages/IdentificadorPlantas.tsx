@@ -53,18 +53,18 @@ const IdentificadorPlantas = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-equine", {
+      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
+          tool: "identificador-plantas",
           images: image ? [image] : [],
-          breed: "Identificação de planta",
-          age: description || "Sem descrição adicional",
-          purpose: "Identificação e análise de toxicidade para animais",
+          description: description || "Sem descrição adicional",
+          isProfessional: isProfessional === "sim",
         },
       });
 
       if (error) throw error;
 
-      let finalResult = data.resenha;
+      let finalResult = data.answer;
       if (isProfessional === "nao") {
         finalResult += "\n\n⚠️ Esta é uma identificação preliminar. Para segurança do seu animal, consulte um médico veterinário antes de qualquer ação.";
       }
