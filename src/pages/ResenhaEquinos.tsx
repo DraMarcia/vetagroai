@@ -12,6 +12,7 @@ import { UFS } from "@/hooks/useCrmvValidation";
 import jsPDF from "jspdf";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
 import { saveAs } from "file-saver";
+import { cleanTextForPDF } from "@/lib/textUtils";
 
 const ResenhaEquinos = () => {
   const { toast } = useToast();
@@ -375,7 +376,10 @@ NOTA INSTITUCIONAL
       contentWithInstitutional = cleanContent + getInstitutionalBlock();
     }
     
-    const lines = doc.splitTextToSize(contentWithInstitutional, maxWidth);
+    // Apply aggressive PDF cleaning to prevent bugs
+    const cleanedForPDF = cleanTextForPDF(contentWithInstitutional);
+    
+    const lines = doc.splitTextToSize(cleanedForPDF, maxWidth);
     lines.forEach((line: string) => {
       if (yPosition > pageHeight - 40) {
         doc.addPage();
@@ -383,7 +387,7 @@ NOTA INSTITUCIONAL
       }
       
       // Destacar títulos de seções
-      if (line.match(/^(MORFOLOGIA|PELAGEM|CONDIÇÃO|PONTOS|OBSERVAÇÕES|CONCLUSÃO|NOTA INSTITUCIONAL)/i)) {
+      if (line.match(/^(MORFOLOGIA|PELAGEM|CONDICAO|PONTOS|OBSERVACOES|CONCLUSAO|NOTA INSTITUCIONAL)/i)) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         yPosition += 3;
@@ -392,6 +396,7 @@ NOTA INSTITUCIONAL
         doc.setFontSize(10);
       }
       
+      // Left-aligned text (no justification to prevent letter-spacing bugs)
       doc.text(line, margin, yPosition);
       yPosition += 5;
     });
