@@ -404,6 +404,7 @@ function removeDuplicateSections(text: string): string {
 /**
  * CRITICAL: Pre-process continuous text to add line breaks before section titles
  * This handles AI responses that come without proper line breaks
+ * MUST be aggressive to ensure PDF formatting works correctly
  */
 export function preprocessContinuousText(text: string): string {
   if (!text) return '';
@@ -457,24 +458,45 @@ export function preprocessContinuousText(text: string): string {
     'MANEJO SUSTENTÁVEL',
     'MANEJO SUSTENTAVEL',
     'ALTERNATIVAS NUTRICIONAIS',
+    'ANALISE DE SUSTENTABILIDADE',
+    'ANÁLISE DE SUSTENTABILIDADE',
+    'EMISSOES E SUSTENTABILIDADE',
+    'EMISSÕES E SUSTENTABILIDADE',
   ];
   
+  // STEP 1: Add space before section keywords that are stuck to previous word
+  // Example: "DEFICITÁRIODados do produtor" -> "DEFICITÁRIO Dados do produtor"
   for (const keyword of sectionKeywords) {
-    // Add line breaks before section keywords (case insensitive)
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Match lowercase letter or number directly followed by keyword (no space)
+    const stuckRegex = new RegExp(`([a-záéíóúâêôãõç0-9])(${escapedKeyword})`, 'gi');
+    processed = processed.replace(stuckRegex, '$1\n\n$2');
+  }
+  
+  // STEP 2: Add line breaks before section keywords (normal case with space before)
+  for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`([^\\n])\\s*(${escapedKeyword})`, 'gi');
     processed = processed.replace(regex, '$1\n\n$2');
   }
   
-  // Add line breaks before numbered subsections like "4.1", "4.2", etc.
-  processed = processed.replace(/([^\\n])(\d+\.\d+\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
+  // STEP 3: Add line breaks before numbered subsections like "4.1 CUSTOS", "4.2 CUSTOS"
+  processed = processed.replace(/([^\\n\d])(\d+\.\d+\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
   
-  // Add line breaks before bullet points that are stuck to previous text
+  // STEP 4: Add line breaks before bullet points that are stuck to previous text
   processed = processed.replace(/([.!?:])(\s*)(-\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$3');
   processed = processed.replace(/([a-záéíóúâêôãõç])(-\s+[A-Z])/gi, '$1\n$2');
   
-  // Fix bullet points that are stuck together (ending with period followed by dash)
+  // STEP 5: Fix bullet points that are stuck together (ending with period followed by dash)
   processed = processed.replace(/(\.)(-\s+)/g, '.\n$2');
+  
+  // STEP 6: Add line breaks after colon followed by section content
+  // Example: "SÍNTESE EXECUTIVA:A simulação" -> "SÍNTESE EXECUTIVA:\nA simulação"
+  processed = processed.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,}):([A-Za-z])/g, '$1:\n$2');
+  
+  // STEP 7: Ensure bullet points are on separate lines
+  // Match: "...texto.- Localização:" -> "...texto.\n- Localização:"
+  processed = processed.replace(/([.!?])(-\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$2');
   
   // Clean up multiple line breaks
   processed = processed.replace(/\n{3,}/g, '\n\n');
@@ -551,6 +573,10 @@ export function cleanTextForPDF(text: string): string {
   
   let cleaned = text;
   
+  // CRITICAL STEP 0: Pre-process continuous text FIRST to add line breaks
+  // This MUST happen before any other processing to ensure proper structure
+  cleaned = preprocessContinuousText(cleaned);
+  
   // Step 1: AGGRESSIVE removal of decorative patterns
   cleaned = removeDecorativePatterns(cleaned);
   
@@ -571,7 +597,7 @@ export function cleanTextForPDF(text: string): string {
   // Step 6: Convert markdown tables to aligned lists
   cleaned = convertMarkdownTableToList(cleaned);
   
-  // Step 7: Apply standard display cleaning
+  // Step 7: Apply standard display cleaning (includes preprocessContinuousText again for safety)
   cleaned = cleanTextForDisplay(cleaned);
   
   // Step 8: Convert chemical formulas to ASCII (NO subscripts)
@@ -595,10 +621,14 @@ export function cleanTextForPDF(text: string): string {
   cleaned = fixLetterSpacing(cleaned);
   cleaned = fixSpacedNumbers(cleaned);
   
-  // Step 14: Clean up whitespace
+  // Step 14: Apply preprocessContinuousText ONE MORE TIME to catch any remaining stuck sections
+  cleaned = preprocessContinuousText(cleaned);
+  
+  // Step 15: Clean up whitespace (but preserve line breaks)
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   cleaned = cleaned.replace(/  +/g, ' ');
-  cleaned = cleaned.replace(/^\s+/gm, '');
+  // DON'T remove leading whitespace from lines - it breaks indentation
+  // cleaned = cleaned.replace(/^\s+/gm, '');
   
   return cleaned.trim();
 }
