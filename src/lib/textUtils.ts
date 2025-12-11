@@ -402,12 +402,96 @@ function removeDuplicateSections(text: string): string {
 }
 
 /**
+ * CRITICAL: Pre-process continuous text to add line breaks before section titles
+ * This handles AI responses that come without proper line breaks
+ */
+export function preprocessContinuousText(text: string): string {
+  if (!text) return '';
+  
+  let processed = text;
+  
+  // Known section title keywords - add line breaks before them
+  const sectionKeywords = [
+    'SÍNTESE EXECUTIVA',
+    'SINTESE EXECUTIVA',
+    'DADOS DO PRODUTOR',
+    'PROJEÇÕES ZOOTÉCNICAS',
+    'PROJECOES ZOOTECNICAS',
+    'ANÁLISE ECONÔMICA',
+    'ANALISE ECONOMICA',
+    'ANÁLISE DE SENSIBILIDADE',
+    'ANALISE DE SENSIBILIDADE',
+    'ANÁLISE DE EMISSÕES',
+    'ANALISE DE EMISSOES',
+    'VIABILIDADE COM GIROS',
+    'RECOMENDAÇÕES TÉCNICAS',
+    'RECOMENDACOES TECNICAS',
+    'REFERÊNCIAS TÉCNICAS',
+    'REFERENCIAS TECNICAS',
+    'IDENTIFICAÇÃO DO CASO',
+    'IDENTIFICACAO DO CASO',
+    'AVALIAÇÃO CLÍNICA',
+    'DIAGNÓSTICOS DIFERENCIAIS',
+    'EXAMES COMPLEMENTARES',
+    'CLASSIFICAÇÃO DE URGÊNCIA',
+    'RECOMENDAÇÕES PRÁTICAS',
+    'CONSIDERAÇÕES FINAIS',
+    'CONCLUSÃO TÉCNICA',
+    'ALERTA LEGAL',
+    'AVISO LEGAL',
+    'REFERÊNCIAS CONSULTADAS',
+    'CUSTOS DE ENTRADA',
+    'CUSTOS DE ALIMENTAÇÃO',
+    'CUSTOS OPERACIONAIS',
+    'ANALISE DE RESULTADO',
+    'CENÁRIO BASE',
+    'CENARIO BASE',
+    'CENÁRIO 1',
+    'CENARIO 1',
+    'CENÁRIO 2',
+    'CENARIO 2',
+    'ESTRATÉGIAS PARA MELHORAR',
+    'ESTRATEGIAS PARA MELHORAR',
+    'REDUÇÃO DE METANO',
+    'REDUCAO DE METANO',
+    'MANEJO SUSTENTÁVEL',
+    'MANEJO SUSTENTAVEL',
+    'ALTERNATIVAS NUTRICIONAIS',
+  ];
+  
+  for (const keyword of sectionKeywords) {
+    // Add line breaks before section keywords (case insensitive)
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`([^\\n])\\s*(${escapedKeyword})`, 'gi');
+    processed = processed.replace(regex, '$1\n\n$2');
+  }
+  
+  // Add line breaks before numbered subsections like "4.1", "4.2", etc.
+  processed = processed.replace(/([^\\n])(\d+\.\d+\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
+  
+  // Add line breaks before bullet points that are stuck to previous text
+  processed = processed.replace(/([.!?:])(\s*)(-\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$3');
+  processed = processed.replace(/([a-záéíóúâêôãõç])(-\s+[A-Z])/gi, '$1\n$2');
+  
+  // Fix bullet points that are stuck together (ending with period followed by dash)
+  processed = processed.replace(/(\.)(-\s+)/g, '.\n$2');
+  
+  // Clean up multiple line breaks
+  processed = processed.replace(/\n{3,}/g, '\n\n');
+  
+  return processed.trim();
+}
+
+/**
  * Master cleaning function for display
  */
 export function cleanTextForDisplay(text: string): string {
   if (!text) return '';
   
   let cleaned = text;
+  
+  // Step 0: Pre-process continuous text to add line breaks
+  cleaned = preprocessContinuousText(cleaned);
   
   // Step 1: Remove decorative patterns FIRST
   cleaned = removeDecorativePatterns(cleaned);

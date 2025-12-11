@@ -58,22 +58,109 @@ const extractTables = (text: string): { tables: { start: number; end: number; co
   return { tables };
 };
 
+/**
+ * Pre-process continuous text to add line breaks before section titles
+ * This handles AI responses that come without proper line breaks
+ */
+const preprocessContinuousText = (text: string): string => {
+  if (!text) return '';
+  
+  let processed = text;
+  
+  // Known section title patterns - add line breaks before them
+  const sectionKeywords = [
+    'SÍNTESE EXECUTIVA',
+    'SINTESE EXECUTIVA',
+    'DADOS DO PRODUTOR',
+    'PROJEÇÕES ZOOTÉCNICAS',
+    'PROJECOES ZOOTECNICAS',
+    'ANÁLISE ECONÔMICA',
+    'ANALISE ECONOMICA',
+    'ANÁLISE DE SENSIBILIDADE',
+    'ANALISE DE SENSIBILIDADE',
+    'ANÁLISE DE EMISSÕES',
+    'ANALISE DE EMISSOES',
+    'VIABILIDADE COM GIROS',
+    'RECOMENDAÇÕES TÉCNICAS',
+    'RECOMENDACOES TECNICAS',
+    'REFERÊNCIAS TÉCNICAS',
+    'REFERENCIAS TECNICAS',
+    'IDENTIFICAÇÃO DO CASO',
+    'IDENTIFICACAO DO CASO',
+    'AVALIAÇÃO CLÍNICA',
+    'DIAGNÓSTICOS DIFERENCIAIS',
+    'EXAMES COMPLEMENTARES',
+    'CLASSIFICAÇÃO DE URGÊNCIA',
+    'RECOMENDAÇÕES PRÁTICAS',
+    'CONSIDERAÇÕES FINAIS',
+    'CONCLUSÃO TÉCNICA',
+    'ALERTA LEGAL',
+    'AVISO LEGAL',
+    'REFERÊNCIAS CONSULTADAS',
+    'CUSTOS DE ENTRADA',
+    'CUSTOS DE ALIMENTAÇÃO',
+    'CUSTOS OPERACIONAIS',
+    'ANALISE DE RESULTADO',
+    'CENÁRIO BASE',
+    'CENARIO BASE',
+    'CENÁRIO 1',
+    'CENARIO 1',
+    'CENÁRIO 2',
+    'CENARIO 2',
+    'ESTRATÉGIAS PARA MELHORAR',
+    'ESTRATEGIAS PARA MELHORAR',
+    'REDUÇÃO DE METANO',
+    'REDUCAO DE METANO',
+    'MANEJO SUSTENTÁVEL',
+    'MANEJO SUSTENTAVEL',
+    'ALTERNATIVAS NUTRICIONAIS',
+  ];
+  
+  for (const keyword of sectionKeywords) {
+    // Add line breaks before section keywords (case insensitive)
+    const regex = new RegExp(`([^\\n])\\s*(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    processed = processed.replace(regex, '$1\n\n$2');
+  }
+  
+  // Add line breaks before numbered subsections like "4.1", "4.2", etc.
+  processed = processed.replace(/([^\\n])(\d+\.\d+\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
+  
+  // Add line breaks before bullet points that are stuck to previous text
+  processed = processed.replace(/([.!?:])(\s*)(-\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$3');
+  processed = processed.replace(/([a-záéíóúâêôãõç])(-\s+[A-Z])/gi, '$1\n$2');
+  
+  // Fix bullet points that are stuck together (ending with period followed by dash)
+  processed = processed.replace(/(\.)(-\s+)/g, '.\n$2');
+  
+  // Clean up multiple line breaks
+  processed = processed.replace(/\n{3,}/g, '\n\n');
+  
+  return processed.trim();
+};
+
 // Check if line is a section title (uppercase or ends with :)
 const isSectionTitle = (line: string): boolean => {
   const trimmed = line.trim();
-  // Lines that are mostly uppercase (>70%) and have at least 3 chars
-  const uppercaseRatio = (trimmed.replace(/[^A-ZÀ-Ü]/g, '').length) / trimmed.replace(/\s/g, '').length;
-  const isUppercase = uppercaseRatio > 0.7 && trimmed.length >= 3;
+  if (trimmed.length < 3 || trimmed.length > 100) return false;
+  
+  // Lines that are mostly uppercase (>60%) and have at least 3 chars
+  const uppercaseChars = (trimmed.match(/[A-ZÀ-Ü]/g) || []).length;
+  const totalChars = trimmed.replace(/[\s:]/g, '').length;
+  const uppercaseRatio = totalChars > 0 ? uppercaseChars / totalChars : 0;
+  const isUppercase = uppercaseRatio > 0.6 && totalChars >= 3;
+  
   // Lines ending with : that don't start with bullet
   const endsWithColon = trimmed.endsWith(':') && !trimmed.startsWith('•') && !trimmed.startsWith('-');
+  
   // Common section patterns
   const sectionPatterns = [
-    /^(IDENTIFICAÇÃO|ANÁLISE|DIAGNÓSTICO|RECOMENDAÇÕES|REFERÊNCIAS|CONCLUSÃO|RESUMO|SÍNTESE|PROJEÇÃO|CUSTOS|EMISSÕES|RESULTADOS|METODOLOGIA|PARÂMETROS|INDICADORES|VIABILIDADE|CENÁRIOS|OBSERVAÇÕES|ALERTAS|CONSIDERAÇÕES)/i,
-    /^(\d+\.\s*[A-ZÀ-Ü])/,
+    /^(IDENTIFICAÇÃO|ANÁLISE|DIAGNÓSTICO|RECOMENDAÇÕES|REFERÊNCIAS|CONCLUSÃO|RESUMO|SÍNTESE|PROJEÇÃO|CUSTOS|EMISSÕES|RESULTADOS|METODOLOGIA|PARÂMETROS|INDICADORES|VIABILIDADE|CENÁRIOS|OBSERVAÇÕES|ALERTAS|CONSIDERAÇÕES|DADOS|MANEJO|ESTRATÉGIAS|ALTERNATIVAS|REDUÇÃO)/i,
+    /^\d+\.\s*[A-ZÀ-Ü]/,
+    /^\d+\.\d+\s+[A-ZÀ-Ü]/,
   ];
   const matchesPattern = sectionPatterns.some(p => p.test(trimmed));
   
-  return (isUppercase || endsWithColon || matchesPattern) && trimmed.length < 100;
+  return isUppercase || endsWithColon || matchesPattern;
 };
 
 // Check if line is a subsection title
@@ -82,10 +169,11 @@ const isSubsectionTitle = (line: string): boolean => {
   // Lines that start with number followed by dot and text
   if (/^\d+\.\d+\.?\s+\w/.test(trimmed)) return true;
   // Lines that have title case and end with :
-  if (trimmed.endsWith(':') && trimmed.length < 80) return true;
+  if (trimmed.endsWith(':') && trimmed.length < 80 && /^[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(trimmed)) return true;
   // Lines starting with specific keywords
   const subsectionPatterns = [
-    /^(Nota:|Importante:|Atenção:|Observação:|Dica:|Alerta:)/i,
+    /^(Nota:|Importante:|Atenção:|Observação:|Dica:|Alerta:|OBS:)/i,
+    /^(Cenário\s+\d+|Scenario)/i,
   ];
   return subsectionPatterns.some(p => p.test(trimmed));
 };
@@ -108,6 +196,9 @@ interface MarkdownTableRendererProps {
 }
 
 export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ content, className = "" }) => {
+  // Pre-process the content to add line breaks before section titles
+  const processedContent = preprocessContinuousText(content);
+  
   const renderTable = (tableContent: string, key: string) => {
     const parsed = parseMarkdownTable(tableContent);
     if (!parsed) return null;
@@ -279,15 +370,15 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
   };
 
   // If content has tables, handle them specially
-  if (containsMarkdownTable(content)) {
-    const { tables } = extractTables(content);
+  if (containsMarkdownTable(processedContent)) {
+    const { tables } = extractTables(processedContent);
     const allParts: React.ReactNode[] = [];
     let lastIndex = 0;
 
     tables.forEach((table, tableIndex) => {
       // Add text before table
       if (table.start > lastIndex) {
-        const textBefore = content.slice(lastIndex, table.start);
+        const textBefore = processedContent.slice(lastIndex, table.start);
         if (textBefore.trim()) {
           allParts.push(
             <div key={`text-${tableIndex}`}>
@@ -303,8 +394,8 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
     });
 
     // Add remaining text after last table
-    if (lastIndex < content.length) {
-      const textAfter = content.slice(lastIndex);
+    if (lastIndex < processedContent.length) {
+      const textAfter = processedContent.slice(lastIndex);
       if (textAfter.trim()) {
         allParts.push(
           <div key="text-final">
@@ -320,7 +411,7 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
   // No tables - render structured content directly
   return (
     <div className={className}>
-      {renderStructuredContent(content)}
+      {renderStructuredContent(processedContent)}
     </div>
   );
 };
