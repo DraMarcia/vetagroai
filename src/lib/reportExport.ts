@@ -380,7 +380,7 @@ export async function exportToPDF(data: ReportData): Promise<void> {
             yPosition += 5;
           }
         }
-        // Regular paragraph - LEFT ALIGNED (no manual justification)
+        // Regular paragraph - clean left-aligned text with proper spacing
         else {
           const lines = doc.splitTextToSize(trimmedPara, maxWidth);
           for (const line of lines) {
@@ -388,10 +388,11 @@ export async function exportToPDF(data: ReportData): Promise<void> {
               addPageHeader();
               yPosition = 25;
             }
-            // Simple left-aligned text - prevents letter spacing bugs
             doc.text(line, margin, yPosition);
             yPosition += 5;
           }
+          // Add extra spacing after paragraphs for better readability
+          yPosition += 2;
         }
       }
       yPosition += 3;
@@ -688,7 +689,8 @@ export async function exportToDocx(data: ReportData): Promise<void> {
               })
             ],
             bullet: isBullet ? { level: 0 } : undefined,
-            spacing: { after: 80 }
+            alignment: isBullet ? AlignmentType.LEFT : AlignmentType.JUSTIFIED,
+            spacing: { after: 100 }
           })
         );
       }
