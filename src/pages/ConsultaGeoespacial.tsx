@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Sparkles, Loader2, FileText, Crown, Info } from "lucide-react";
+import { MapPin, Sparkles, Loader2, FileText, Crown, Info, Copy, Share2 } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
+import { ReportExporter } from "@/components/ReportExporter";
 
 const biomas = [
   "Amazônia",
@@ -20,6 +21,14 @@ const biomas = [
   "Caatinga",
   "Pampa",
   "Pantanal"
+];
+
+const perfisUsuario = [
+  { value: "produtor", label: "Produtor Rural" },
+  { value: "tecnico", label: "Técnico / Consultor (Vet, Zoo, Eng. Agrônomo)" },
+  { value: "pesquisador", label: "Pesquisador / Acadêmico" },
+  { value: "gestor", label: "Gestor Público / ESG" },
+  { value: "estudante", label: "Estudante" }
 ];
 
 const tiposProducao = [
@@ -42,12 +51,14 @@ const objetivosConsulta = [
   "Certificações ambientais aplicáveis",
   "Pagamento por Serviços Ambientais (PSA)",
   "Riscos e oportunidades regionais",
+  "Adequação ambiental e conformidade",
   "Outro (especificar)"
 ];
 
 const exemploConsultas = [
   {
     titulo: "Amazônia — ILPF para pecuária sustentável",
+    perfilUsuario: "produtor",
     bioma: "Amazônia",
     municipio: "Alta Floresta, MT",
     tipoProducao: "ILPF (Integração Lavoura-Pecuária-Floresta)",
@@ -56,6 +67,7 @@ const exemploConsultas = [
   },
   {
     titulo: "Cerrado — vulnerabilidade climática do pasto",
+    perfilUsuario: "tecnico",
     bioma: "Cerrado",
     municipio: "Rio Verde, GO",
     tipoProducao: "Pecuária de corte",
@@ -64,6 +76,7 @@ const exemploConsultas = [
   },
   {
     titulo: "Pantanal — PSA e manejo sustentável",
+    perfilUsuario: "gestor",
     bioma: "Pantanal",
     municipio: "Corumbá, MS",
     tipoProducao: "Pecuária de corte",
@@ -74,6 +87,7 @@ const exemploConsultas = [
 
 const ConsultaGeoespacial = () => {
   const { plan, useCredit, user, hasUnlimited, isLoading: subscriptionLoading } = useSubscription();
+  const [perfilUsuario, setPerfilUsuario] = useState("");
   const [bioma, setBioma] = useState("");
   const [municipio, setMunicipio] = useState("");
   const [tipoProducao, setTipoProducao] = useState("");
@@ -84,11 +98,32 @@ const ConsultaGeoespacial = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const carregarExemplo = (exemplo: typeof exemploConsultas[0]) => {
+    setPerfilUsuario(exemplo.perfilUsuario);
     setBioma(exemplo.bioma);
     setMunicipio(exemplo.municipio);
     setTipoProducao(exemplo.tipoProducao);
     setObjetivo(exemplo.objetivo);
     setInformacoes(exemplo.informacoes);
+  };
+
+  const handleCopyReport = () => {
+    if (resposta) {
+      navigator.clipboard.writeText(resposta);
+      toast.success("Relatório copiado para a área de transferência!");
+    }
+  };
+
+  const handleShare = () => {
+    if (navigator.share && resposta) {
+      navigator.share({
+        title: "Relatório de Consulta Geoespacial Sustentável - VetAgro AI",
+        text: resposta,
+      }).catch(() => {
+        handleCopyReport();
+      });
+    } else {
+      handleCopyReport();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,7 +134,7 @@ const ConsultaGeoespacial = () => {
       return;
     }
 
-    if (!bioma || !municipio || !tipoProducao || !objetivo) {
+    if (!perfilUsuario || !bioma || !municipio || !tipoProducao || !objetivo) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -122,6 +157,7 @@ const ConsultaGeoespacial = () => {
           tool: "consulta-geoespacial",
           plan,
           data: {
+            perfilUsuario,
             bioma,
             municipio,
             tipoProducao,
@@ -151,7 +187,7 @@ const ConsultaGeoespacial = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground">Consulta Geoespacial Sustentável</h1>
-              <p className="text-muted-foreground">Pergunte sobre biomas, regiões e práticas sustentáveis</p>
+              <p className="text-muted-foreground">Análise técnica de biomas, regiões e práticas sustentáveis</p>
             </div>
           </div>
 
@@ -161,9 +197,9 @@ const ConsultaGeoespacial = () => {
               <div className="flex items-start gap-3">
                 <Sparkles className="h-5 w-5 text-green-600 mt-0.5" />
                 <p className="text-sm text-muted-foreground">
-                  <strong>Você está usando inteligência aplicada à sustentabilidade.</strong> Cada análise 
-                  combina dados técnicos com recomendações práticas para operações mais eficientes, 
-                  lucrativas e responsáveis ambientalmente.
+                  <strong>Inteligência aplicada à sustentabilidade agropecuária.</strong> Esta ferramenta 
+                  combina dados técnicos de biomas brasileiros, legislação ambiental e recomendações práticas 
+                  para operações mais eficientes, lucrativas e responsáveis ambientalmente.
                 </p>
               </div>
             </CardContent>
@@ -175,10 +211,35 @@ const ConsultaGeoespacial = () => {
           <Card>
             <CardHeader>
               <CardTitle>Dados da Consulta</CardTitle>
-              <CardDescription>Preencha os campos para análise geoespacial</CardDescription>
+              <CardDescription>Preencha os campos para análise geoespacial personalizada</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Perfil do Usuário */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="perfilUsuario">Perfil do Usuário *</Label>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>A profundidade técnica e linguagem serão adaptadas ao seu perfil</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Select value={perfilUsuario} onValueChange={setPerfilUsuario}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione seu perfil" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {perfisUsuario.map((p) => (
+                        <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="bioma">Bioma *</Label>
@@ -205,7 +266,7 @@ const ConsultaGeoespacial = () => {
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="municipio">Município/Localização *</Label>
+                    <Label htmlFor="municipio">Município/Estado *</Label>
                     <Tooltip>
                       <TooltipTrigger>
                         <Info className="h-4 w-4 text-muted-foreground" />
@@ -296,12 +357,12 @@ const ConsultaGeoespacial = () => {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analisando...
+                      Analisando dados geoespaciais...
                     </>
                   ) : (
                     <>
                       <MapPin className="mr-2 h-4 w-4" />
-                      Realizar Consulta
+                      Gerar Relatório Geoespacial
                     </>
                   )}
                 </Button>
@@ -310,8 +371,9 @@ const ConsultaGeoespacial = () => {
               {/* Texto orientador */}
               <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                 <p className="text-xs text-muted-foreground">
-                  <strong>Como funciona:</strong> A IA analisará bioma, perfil produtivo e práticas sustentáveis 
-                  para gerar recomendações técnicas, riscos, oportunidades e possíveis incentivos ambientais.
+                  <strong>Como funciona:</strong> A IA analisará bioma, perfil produtivo, contexto ambiental 
+                  e práticas sustentáveis para gerar um relatório técnico completo com diagnóstico, 
+                  recomendações e oportunidades estratégicas.
                 </p>
               </div>
             </CardContent>
@@ -346,7 +408,7 @@ const ConsultaGeoespacial = () => {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <FileText className="h-5 w-5 text-green-600" />
-                    Resultado da Análise
+                    Relatório de Consulta Geoespacial Sustentável
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -354,6 +416,43 @@ const ConsultaGeoespacial = () => {
                     content={resposta}
                     className="prose prose-sm max-w-none dark:prose-invert text-sm"
                   />
+                  
+                  {/* Botões de ação */}
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleCopyReport}
+                      className="flex items-center gap-2"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copiar Relatório
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleShare}
+                      className="flex items-center gap-2"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Compartilhar
+                    </Button>
+
+                    <ReportExporter
+                      title="Consulta Geoespacial Sustentável"
+                      content={resposta}
+                      toolName="Consulta Geoespacial"
+                    />
+                  </div>
+
+                  {/* Mensagem de compartilhamento */}
+                  <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <p className="text-xs text-muted-foreground text-center">
+                      Este relatório pode ser compartilhado com técnicos, produtores ou gestores interessados 
+                      em sustentabilidade agropecuária. <strong>Compartilhar conhecimento fortalece a produção responsável.</strong>
+                    </p>
+                  </div>
                   
                   {plan === "free" && (
                     <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
