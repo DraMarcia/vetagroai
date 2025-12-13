@@ -413,6 +413,29 @@ export function preprocessContinuousText(text: string): string {
   
   // Known section title keywords - add line breaks before them
   const sectionKeywords = [
+    // Análise de Sustentabilidade specific sections
+    'PERFIL E CONTEXTO DO SISTEMA',
+    'DIAGNÓSTICO DE MATURIDADE SUSTENTÁVEL',
+    'DIAGNOSTICO DE MATURIDADE SUSTENTAVEL',
+    'PRINCIPAIS PONTOS FORTES',
+    'PRINCIPAIS GARGALOS E RISCOS',
+    'ROTEIRO DE EVOLUÇÃO SUSTENTÁVEL',
+    'ROTEIRO DE EVOLUCAO SUSTENTAVEL',
+    'OPORTUNIDADES ESTRATÉGICAS',
+    'OPORTUNIDADES ESTRATEGICAS',
+    'DIMENSÃO AMBIENTAL',
+    'DIMENSAO AMBIENTAL',
+    'DIMENSÃO PRODUTIVA',
+    'DIMENSAO PRODUTIVA',
+    'DIMENSÃO DE GESTÃO E GOVERNANÇA',
+    'DIMENSAO DE GESTAO E GOVERNANCA',
+    'AÇÕES IMEDIATAS',
+    'ACOES IMEDIATAS',
+    'AÇÕES DE MÉDIO PRAZO',
+    'ACOES DE MEDIO PRAZO',
+    'ESTRATÉGIAS ESTRUTURANTES',
+    'ESTRATEGIAS ESTRUTURANTES',
+    // Common sections
     'SÍNTESE EXECUTIVA',
     'SINTESE EXECUTIVA',
     'DADOS DO PRODUTOR',
@@ -441,6 +464,7 @@ export function preprocessContinuousText(text: string): string {
     'ALERTA LEGAL',
     'AVISO LEGAL',
     'REFERÊNCIAS CONSULTADAS',
+    'REFERENCIAS CONSULTADAS',
     'CUSTOS DE ENTRADA',
     'CUSTOS DE ALIMENTAÇÃO',
     'CUSTOS OPERACIONAIS',
@@ -462,44 +486,77 @@ export function preprocessContinuousText(text: string): string {
     'ANÁLISE DE SUSTENTABILIDADE',
     'EMISSOES E SUSTENTABILIDADE',
     'EMISSÕES E SUSTENTABILIDADE',
+    'CONTEXTO GEOESPACIAL E AMBIENTAL',
+    'DIAGNÓSTICO TÉCNICO',
+    'DIAGNOSTICO TECNICO',
+    'RECOMENDAÇÕES ORIENTADAS AO PERFIL',
+    'RECOMENDACOES ORIENTADAS AO PERFIL',
+    'RELATÓRIO DE ANÁLISE',
+    'RELATORIO DE ANALISE',
+    'BENEFÍCIO AMBIENTAL',
+    'BENEFICIO AMBIENTAL',
+    'BENEFÍCIO PRODUTIVO',
+    'BENEFICIO PRODUTIVO',
+    'BENEFÍCIO ECONÔMICO',
+    'BENEFICIO ECONOMICO',
   ];
   
-  // STEP 1: Add space before section keywords that are stuck to previous word
-  // Example: "DEFICITÁRIODados do produtor" -> "DEFICITÁRIO Dados do produtor"
+  // STEP 1: Add line breaks before numbered section patterns like "1.", "2.", "1.1.", "2.1."
+  // Match patterns like "texto1. Perfil" -> "texto\n\n1. Perfil"
+  processed = processed.replace(/([a-záéíóúâêôãõç,.!?])(\d+\.)\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2 $3');
+  
+  // Match patterns like "texto1.1. Perfil" or "texto1.2 Perfil"
+  processed = processed.replace(/([a-záéíóúâêôãõç,.!?])(\d+\.\d+\.?)\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2 $3');
+  
+  // STEP 2: Add space before section keywords that are stuck to previous word
+  // Example: "DEFICITÁRIODados do produtor" -> "DEFICITÁRIO\n\nDados do produtor"
   for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     // Match lowercase letter or number directly followed by keyword (no space)
-    const stuckRegex = new RegExp(`([a-záéíóúâêôãõç0-9])(${escapedKeyword})`, 'gi');
+    const stuckRegex = new RegExp(`([a-záéíóúâêôãõç0-9.,!?])\\s*(${escapedKeyword})`, 'gi');
     processed = processed.replace(stuckRegex, '$1\n\n$2');
   }
   
-  // STEP 2: Add line breaks before section keywords (normal case with space before)
+  // STEP 3: Add line breaks before section keywords (normal case with space before)
   for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`([^\\n])\\s*(${escapedKeyword})`, 'gi');
+    const regex = new RegExp(`([^\\n])\\s+(${escapedKeyword})`, 'gi');
     processed = processed.replace(regex, '$1\n\n$2');
   }
   
-  // STEP 3: Add line breaks before numbered subsections like "4.1 CUSTOS", "4.2 CUSTOS"
+  // STEP 4: Add line breaks before numbered subsections like "4.1 CUSTOS", "4.2 CUSTOS"
   processed = processed.replace(/([^\\n\d])(\d+\.\d+\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
   
-  // STEP 4: Add line breaks before bullet points that are stuck to previous text
+  // STEP 5: Add line breaks before bullet points that are stuck to previous text
   processed = processed.replace(/([.!?:])(\s*)(-\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$3');
   processed = processed.replace(/([a-záéíóúâêôãõç])(-\s+[A-Z])/gi, '$1\n$2');
   
-  // STEP 5: Fix bullet points that are stuck together (ending with period followed by dash)
+  // STEP 6: Fix bullet points that are stuck together (ending with period followed by dash)
   processed = processed.replace(/(\.)(-\s+)/g, '.\n$2');
   
-  // STEP 6: Add line breaks after colon followed by section content
+  // STEP 7: Add line breaks after colon followed by section content
   // Example: "SÍNTESE EXECUTIVA:A simulação" -> "SÍNTESE EXECUTIVA:\nA simulação"
   processed = processed.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,}):([A-Za-z])/g, '$1:\n$2');
   
-  // STEP 7: Ensure bullet points are on separate lines
+  // STEP 8: Ensure bullet points are on separate lines
   // Match: "...texto.- Localização:" -> "...texto.\n- Localização:"
   processed = processed.replace(/([.!?])(-\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$2');
   
+  // STEP 9: Add line breaks before "• Benefício" patterns
+  processed = processed.replace(/([.!?a-záéíóúâêôãõç])(\s*•\s*Benef[ií]cio)/gi, '$1\n$2');
+  
+  // STEP 10: Add line breaks after sentences ending with period followed by uppercase word
+  // This helps break up continuous paragraphs
+  processed = processed.replace(/(\.)([A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç])/g, '$1\n\n$2');
+  
+  // STEP 11: Ensure proper spacing between main sections (1., 2., 3., etc.)
+  processed = processed.replace(/(\d+)\.\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç\s]+)/g, '\n\n$1. $2');
+  
   // Clean up multiple line breaks
   processed = processed.replace(/\n{3,}/g, '\n\n');
+  
+  // Clean up leading line breaks
+  processed = processed.replace(/^\n+/, '');
   
   return processed.trim();
 }
