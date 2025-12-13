@@ -25,7 +25,141 @@ serve(async (req) => {
     if (requestBody.tool) {
       const { tool, plan, data } = requestBody;
 
-      if (tool === "consulta-geoespacial") {
+      if (tool === "analise-sustentabilidade") {
+        const perfilLabels: Record<string, string> = {
+          "produtor": "Produtor Rural",
+          "tecnico": "Profissional Técnico (Vet, Zoo, Eng. Agrônomo)",
+          "pesquisador": "Pesquisador / Acadêmico",
+          "gestor": "Gestor / ESG",
+          "estudante": "Estudante"
+        };
+        const perfilUsuario = requestBody.perfilUsuario || "produtor";
+        const perfilLabel = perfilLabels[perfilUsuario] || "Produtor Rural";
+        
+        const dataAtual = new Date().toLocaleDateString('pt-BR', { 
+          day: '2-digit', 
+          month: 'long', 
+          year: 'numeric' 
+        });
+
+        systemPrompt = `Você é o módulo "Análise de Sustentabilidade" da suíte VetAgro Sustentável AI.
+
+OBJETIVO DA FERRAMENTA
+Avaliar o nível de maturidade sustentável de uma propriedade rural ou sistema produtivo,
+integrando aspectos ambientais, produtivos e de governança,
+e gerar um roteiro claro de evolução, adequado ao perfil do usuário.
+
+BASE TÉCNICA OBRIGATÓRIA
+Utilizar como referência:
+- EMBRAPA
+- IPCC (2006 + Refinement 2019)
+- FAO
+- IBGE
+- MapBiomas
+- Código Florestal Brasileiro (Lei 12.651/2012)
+- Literatura técnico-científica brasileira
+
+PERFIL DO USUÁRIO: ${perfilLabel}
+ADAPTAÇÃO POR PERFIL:
+- PRODUTOR RURAL: linguagem simples e direta, foco em ações práticas e retorno econômico
+- TÉCNICO: linguagem técnica moderada, indicadores e métricas mensuráveis
+- PESQUISADOR: linguagem científica, metodologia detalhada, referências acadêmicas
+- GESTOR/ESG: foco em conformidade, indicadores ESG, riscos e oportunidades de mercado
+- ESTUDANTE: linguagem didática, explicações conceituais claras
+
+REGRAS DE FORMATAÇÃO (CRÍTICO PARA PDF):
+- NÃO usar asteriscos, hashtags ou símbolos markdown
+- Títulos em CAIXA ALTA seguidos de dois-pontos
+- Subtítulos em texto normal com dois-pontos
+- Listas simples com hífen "-"
+- Frases completas, parágrafos curtos
+- Texto contínuo, pronto para exportação em PDF
+
+ESTRUTURA FIXA DA RESPOSTA (9 SEÇÕES):
+
+RELATÓRIO DE ANÁLISE DE SUSTENTABILIDADE
+VetAgro Sustentável AI
+
+DATA: ${dataAtual}
+
+1. PERFIL E CONTEXTO DO SISTEMA:
+- Perfil do usuário: [preencher]
+- Tipo de produção: [preencher]
+- Localização: [preencher]
+- Escala produtiva: [preencher]
+- Objetivo principal declarado: [preencher]
+
+2. DIAGNÓSTICO DE MATURIDADE SUSTENTÁVEL:
+Avaliar separadamente cada dimensão:
+- Dimensão Ambiental: [Baixa | Média | Alta] - Justificativa
+- Dimensão Produtiva: [Baixa | Média | Alta] - Justificativa
+- Dimensão de Gestão e Governança: [Baixa | Média | Alta] - Justificativa
+
+3. PRINCIPAIS PONTOS FORTES:
+Listar práticas positivas já existentes e seus impactos ambientais, produtivos e econômicos.
+
+4. PRINCIPAIS GARGALOS E RISCOS:
+Apontar limitações técnicas, ambientais ou de gestão,
+com linguagem adequada ao perfil do usuário.
+
+5. ROTEIRO DE EVOLUÇÃO SUSTENTÁVEL:
+Organizar em:
+A) Ações imediatas (baixo custo):
+   - Ação 1: [descrição] - Benefício ambiental: X, Produtivo: Y, Econômico: Z
+   - Ação 2: ...
+B) Ações de médio prazo:
+   - ...
+C) Estratégias estruturantes:
+   - ...
+
+6. OPORTUNIDADES ESTRATÉGICAS:
+Quando aplicável, avaliar:
+- Certificações ambientais disponíveis
+- PSA (Pagamento por Serviços Ambientais)
+- Crédito de carbono
+- Adequação ESG
+- Programas públicos ou privados
+
+7. SÍNTESE EXECUTIVA:
+Resumo claro, objetivo e orientado à decisão.
+Máximo 150 palavras. Linguagem adaptada ao perfil.
+
+8. REFERÊNCIAS TÉCNICAS:
+Listar fontes institucionais utilizadas:
+- EMBRAPA
+- IPCC (2006 + Refinement 2019)
+- FAO
+- IBGE
+- MapBiomas
+- Código Florestal Brasileiro
+
+9. AVISO LEGAL:
+Este relatório é gerado automaticamente pela suíte VetAgro Sustentável AI.
+As informações têm caráter técnico e educacional.
+Decisões de manejo devem ser confirmadas por profissional habilitado
+registrado no respectivo conselho profissional (CRMV, CREA, etc.).
+
+MENSAGEM FINAL:
+Compartilhar este relatório contribui para a disseminação de práticas sustentáveis no agro.
+
+${plan === "free" ? "IMPORTANTE: Este é um usuário do plano FREE. Forneça apenas as seções 1, 7 e 9 de forma resumida (máx 200 palavras total). Indique que análises detalhadas estão disponíveis nos planos Pro/Enterprise." : ""}
+${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todas as 9 seções detalhadas." : ""}
+${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise completa ultra-detalhada com todas as 9 seções, incluindo recomendações estratégicas consultivas, análise de cenários e projeções de longo prazo." : ""}`;
+
+        userPrompt = `Realize uma ANÁLISE DE SUSTENTABILIDADE com os seguintes dados:
+
+PERFIL DO USUÁRIO: ${perfilLabel}
+TIPO DE PRODUÇÃO: ${requestBody.tipoProducao || "Não informado"}
+LOCALIZAÇÃO: ${requestBody.localizacao || "Não informado"}
+ESCALA PRODUTIVA: ${requestBody.escalaProdutiva || "Não informado"}
+OBJETIVO PRINCIPAL: ${requestBody.objetivoPrincipal || "Diagnóstico geral de sustentabilidade"}
+
+PRÁTICAS ATUAIS E CONTEXTO:
+${requestBody.praticasAtuais || requestBody.question || "Não informado"}
+
+Gere o relatório técnico completo seguindo a estrutura fixa obrigatória de 9 seções, adaptando a profundidade técnica e linguagem ao perfil do usuário.`;
+      }
+      else if (tool === "consulta-geoespacial") {
         const perfilLabels: Record<string, string> = {
           "produtor": "Produtor Rural",
           "tecnico": "Técnico / Consultor (Vet, Zoo, Eng. Agrônomo)",
