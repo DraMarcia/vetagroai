@@ -337,6 +337,28 @@ export async function exportToPDF(data: ReportData): Promise<void> {
           continue;
         }
         
+        // Check if this is a subsection title (like "2.1. Dimensão Ambiental")
+        const isSubsectionTitle = trimmedPara.match(/^\d+\.\d+\.?\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/);
+        const isSubsectionHeader = trimmedPara.match(/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+\s+(Ambiental|Produtiv|de Gestão|imediatas|de médio|estruturantes)/i);
+        
+        if (isSubsectionTitle || isSubsectionHeader) {
+          if (checkPageBreak(15)) {
+            addPageHeader();
+            yPosition = 25;
+          }
+          
+          yPosition += 6;
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(SUBTITLE_COLOR.r, SUBTITLE_COLOR.g, SUBTITLE_COLOR.b);
+          doc.text(trimmedPara, margin + 3, yPosition);
+          doc.setTextColor(0, 0, 0);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          yPosition += 8;
+          continue;
+        }
+        
         if (checkPageBreak(8)) {
           addPageHeader();
           yPosition = 25;
@@ -345,27 +367,50 @@ export async function exportToPDF(data: ReportData): Promise<void> {
         // Handle bullet points
         if (trimmedPara.startsWith("•") || trimmedPara.startsWith("-") || trimmedPara.startsWith("–")) {
           const bulletText = trimmedPara.replace(/^[•\-–]\s*/, '');
-          const lines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 8);
-          for (let i = 0; i < lines.length; i++) {
-            if (checkPageBreak(6)) {
-              addPageHeader();
-              yPosition = 25;
+          
+          // Check if this is a "Benefício" subitem
+          const isBeneficioItem = bulletText.match(/^Benef[ií]cio\s+(ambiental|produtivo|econ[oô]mico)/i);
+          
+          if (isBeneficioItem) {
+            // Indent benefício items more and use smaller font
+            doc.setFontSize(8);
+            const lines = doc.splitTextToSize(`  • ${bulletText}`, maxWidth - 15);
+            for (let i = 0; i < lines.length; i++) {
+              if (checkPageBreak(5)) {
+                addPageHeader();
+                yPosition = 25;
+              }
+              doc.text(lines[i], margin + 8, yPosition);
+              yPosition += 4.5;
             }
-            doc.text(lines[i], margin + (i === 0 ? 3 : 6), yPosition);
-            yPosition += 5;
+            doc.setFontSize(9);
+          } else {
+            const lines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 8);
+            for (let i = 0; i < lines.length; i++) {
+              if (checkPageBreak(6)) {
+                addPageHeader();
+                yPosition = 25;
+              }
+              doc.text(lines[i], margin + (i === 0 ? 3 : 6), yPosition);
+              yPosition += 5;
+            }
           }
         }
-        // Handle numbered items
-        else if (trimmedPara.match(/^\d+\./)) {
+        // Handle numbered items (like "5.1. Ações imediatas")
+        else if (trimmedPara.match(/^\d+\.\d*\.?\s/)) {
+          yPosition += 4;
+          doc.setFont("helvetica", "bold");
           const lines = doc.splitTextToSize(trimmedPara, maxWidth - 8);
           for (let i = 0; i < lines.length; i++) {
             if (checkPageBreak(6)) {
               addPageHeader();
               yPosition = 25;
             }
-            doc.text(lines[i], margin + (i === 0 ? 3 : 8), yPosition);
+            doc.text(lines[i], margin + (i === 0 ? 0 : 8), yPosition);
             yPosition += 5;
           }
+          doc.setFont("helvetica", "normal");
+          yPosition += 3;
         }
         // Handle arrows
         else if (trimmedPara.startsWith("->") || trimmedPara.includes("->")) {
@@ -392,10 +437,10 @@ export async function exportToPDF(data: ReportData): Promise<void> {
             yPosition += 5;
           }
           // Add extra spacing after paragraphs for better readability
-          yPosition += 2;
+          yPosition += 3;
         }
       }
-      yPosition += 3;
+      yPosition += 5;
     }
   }
   
