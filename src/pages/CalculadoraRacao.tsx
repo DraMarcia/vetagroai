@@ -12,10 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calculator, Loader2, Copy, CheckCircle2 } from "lucide-react";
+import { Calculator, Loader2 } from "lucide-react";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ReportExporter } from "@/components/ReportExporter";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { UFS } from "@/hooks/useCrmvValidation";
 
@@ -484,54 +484,27 @@ INSTRUÇÕES DE FORMATAÇÃO:
 
         {result && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
-              <div>
-                <CardTitle className="text-lg">Formulação Calculada</CardTitle>
-                <CardDescription>
-                  Revise os ingredientes e proporções
-                </CardDescription>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyReport}
-                  className="gap-2"
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      Copiado
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copiar
-                    </>
-                  )}
-                </Button>
-                <ReportExporter
-                  title="Formulação de Ração"
-                  content={result}
-                  toolName="Calculadora de Ração"
-                  userInputs={{
-                    "Profissional": isProfessional === "sim" ? `${professionalName} - ${councilType} ${councilNumber}/${professionalUF}` : "Não informado",
-                    "Espécie": species,
-                    "Finalidade": purpose,
-                    "Peso médio": weight,
-                    "Idade": age || "Não informada",
-                    "Nº de animais": animalCount || "1",
-                    "Ingredientes": ingredients || "Não especificados"
-                  }}
-                />
-              </div>
+            <CardHeader>
+              <CardTitle className="text-lg">Formulação Calculada</CardTitle>
+              <CardDescription>
+                Revise os ingredientes e proporções
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div 
                 className="prose prose-sm max-w-none"
                 style={{ textAlign: 'justify', textJustify: 'inter-word' }}
               >
                 {renderResult()}
+              </div>
+              
+              {/* Action Buttons - Padrão Global */}
+              <div className="pt-4 border-t">
+                <ResponseActionButtons
+                  content={result}
+                  title="Formulação de Ração"
+                  toolName="Calculadora de Ração Inteligente"
+                />
               </div>
             </CardContent>
           </Card>

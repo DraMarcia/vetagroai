@@ -13,12 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { 
   Cloud, Loader2, HelpCircle, Flame, Wind, TreePine, RefreshCw, 
   TrendingDown, BarChart3, Leaf, User, GraduationCap, FlaskConical,
-  AlertTriangle, CheckCircle, BookOpen, FileText, Copy, Info, Calculator,
-  Download, FileDown
+  AlertTriangle, CheckCircle, BookOpen, FileText, Info, Calculator
 } from "lucide-react";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ReportExporter } from "@/components/ReportExporter";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend } from "recharts";
 
@@ -1368,30 +1367,12 @@ Documento gerado pela suíte VetAgro Sustentável AI
                   className="bg-gradient-to-br from-teal-50/50 to-green-50/50 dark:from-teal-950/30 dark:to-green-950/30 p-6 rounded-xl border border-teal-200 dark:border-teal-800 text-sm leading-relaxed"
                 />
                 
-                {/* BOTÕES DE EXPORTAÇÃO (MÓDULO 6) */}
-                <div className="flex flex-wrap gap-2 pt-4 border-t">
-                  <Button variant="outline" size="sm" onClick={copyReport}>
-                    <Copy className="h-4 w-4 mr-1" /> Copiar Relatório
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={downloadTXT}>
-                    <FileDown className="h-4 w-4 mr-1" /> Baixar TXT
-                  </Button>
-                  <ReportExporter
-                    title="Relatório de Emissões de GEE - VetAgro Sustentável AI"
+                {/* Action Buttons - Padrão Global */}
+                <div className="pt-4 border-t">
+                  <ResponseActionButtons
                     content={generateFullReport()}
-                    toolName="Calculadora Integrada de Emissões de GEE — Metodologia IPCC Tier 2"
-                    references={references}
-                    userInputs={{ 
-                      "Sistema": PRODUCTION_SYSTEMS.find(s => s.id === productionSystem)?.name || "",
-                      "Localização": location || "Brasil",
-                      "Área": `${pastureArea} ha`,
-                      "DIVMS": `${divms}%`,
-                      "Total Animais": animals.reduce((sum, a) => sum + a.count, 0).toString(),
-                      "Emissões Totais": calculationResult ? `${calculationResult.totalCO2eq.toFixed(2)} tCO₂eq/ano` : "N/A",
-                      "Nível de Relatório": userLevel
-                    }}
-                    variant="default"
-                    showCopy={false}
+                    title="Relatório de Emissões de GEE"
+                    toolName="Calculadora Integrada de Emissões de GEE"
                   />
                 </div>
               </CardContent>

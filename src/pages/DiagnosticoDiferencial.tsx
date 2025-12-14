@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Stethoscope, Loader2, AlertCircle, AlertTriangle, Copy, CheckCircle } from "lucide-react";
+import { Stethoscope, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
@@ -445,23 +446,12 @@ REFERÊNCIAS:
                   Relatório gerado via VetAgro Sustentável AI — Análise Assistida © 2025
                 </p>
                 
-                <Button
-                  onClick={handleCopyReport}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copiar Relatório
-                    </>
-                  )}
-                </Button>
+                {/* Action Buttons - Padrão Global */}
+                <ResponseActionButtons
+                  content={result}
+                  title="Diagnóstico Diferencial"
+                  toolName="Diagnóstico Diferencial Inteligente"
+                />
               </div>
             </CardContent>
           </Card>

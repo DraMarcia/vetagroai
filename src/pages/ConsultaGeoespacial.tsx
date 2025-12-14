@@ -5,14 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Sparkles, Loader2, FileText, Crown, Info, Copy, Share2 } from "lucide-react";
+import { MapPin, Sparkles, Loader2, FileText, Crown, Info } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
-import { ReportExporter } from "@/components/ReportExporter";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
 const biomas = [
   "Amazônia",
@@ -417,32 +417,12 @@ const ConsultaGeoespacial = () => {
                     className="prose prose-sm max-w-none dark:prose-invert text-sm"
                   />
                   
-                  {/* Botões de ação */}
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleCopyReport}
-                      className="flex items-center gap-2"
-                    >
-                      <Copy className="h-4 w-4" />
-                      Copiar Relatório
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleShare}
-                      className="flex items-center gap-2"
-                    >
-                      <Share2 className="h-4 w-4" />
-                      Compartilhar
-                    </Button>
-
-                    <ReportExporter
-                      title="Consulta Geoespacial Sustentável"
+                  {/* Action Buttons - Padrão Global */}
+                  <div className="mt-6">
+                    <ResponseActionButtons
                       content={resposta}
-                      toolName="Consulta Geoespacial"
+                      title="Relatório de Consulta Geoespacial Sustentável"
+                      toolName="Consulta Geoespacial Sustentável"
                     />
                   </div>
 
