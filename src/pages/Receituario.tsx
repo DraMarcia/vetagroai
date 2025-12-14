@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pill, Loader2, Copy, FileText, FileType } from "lucide-react";
+import { Pill, Loader2 } from "lucide-react";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UFS, useCrmvValidation, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
@@ -463,47 +464,18 @@ const Receituario = () => {
                 </div>
               </div>
 
-              {/* Export buttons */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t">
-                <Button
-                  onClick={handleCopyResult}
-                  variant="outline"
-                  className="flex-1 min-w-[140px]"
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copiar (Recomendado)
-                </Button>
-                <Button
-                  onClick={handleExportPDF}
-                  disabled={exportingPdf}
-                  variant="default"
-                  className="flex-1 min-w-[140px]"
-                >
-                  {exportingPdf ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileText className="mr-2 h-4 w-4" />
-                  )}
-                  Download PDF
-                </Button>
-                <Button
-                  onClick={handleExportDocx}
-                  disabled={exportingDocx}
-                  variant="secondary"
-                  className="flex-1 min-w-[140px]"
-                >
-                  {exportingDocx ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <FileType className="mr-2 h-4 w-4" />
-                  )}
-                  Download DOCX
-                </Button>
+              {/* Action Buttons - Padrão Global */}
+              <div className="pt-4 border-t">
+                <ResponseActionButtons
+                  content={result}
+                  title="Receituário Veterinário"
+                  toolName="Gerador de Receituário Veterinário"
+                />
               </div>
 
               {/* Legal disclaimer */}
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
-                <p className="text-xs text-amber-800">
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-4">
+                <p className="text-xs text-amber-800 dark:text-amber-200">
                   <strong>⚠ AVISO LEGAL:</strong> Este documento foi gerado por inteligência artificial para fins de apoio. 
                   A validade oficial depende da assinatura do médico veterinário responsável, conforme legislação profissional 
                   vigente (Lei 5.517/1968 e Resoluções CFMV).

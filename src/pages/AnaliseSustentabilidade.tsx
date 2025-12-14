@@ -8,11 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Leaf, Loader2, HelpCircle, TreePine, Droplets, Recycle, Award, TrendingUp, Lightbulb, CheckCircle2, Copy, Share2 } from "lucide-react";
+import { Leaf, Loader2, HelpCircle, TreePine, Droplets, Recycle, Award, TrendingUp, Lightbulb, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ReportExporter } from "@/components/ReportExporter";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
 const AnaliseSustentabilidade = () => {
   const { toast } = useToast();
@@ -484,31 +484,12 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
                   className="prose prose-sm max-w-none bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/30 dark:to-emerald-950/30 p-6 rounded-xl border border-green-200 dark:border-green-800"
                 />
                 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={handleCopyReport}>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copiar Texto
-                  </Button>
-                  <ReportExporter
-                    title="Relatório de Análise de Sustentabilidade"
-                    content={result}
-                    toolName="Análise de Sustentabilidade - VetAgro IA"
-                    references={sustainabilityReferences}
-                    userInputs={{ 
-                      "Perfil": perfilOptions.find(p => p.value === perfilUsuario)?.label || "",
-                      "Tipo de Produção": tipoProducaoOptions.find(t => t.value === tipoProducao)?.label || "",
-                      "Localização": localizacao,
-                      "Escala": escalaOptions.find(e => e.value === escalaProdutiva)?.label || "",
-                      "Objetivo": objetivoOptions.find(o => o.value === objetivoPrincipal)?.label || "",
-                    }}
-                    variant="default"
-                  />
-                  <Button variant="outline" onClick={handleShare}>
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Compartilhar
-                  </Button>
-                </div>
+                {/* Action Buttons - Padrão Global */}
+                <ResponseActionButtons
+                  content={result}
+                  title="Relatório de Análise de Sustentabilidade"
+                  toolName="Análise de Sustentabilidade"
+                />
 
                 {/* Sharing encouragement */}
                 <div className="mt-4 p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">

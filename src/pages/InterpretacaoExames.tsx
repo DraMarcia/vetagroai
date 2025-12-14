@@ -13,10 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle, FileUp, RefreshCw, Stethoscope, Copy, Download, CheckCircle } from "lucide-react";
+import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle, FileUp, RefreshCw, Stethoscope } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ReportExporter } from "@/components/ReportExporter";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
@@ -754,56 +754,14 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
                   className="prose prose-sm max-w-none bg-muted p-4 rounded-lg text-sm leading-relaxed"
                 />
 
-                {/* === EXPORT BUTTONS SECTION === */}
-                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border">
-                  {/* SAFE COPY BUTTON - Always works */}
-                  <Button
-                    onClick={handleCopyReport}
-                    variant="default"
-                    className="flex-1"
-                    disabled={copied}
-                  >
-                    {copied ? (
-                      <>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copiar Relatório (Recomendado)
-                      </>
-                    )}
-                  </Button>
-
-                  {/* EXPERIMENTAL PDF BUTTON - Isolated, may fail */}
-                  {canExportPdf && (
-                    <Button
-                      onClick={handleGeneratePdfExperimental}
-                      variant="outline"
-                      className="flex-1"
-                      disabled={pdfLoading}
-                    >
-                      {pdfLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Gerando...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="mr-2 h-4 w-4" />
-                          Gerar PDF (Experimental)
-                        </>
-                      )}
-                    </Button>
-                  )}
+                {/* Action Buttons - Padrão Global */}
+                <div className="pt-4 border-t border-border">
+                  <ResponseActionButtons
+                    content={result}
+                    title={`Interpretação de ${examType}`}
+                    toolName="Interpretação de Exames Veterinários"
+                  />
                 </div>
-
-                {!canExportPdf && (
-                  <p className="text-xs text-muted-foreground">
-                    Exportação em PDF disponível nos planos Pro e Enterprise.
-                  </p>
-                )}
               </CardContent>
             </Card>
 

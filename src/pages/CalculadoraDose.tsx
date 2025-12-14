@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Calculator, Loader2, Plus, X, Copy, CheckCircle, AlertTriangle } from "lucide-react";
+import { Calculator, Loader2, Plus, X, AlertTriangle } from "lucide-react";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
@@ -620,25 +621,13 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
                 className="bg-muted/50 p-4 rounded-lg border border-border text-foreground leading-relaxed"
               />
               
-              {/* Copy Button */}
-              <div className="flex justify-center pt-2">
-                <Button
-                  onClick={handleCopyResult}
-                  variant="outline"
-                  className="gap-2"
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" />
-                      Copiar Relatório
-                    </>
-                  )}
-                </Button>
+              {/* Action Buttons - Padrão Global */}
+              <div className="pt-2">
+                <ResponseActionButtons
+                  content={result}
+                  title="Cálculo de Dose Veterinária"
+                  toolName="Calculadora de Dose Veterinária"
+                />
               </div>
 
               {/* Legal Disclaimer */}
