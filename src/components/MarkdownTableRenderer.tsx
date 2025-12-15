@@ -72,25 +72,29 @@ const preprocessContinuousText = (text: string): string => {
   processed = processed.replace(/\]([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, ']\n\n$1');
 
   // STEP 0.1: Normalize divider lines (──── or single ─) to be on their own line
-  processed = processed.replace(/([^\n])\s*(─{1,})\s*([^\n])/g, '$1\n\n$2\n\n$3');
+  // Handle any sequence of box-drawing characters as dividers
+  processed = processed.replace(/([^\n])\s*(─{3,})\s*/g, '$1\n\n$2\n\n');
+  processed = processed.replace(/\s*(─{3,})\s*([^\n])/g, '\n\n$1\n\n$2');
+  
+  // Single dash dividers
+  processed = processed.replace(/([^\n─])(─{1,2})([^\n─])/g, '$1\n\n$2\n\n$3');
 
-  // STEP 0.2: Ensure numbered section markers are not stuck to previous text
+  // STEP 0.2: Ensure numbered section markers like "1)" are not stuck to previous text
   processed = processed.replace(/([^\n\d])(\d+\))\s*/g, '$1\n\n$2 ');
 
-  // STEP 0.3: If a section marker is on its own line and the title is next line, join them
+  // STEP 0.3: If a section marker "1)" is alone and title is next line, join them
   processed = processed.replace(/(\d+\))\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{2,})/g, '$1 $2');
 
   // STEP 0.4: Force bullet points (•) to start on a new line
-  processed = processed.replace(/([^\n])\s*(•\s*)/g, '$1\n$2');
+  processed = processed.replace(/([^\n•])(•\s*)/g, '$1\n$2');
 
   // STEP 0.5: Force numbered list items like "1." to start on a new line when stuck
-  processed = processed.replace(/([^\n\s])(\d+\.)\s+/g, '$1\n\n$2 ');
+  processed = processed.replace(/([^\n\s\d])(\d+\.)\s+/g, '$1\n\n$2 ');
 
   // STEP 0.6: Handle en-dash (–) used as bullet points - force new line
   processed = processed.replace(/([^\n\-–])(–\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$2');
 
   // STEP 0.7: CRITICAL - Break UPPERCASE SECTION TITLES stuck to lowercase text
-  // Pattern: lowercase letter, period, or closing paren followed by UPPERCASE word (4+ chars)
   processed = processed.replace(/([a-záéíóúâêôãõç\.\)\]])([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
 
   // STEP 0.8: Break after units (mg, kg, ml) followed by uppercase letter
@@ -99,8 +103,29 @@ const preprocessContinuousText = (text: string): string => {
   // STEP 0.9: Break after closing parenthesis followed by uppercase section
   processed = processed.replace(/(\))([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
 
+  // STEP 0.10: Handle "Relatório Técnico Orientativo" subtitle pattern
+  processed = processed.replace(/(Relatório Técnico Orientativo[^)\n]*)/gi, '\n\n$1\n\n');
+  processed = processed.replace(/(Análise Clínica Orientativa[^)\n]*)/gi, '\n\n$1\n\n');
+
   // Known section title patterns - add line breaks before them
   const sectionKeywords = [
+    // Group 2 - Relatórios Técnicos
+    'IDENTIFICAÇÃO GERAL',
+    'IDENTIFICACAO GERAL',
+    'OBJETIVO DA AVALIAÇÃO',
+    'OBJETIVO DA AVALIACAO',
+    'DADOS AVALIADOS',
+    'ANÁLISE TÉCNICA INTERPRETATIVA',
+    'ANALISE TECNICA INTERPRETATIVA',
+    'ACHADOS PRINCIPAIS',
+    'RECOMENDAÇÕES TÉCNICAS',
+    'RECOMENDACOES TECNICAS',
+    'CONSIDERAÇÕES FINAIS',
+    'CONSIDERACOES FINAIS',
+    'ALERTA LEGAL',
+    'REFERÊNCIAS TÉCNICAS',
+    'REFERENCIAS TECNICAS',
+    // Group 1 - Diagnósticos
     'SÍNTESE EXECUTIVA',
     'SINTESE EXECUTIVA',
     'DADOS DO PRODUTOR',
@@ -113,51 +138,30 @@ const preprocessContinuousText = (text: string): string => {
     'ANÁLISE DE EMISSÕES',
     'ANALISE DE EMISSOES',
     'VIABILIDADE COM GIROS',
-    'RECOMENDAÇÕES TÉCNICAS',
-    'RECOMENDACOES TECNICAS',
-    'REFERÊNCIAS TÉCNICAS',
-    'REFERENCIAS TECNICAS',
+    'REFERÊNCIAS CIENTÍFICAS',
+    'REFERENCIAS CIENTIFICAS',
     'IDENTIFICAÇÃO DO CASO',
     'IDENTIFICACAO DO CASO',
     'AVALIAÇÃO CLÍNICA',
-    'DIAGNÓSTICOS DIFERENCIAIS',
-    'EXAMES COMPLEMENTARES',
-    'CLASSIFICAÇÃO DE URGÊNCIA',
-    'RECOMENDAÇÕES PRÁTICAS',
-    'CONSIDERAÇÕES FINAIS',
-    'CONCLUSÃO TÉCNICA',
-    'ALERTA LEGAL',
-    'AVISO LEGAL',
-    'REFERÊNCIAS CONSULTADAS',
-    'CUSTOS DE ENTRADA',
-    'CUSTOS DE ALIMENTAÇÃO',
-    'CUSTOS OPERACIONAIS',
-    'ANALISE DE RESULTADO',
-    'CENÁRIO BASE',
-    'CENARIO BASE',
-    'CENÁRIO 1',
-    'CENARIO 1',
-    'CENÁRIO 2',
-    'CENARIO 2',
-    'ESTRATÉGIAS PARA MELHORAR',
-    'ESTRATEGIAS PARA MELHORAR',
-    'REDUÇÃO DE METANO',
-    'REDUCAO DE METANO',
-    'MANEJO SUSTENTÁVEL',
-    'MANEJO SUSTENTAVEL',
-    'ALTERNATIVAS NUTRICIONAIS',
-    'ANALISE DE SUSTENTABILIDADE',
-    'ANÁLISE DE SUSTENTABILIDADE',
-    'EMISSOES E SUSTENTABILIDADE',
-    'EMISSÕES E SUSTENTABILIDADE',
     'ANÁLISE CLÍNICA INICIAL',
     'ANALISE CLINICA INICIAL',
+    'DIAGNÓSTICOS DIFERENCIAIS',
+    'DIAGNOSTICOS DIFERENCIAIS',
     'HIPÓTESES',
     'HIPOTESES',
+    'EXAMES COMPLEMENTARES',
+    'CLASSIFICAÇÃO DE URGÊNCIA',
+    'CLASSIFICACAO DE URGENCIA',
+    'RECOMENDAÇÕES PRÁTICAS',
+    'RECOMENDACOES PRATICAS',
     'CONDUTAS INICIAIS',
     'PROGNÓSTICO PRELIMINAR',
     'PROGNOSTICO PRELIMINAR',
-    // Calculadora de Dose specific
+    'CONCLUSÃO TÉCNICA',
+    'CONCLUSAO TECNICA',
+    'AVISO LEGAL',
+    'REFERÊNCIAS CONSULTADAS',
+    // Calculadora de Dose
     'CÁLCULO DA DOSE',
     'CALCULO DA DOSE',
     'POSOLOGIA',
@@ -165,8 +169,6 @@ const preprocessContinuousText = (text: string): string => {
     'ORIENTACOES CLINICAS',
     'ALERTAS DE SEGURANÇA',
     'ALERTAS DE SEGURANCA',
-    'REFERÊNCIAS CIENTÍFICAS',
-    'REFERENCIAS CIENTIFICAS',
     'CONTRAINDICAÇÕES',
     'CONTRAINDICACOES',
     'INTERAÇÕES MEDICAMENTOSAS',
@@ -174,30 +176,80 @@ const preprocessContinuousText = (text: string): string => {
     'POPULAÇÕES ESPECIAIS',
     'POPULACOES ESPECIAIS',
     'MONITORAMENTO',
+    // Ração/Nutrição
+    'FORMULAÇÃO DA RAÇÃO',
+    'FORMULACAO DA RACAO',
+    'COMPOSIÇÃO NUTRICIONAL',
+    'COMPOSICAO NUTRICIONAL',
+    'PREPARO',
+    'FORNECIMENTO',
+    'ARMAZENAMENTO',
+    // Plantas/Sustentabilidade
+    'IDENTIFICAÇÃO BOTÂNICA',
+    'IDENTIFICACAO BOTANICA',
+    'ANÁLISE DE TOXICIDADE',
+    'ANALISE DE TOXICIDADE',
+    'DIMENSÃO AMBIENTAL',
+    'DIMENSAO AMBIENTAL',
+    'DIMENSÃO PRODUTIVA',
+    'DIMENSAO PRODUTIVA',
+    'DIMENSÃO DE GESTÃO',
+    'DIMENSAO DE GESTAO',
+    'CURTO PRAZO',
+    'MÉDIO PRAZO',
+    'MEDIO PRAZO',
+    'LONGO PRAZO',
+    // Escore Corporal
+    'AVALIAÇÃO DO ESCORE',
+    'AVALIACAO DO ESCORE',
+    'ANÁLISE VISUAL',
+    'ANALISE VISUAL',
+    'INTERPRETAÇÃO CLÍNICA',
+    'INTERPRETACAO CLINICA',
+    'RECOMENDAÇÕES NUTRICIONAIS',
+    'RECOMENDACOES NUTRICIONAIS',
+    'ORIENTAÇÕES DE MANEJO',
+    'ORIENTACOES DE MANEJO',
+    // Outros
+    'CUSTOS DE ENTRADA',
+    'CUSTOS DE ALIMENTAÇÃO',
+    'CUSTOS DE ALIMENTACAO',
+    'CUSTOS OPERACIONAIS',
+    'ANÁLISE DE RESULTADO',
+    'ANALISE DE RESULTADO',
+    'CENÁRIO BASE',
+    'CENARIO BASE',
+    'ESTRATÉGIAS',
+    'ESTRATEGIAS',
+    'REDUÇÃO DE METANO',
+    'REDUCAO DE METANO',
+    'MANEJO SUSTENTÁVEL',
+    'MANEJO SUSTENTAVEL',
+    'ALTERNATIVAS NUTRICIONAIS',
   ];
   
-  // STEP 1: Add space before section keywords that are stuck to previous word
+  // STEP 1: Add space before section keywords stuck to previous word
   for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const stuckRegex = new RegExp(`([a-záéíóúâêôãõç0-9\\)\\]])\\s*(${escapedKeyword})`, 'gi');
     processed = processed.replace(stuckRegex, '$1\n\n$2');
   }
   
-  // STEP 2: Add line breaks before section keywords (normal case with space before)
+  // STEP 2: Add line breaks before section keywords (normal case)
   for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`([^\\n])\\s+(${escapedKeyword})`, 'gi');
     processed = processed.replace(regex, '$1\n\n$2');
   }
   
-  // STEP 3: Add line breaks before numbered subsections like "4.1 CUSTOS", "4.2 CUSTOS"
+  // STEP 3: Add line breaks before numbered subsections like "4.1 CUSTOS"
   processed = processed.replace(/([^\n\d])(\d+\.\d+\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
   
-  // STEP 4: Add line breaks before bullet points that are stuck to previous text
+  // STEP 4: Add line breaks before bullet points stuck to previous text
   processed = processed.replace(/([.!?:])(\s*)(-\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$3');
   processed = processed.replace(/([a-záéíóúâêôãõç])(-\s+[A-Z])/gi, '$1\n$2');
   
-  // STEP 5: Fix bullet points that are stuck together (ending with period followed by dash or bullet)
+  // STEP 5: Fix bullet points stuck together
   processed = processed.replace(/(\.)(-\s+)/g, '.\n$2');
   processed = processed.replace(/(\.)(•\s+)/g, '.\n$2');
   
@@ -208,14 +260,17 @@ const preprocessContinuousText = (text: string): string => {
   processed = processed.replace(/([.!?])(-\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$2');
   processed = processed.replace(/([.!?])(•\s*[A-Za-z])/g, '$1\n$2');
   
-  // STEP 8: Handle numbered items stuck to previous text (e.g., "infecção.2. Nome")
+  // STEP 8: Handle numbered items stuck to previous text
   processed = processed.replace(/([.!?])(\d+\.\s+[A-Z])/g, '$1\n\n$2');
 
   // STEP 9: Break lines where text runs into "Para " at start of sentences
   processed = processed.replace(/([a-záéíóúâêôãõç\.\)])(\s*Para\s+(?:o|a|os|as)\s+)/g, '$1\n\n$2');
 
-  // STEP 10: Break lines after "recomendada:" or similar patterns followed by text
+  // STEP 10: Break lines after "recomendada:" patterns
   processed = processed.replace(/(recomendad[ao]:|indicad[ao]:|sugerid[ao]:)(\s*)([A-Z0-9])/gi, '$1\n$3');
+
+  // STEP 11: Add spacing around the subtitle pattern
+  processed = processed.replace(/(\n)(Relatório Técnico|Análise Clínica)/g, '$1\n$2');
   
   // Clean up multiple line breaks
   processed = processed.replace(/\n{3,}/g, '\n\n');
@@ -226,8 +281,14 @@ const preprocessContinuousText = (text: string): string => {
 // Check if line is a divider (────)
 const isDividerLine = (line: string): boolean => {
   const trimmed = line.trim();
-  // Some responses come as a single "─" instead of a long run
-  return /^─{1,}$/.test(trimmed);
+  // Handle any sequence of box-drawing characters or dashes
+  return /^[─\-]{1,}$/.test(trimmed) && trimmed.length >= 1;
+};
+
+// Check if line is the report subtitle
+const isReportSubtitle = (line: string): boolean => {
+  const trimmed = line.trim();
+  return /^(Relatório Técnico Orientativo|Análise Clínica Orientativa)/i.test(trimmed);
 };
 
 // Check if line is a section title (uppercase or ends with :)
@@ -238,10 +299,13 @@ const isSectionTitle = (line: string): boolean => {
   // Skip divider lines
   if (isDividerLine(trimmed)) return false;
   
+  // Skip report subtitles (they should be rendered differently)
+  if (isReportSubtitle(trimmed)) return false;
+  
   // Lines in square brackets like [DIAGNÓSTICO DIFERENCIAL]
   if (/^\[.+\]$/.test(trimmed)) return true;
   
-  // Numbered section headers like "1) IDENTIFICAÇÃO DO CASO"
+  // Numbered section headers like "1) IDENTIFICAÇÃO DO CASO" or "1) IDENTIFICAÇÃO GERAL"
   if (/^\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(trimmed)) return true;
   
   // Lines that are mostly uppercase (>60%) and have at least 3 chars
@@ -250,12 +314,12 @@ const isSectionTitle = (line: string): boolean => {
   const uppercaseRatio = totalChars > 0 ? uppercaseChars / totalChars : 0;
   const isUppercase = uppercaseRatio > 0.6 && totalChars >= 3;
   
-  // Lines ending with : that don't start with bullet
-  const endsWithColon = trimmed.endsWith(':') && !trimmed.startsWith('•') && !trimmed.startsWith('-');
+  // Lines ending with : that don't start with bullet and are short
+  const endsWithColon = trimmed.endsWith(':') && !trimmed.startsWith('•') && !trimmed.startsWith('-') && trimmed.length < 60;
   
-  // Common section patterns
+  // Common section patterns from Group 1 and Group 2
   const sectionPatterns = [
-    /^(IDENTIFICAÇÃO|ANÁLISE|DIAGNÓSTICO|RECOMENDAÇÕES|REFERÊNCIAS|CONCLUSÃO|RESUMO|SÍNTESE|PROJEÇÃO|CUSTOS|EMISSÕES|RESULTADOS|METODOLOGIA|PARÂMETROS|INDICADORES|VIABILIDADE|CENÁRIOS|OBSERVAÇÕES|ALERTAS|CONSIDERAÇÕES|DADOS|MANEJO|ESTRATÉGIAS|ALTERNATIVAS|REDUÇÃO|HIPÓTESES|EXAMES|CLASSIFICAÇÃO|CONDUTAS|PROGNÓSTICO|ALERTA)/i,
+    /^(IDENTIFICAÇÃO|IDENTIFICACAO|ANÁLISE|ANALISE|DIAGNÓSTICO|DIAGNOSTICO|RECOMENDAÇÕES|RECOMENDACOES|REFERÊNCIAS|REFERENCIAS|CONCLUSÃO|CONCLUSAO|RESUMO|SÍNTESE|SINTESE|PROJEÇÃO|PROJECAO|CUSTOS|EMISSÕES|EMISSOES|RESULTADOS|METODOLOGIA|PARÂMETROS|PARAMETROS|INDICADORES|VIABILIDADE|CENÁRIOS|CENARIOS|OBSERVAÇÕES|OBSERVACOES|ALERTAS|CONSIDERAÇÕES|CONSIDERACOES|DADOS|MANEJO|ESTRATÉGIAS|ESTRATEGIAS|ALTERNATIVAS|REDUÇÃO|REDUCAO|HIPÓTESES|HIPOTESES|EXAMES|CLASSIFICAÇÃO|CLASSIFICACAO|CONDUTAS|PROGNÓSTICO|PROGNOSTICO|ALERTA|AVISO|OBJETIVO|ACHADOS|POSOLOGIA|CONTRAINDICAÇÕES|CONTRAINDICACOES|INTERAÇÕES|INTERACOES|POPULAÇÕES|POPULACOES|MONITORAMENTO|FORMULAÇÃO|FORMULACAO|COMPOSIÇÃO|COMPOSICAO|PREPARO|FORNECIMENTO|ARMAZENAMENTO|DIMENSÃO|DIMENSAO|CURTO|MÉDIO|MEDIO|LONGO|AVALIAÇÃO|AVALIACAO|INTERPRETAÇÃO|INTERPRETACAO|ORIENTAÇÕES|ORIENTACOES)/i,
     /^\d+\.\s*[A-ZÀ-Ü]/,
     /^\d+\.\d+\s+[A-ZÀ-Ü]/,
   ];
@@ -407,8 +471,23 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
         parts.push(
           <hr 
             key={`hr-${parts.length}`} 
-            className="my-4 border-t-2 border-primary/20"
+            className="my-5 border-t-2 border-primary/30"
           />
+        );
+        continue;
+      }
+
+      // Handle report subtitle (special formatting)
+      if (isReportSubtitle(trimmedLine)) {
+        flushParagraph();
+        flushList();
+        parts.push(
+          <p 
+            key={`subtitle-${parts.length}`} 
+            className="text-sm font-medium text-muted-foreground italic mb-4 pb-2 border-b border-border"
+          >
+            {trimmedLine}
+          </p>
         );
         continue;
       }
