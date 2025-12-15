@@ -134,23 +134,48 @@ ANIMAL:
 
       // Limpar formatação usando utilitário + normalização específica desta ferramenta
       const cleanResult = cleanTextForDisplay(data.answer);
-      const normalized = cleanResult
-        // remove travessões/hífens soltos no fim de linhas
-        .replace(/[–-]\s*$/gm, "")
-        // garante que o título da tabela fique em linha própria antes do markdown
-        .replace(/(TABELA DE FORMULAÇÃO DA DIETA)\s*\|/gi, "$1\n\n|")
-        // corrige cabeçalho quando o modelo omite o símbolo %
-        .replace(/\|\s*da dieta\s*\|/gi, "| % da dieta |")
-        // remove travessão solto antes de "Data da análise" e padroniza como bullet
-        .replace(/\s*-\s*(Data da an[aá]lise:)/gi, "\n• $1")
-        // garante espaço após bullets
-        .replace(/\s+•\s*/g, "\n• ")
-        // corrige quebras indevidas dentro de palavras em CAIXA ALTA (ex: DISTRIBUI\nÇÃO)
-        .replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{3,})\n([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})/g, "$1$2")
-        // remove linhas com apenas hífen/travessão
-        .replace(/^\s*[–-]\s*$/gm, "")
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
+      
+      // CRITICAL: Normalização agressiva para corrigir problemas de formatação
+      let normalized = cleanResult;
+      
+      // 1) Corrigir TABELA em linha única: adicionar quebras de linha entre linhas da tabela
+      // Padrão: "| texto ||" -> "| texto |\n|"
+      normalized = normalized.replace(/\|\s*\|\s*(?=[A-Za-zÁÉÍÓÚÂÊÔÃÕÇ0-9])/g, '|\n| ');
+      // Separador da tabela: "|---|" seguido de "|" deve quebrar linha
+      normalized = normalized.replace(/(\|[-:\s]+\|)\s*(?=\|)/g, '$1\n');
+      
+      // 2) Corrigir título da tabela colado: "TABELA...DIETA| Ing" -> quebra antes de |
+      normalized = normalized.replace(/(TABELA DE FORMULAÇÃO DA DIETA)\s*\|/gi, '$1\n\n|');
+      
+      // 3) Corrigir cabeçalho quando o modelo omite o símbolo %
+      normalized = normalized.replace(/\|\s*da dieta\s*\|/gi, '| % da dieta |');
+      
+      // 4) Corrigir palavras MAIÚSCULAS quebradas (DISTRIBUI\nÇÃO -> DISTRIBUIÇÃO)
+      normalized = normalized.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})\s*\n\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})/g, '$1$2');
+      
+      // 5) Corrigir "4) DISTRIBUI\nÇÃO" -> "4) DISTRIBUIÇÃO"
+      normalized = normalized.replace(/(\d+\)\s*)([A-ZÁÉÍÓÚÂÊÔÃÕÇ]+)\s*\n\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]+)/g, '$1$2$3');
+      
+      // 6) Corrigir título seguido de texto sem quebra (ex: "ALIMENTAÇÃOA alimentação")
+      normalized = normalized.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})([A-Z][a-z])/g, '$1\n\n$2');
+      
+      // 7) Corrigir "1)\n\nIDENTIFICAÇÃO" -> "1) IDENTIFICAÇÃO"
+      normalized = normalized.replace(/(\d+\))\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1 $2');
+      
+      // 8) Remove travessões/hífens soltos no fim de linhas
+      normalized = normalized.replace(/[–-]\s*$/gm, '');
+      
+      // 9) Remover travessão solto antes de "Data" e padronizar como bullet
+      normalized = normalized.replace(/\s*-\s*(Data da an[aá]lise:)/gi, '\n• $1');
+      
+      // 10) Garantir espaço após bullets
+      normalized = normalized.replace(/\s+•\s*/g, '\n• ');
+      
+      // 11) Remover linhas com apenas hífen/travessão
+      normalized = normalized.replace(/^\s*[–-]\s*$/gm, '');
+      
+      // 12) Limpar múltiplas quebras de linha
+      normalized = normalized.replace(/\n{3,}/g, '\n\n').trim();
 
       setResult(normalized);
       toast({
