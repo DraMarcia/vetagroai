@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Leaf, Loader2, HelpCircle, TreePine, Droplets, Recycle, Award, TrendingUp, Lightbulb, CheckCircle2 } from "lucide-react";
+import { Leaf, Loader2, HelpCircle, TreePine, Droplets, Recycle, Award, TrendingUp, Lightbulb, CheckCircle2, Sprout, DollarSign, FileCheck, Target, MapPin, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
@@ -69,25 +69,22 @@ const AnaliseSustentabilidade = () => {
     { value: "esg", label: "Adequação ESG" },
     { value: "melhoria", label: "Identificar oportunidades de melhoria" },
     { value: "psa", label: "Avaliar PSA (Pagamento por Serviços Ambientais)" },
+    { value: "incentivos", label: "Acessar políticas públicas e incentivos" },
   ];
 
-  const carregarExemplo = () => {
+  // EXEMPLO GUIADO DE RORAIMA
+  const carregarExemploRoraima = () => {
     setPerfilUsuario("produtor");
     setTipoProducao("pecuaria-corte");
-    setLocalizacao("Cantá, Roraima");
-    setEscalaProdutiva("media");
-    setObjetivoPrincipal("carbono");
-    setPraticasAtuais(`Propriedade de 450 hectares no Lavrado de Roraima com pecuária de corte extensiva.
+    setLocalizacao("Roraima");
+    setEscalaProdutiva("grande");
+    setObjetivoPrincipal("incentivos");
+    setPraticasAtuais(`Propriedade rural localizada em Roraima, com pecuária de corte em sistema extensivo, área aproximada de 800 hectares. Possui reserva legal conservada, não realiza queimadas, utiliza rotação de pastagens em parte da área, mantém nascentes protegidas, faz manejo adequado de resíduos e busca melhorar o bem-estar animal. Interesse em acessar programas de incentivo ambiental, crédito rural sustentável e certificações.`);
     
-Práticas atuais:
-- Rotação de pastagens em 40% da área
-- Reserva legal de 80 hectares preservada
-- APP parcialmente degradada (15 hectares)
-- Uso de sal mineral proteinado na seca
-- Sem uso de queimadas há 3 anos
-- Interesse em certificação de carbono e PSA
-- Área com potencial para ILPF (100 hectares)
-- Captação de água de chuva para bebedouros`);
+    toast({
+      title: "Exemplo carregado!",
+      description: "Dados de uma propriedade sustentável de Roraima foram inseridos. Você pode editar ou usar como está.",
+    });
   };
 
   const handleAnalyze = async () => {
@@ -113,20 +110,103 @@ Práticas atuais:
           escalaProdutiva: escalaOptions.find(e => e.value === escalaProdutiva)?.label || escalaProdutiva,
           objetivoPrincipal: objetivoOptions.find(o => o.value === objetivoPrincipal)?.label || objetivoPrincipal,
           praticasAtuais,
-          question: `ANÁLISE DE SUSTENTABILIDADE SOLICITADA
+          question: `ANÁLISE ESTRATÉGICA DE SUSTENTABILIDADE — VetAgro Sustentável AI
 
-PERFIL DO USUÁRIO: ${perfilOptions.find(p => p.value === perfilUsuario)?.label}
-TIPO DE PRODUÇÃO: ${tipoProducaoOptions.find(t => t.value === tipoProducao)?.label}
-LOCALIZAÇÃO: ${localizacao}
-ESCALA PRODUTIVA: ${escalaOptions.find(e => e.value === escalaProdutiva)?.label || "Não informada"}
-OBJETIVO PRINCIPAL: ${objetivoOptions.find(o => o.value === objetivoPrincipal)?.label || "Diagnóstico geral"}
+DADOS DA PROPRIEDADE:
+• Perfil do Usuário: ${perfilOptions.find(p => p.value === perfilUsuario)?.label}
+• Tipo de Produção: ${tipoProducaoOptions.find(t => t.value === tipoProducao)?.label}
+• Localização: ${localizacao}
+• Escala Produtiva: ${escalaOptions.find(e => e.value === escalaProdutiva)?.label || "Não informada"}
+• Objetivo Principal: ${objetivoOptions.find(o => o.value === objetivoPrincipal)?.label || "Diagnóstico geral"}
 
-PRÁTICAS ATUAIS E CONTEXTO:
+PRÁTICAS ATUAIS E CONTEXTO INFORMADO PELO PRODUTOR:
 ${praticasAtuais}
 
-Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
+---
+
+INSTRUÇÕES OBRIGATÓRIAS PARA GERAÇÃO DA RESPOSTA:
+
+TOM ESTRATÉGICO:
+• VALORIZE o produtor — reconheça o que ele já faz de positivo
+• TIRE O MEDO da palavra "sustentabilidade" — mostre que é estratégia, não custo
+• CONECTE sustentabilidade com DINHEIRO, POLÍTICA PÚBLICA e FUTURO
+• MOSTRE que o produtor já está no caminho certo e pode ganhar mais com isso
+• USE linguagem motivadora, clara e técnica ao mesmo tempo
+
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA (8 SEÇÕES):
+
+1. SÍNTESE EXECUTIVA DE SUSTENTABILIDADE
+Resumo direto do nível de sustentabilidade da propriedade e seu potencial de valorização. Comece reconhecendo os pontos positivos.
+
+2. PRÁTICAS SUSTENTÁVEIS JÁ EXISTENTES NA PROPRIEDADE
+Liste e VALORIZE ações que o produtor já faz, mesmo que ele não reconheça como sustentabilidade:
+• Manutenção de reserva legal
+• Proteção de APPs e nascentes
+• Ausência de queimadas
+• Manejo racional de pastagens
+• Bem-estar animal
+• Uso eficiente da água
+• Outras práticas identificadas
+ENFATIZE: "Essas práticas já geram valor ambiental e podem ser reconhecidas."
+
+3. OPORTUNIDADES DE MELHORIA AO ALCANCE DO PRODUTOR
+Apresente ações SIMPLES, REALISTAS e de BAIXO CUSTO:
+• Ajustes de manejo
+• Organização de registros ambientais
+• Pequenas melhorias de infraestrutura
+• Planejamento forrageiro
+• Monitoramento básico ambiental
+Seja prático — não liste coisas inatingíveis.
+
+4. CONEXÃO COM POLÍTICAS PÚBLICAS E INCENTIVOS
+Explique de forma CLARA e MOTIVADORA:
+• Crédito rural diferenciado (Banco do Brasil, BNDES, Plano ABC+)
+• Programas de PSA — Pagamento por Serviços Ambientais
+• Prioridade em programas ambientais e produtivos
+• Certificações que abrem portas
+• Programas estaduais e federais disponíveis
+DEIXE CLARO: "O produtor sustentável hoje é prioridade para políticas públicas e instituições financeiras."
+
+5. POTENCIAL DE VALORIZAÇÃO DA PROPRIEDADE
+Demonstre benefícios concretos:
+• Melhor imagem institucional e reputação
+• Facilidade de acesso a crédito
+• Maior resiliência climática
+• Acesso a mercados diferenciados
+• Base para projetos de carbono e sustentabilidade
+• Valorização patrimonial
+
+6. PRÓXIMOS PASSOS RECOMENDADOS
+Checklist simples e prático:
+• Organizar informações ambientais da propriedade
+• Buscar assistência técnica especializada
+• Avaliar certificações aplicáveis
+• Monitorar indicadores básicos de sustentabilidade
+• Documentar práticas já existentes
+
+7. ALERTA LEGAL
+"Esta análise tem caráter orientativo e não substitui avaliações técnicas, auditorias ou validações oficiais."
+
+8. REFERÊNCIAS INSTITUCIONAIS
+Liste APENAS fontes oficiais:
+• MAPA — Ministério da Agricultura, Pecuária e Abastecimento
+• EMBRAPA — Empresa Brasileira de Pesquisa Agropecuária
+• MMA — Ministério do Meio Ambiente
+• Banco do Brasil / BNDES — Linhas de crédito sustentável
+• FAO — Organização das Nações Unidas para Alimentação e Agricultura (quando aplicável)
+
+REGRAS DE FORMATAÇÃO:
+• Proibido usar hashtags (#), asteriscos (*) ou emojis no texto
+• Use apenas bullets padrão (• ou –) para listas
+• Títulos das seções em MAIÚSCULAS seguidos de dois pontos
+• Texto justificado e escaneável
+• Parágrafos curtos (máximo 4-5 linhas)
+• Linguagem técnica mas acessível
+
+OBJETIVO FINAL:
+O produtor deve sair da análise pensando: "Eu já faço muita coisa certa — e posso ganhar mais com isso."`,
           isProfessional: perfilUsuario === "tecnico" || perfilUsuario === "pesquisador",
-          context: "Análise de sustentabilidade rural",
+          context: "Análise estratégica de sustentabilidade rural",
         },
       });
 
@@ -153,7 +233,7 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
 
       toast({
         title: "Análise concluída!",
-        description: "Relatório de sustentabilidade gerado com sucesso.",
+        description: "Relatório estratégico de sustentabilidade gerado com sucesso.",
       });
     } catch (error: any) {
       console.error("Erro:", error);
@@ -164,31 +244,6 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCopyReport = () => {
-    if (!result) return;
-    navigator.clipboard.writeText(result);
-    toast({
-      title: "Copiado!",
-      description: "Relatório copiado para a área de transferência.",
-    });
-  };
-
-  const handleShare = () => {
-    if (!result) return;
-    if (navigator.share) {
-      navigator.share({
-        title: "Relatório de Análise de Sustentabilidade - VetAgro IA",
-        text: result.substring(0, 500) + "...",
-      });
-    } else {
-      handleCopyReport();
-      toast({
-        title: "Link copiado!",
-        description: "Compartilhe o relatório com sua equipe.",
-      });
     }
   };
 
@@ -217,18 +272,9 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
     return "bg-red-500";
   };
 
-  const sustainabilityReferences = [
-    "EMBRAPA - Empresa Brasileira de Pesquisa Agropecuária",
-    "IPCC (2006 + Refinement 2019)",
-    "FAO - Organização das Nações Unidas para Alimentação e Agricultura",
-    "IBGE - Instituto Brasileiro de Geografia e Estatística",
-    "MapBiomas",
-    "Código Florestal Brasileiro (Lei 12.651/2012)"
-  ];
-
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
+      {/* Header com conceito estratégico */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
@@ -236,20 +282,51 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Análise de Sustentabilidade</h1>
-            <p className="text-muted-foreground">Diagnóstico de maturidade sustentável e roteiro de evolução</p>
+            <p className="text-muted-foreground">Valorização, incentivos e estratégia para sua propriedade</p>
           </div>
         </div>
         
-        {/* Commercial text */}
+        {/* BLOCO EXPLICATIVO INSTITUCIONAL - INSPIRADOR */}
         <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800 mb-6">
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">
-              Avalie o nível de maturidade sustentável da sua propriedade integrando aspectos ambientais, 
-              produtivos e de governança. Receba um roteiro claro de evolução adaptado ao seu perfil, 
-              com oportunidades de certificação, PSA e crédito de carbono.
-            </p>
+          <CardContent className="pt-6 pb-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
+                <TrendingUp className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-green-800 dark:text-green-200 mb-2">
+                  Sustentabilidade hoje não é custo — é estratégia, valorização e acesso a incentivos.
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Esta ferramenta avalia o nível de sustentabilidade da sua propriedade rural e mostra, 
+                  de forma prática, quais ações já realizadas podem gerar reconhecimento, acesso a políticas 
+                  públicas, programas governamentais, certificações, crédito diferenciado e oportunidades 
+                  de remuneração ambiental.
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Cards de benefícios visuais */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/50 rounded-lg border border-green-200 dark:border-green-800">
+            <DollarSign className="h-5 w-5 text-green-600" />
+            <span className="text-xs font-medium text-green-700 dark:text-green-300">Crédito Diferenciado</span>
+          </div>
+          <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/50 rounded-lg border border-emerald-200 dark:border-emerald-800">
+            <FileCheck className="h-5 w-5 text-emerald-600" />
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Certificações</span>
+          </div>
+          <div className="flex items-center gap-2 p-3 bg-teal-50 dark:bg-teal-950/50 rounded-lg border border-teal-200 dark:border-teal-800">
+            <Building2 className="h-5 w-5 text-teal-600" />
+            <span className="text-xs font-medium text-teal-700 dark:text-teal-300">Políticas Públicas</span>
+          </div>
+          <div className="flex items-center gap-2 p-3 bg-cyan-50 dark:bg-cyan-950/50 rounded-lg border border-cyan-200 dark:border-cyan-800">
+            <Award className="h-5 w-5 text-cyan-600" />
+            <span className="text-xs font-medium text-cyan-700 dark:text-cyan-300">PSA Ambiental</span>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -262,10 +339,21 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
                 Dados da Propriedade
               </CardTitle>
               <CardDescription>
-                Preencha as informações para análise completa
+                Preencha as informações para análise estratégica
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
+              
+              {/* BOTÃO DE EXEMPLO GUIADO - RORAIMA */}
+              <Button
+                variant="outline"
+                onClick={carregarExemploRoraima}
+                className="w-full border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-950 text-green-700 dark:text-green-300"
+              >
+                <Sprout className="mr-2 h-4 w-4" />
+                🌱 Usar exemplo de propriedade sustentável (Roraima)
+              </Button>
+
               {/* Perfil do Usuário */}
               <div>
                 <Label htmlFor="perfil">Perfil do Usuário *</Label>
@@ -302,7 +390,10 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
 
               {/* Localização */}
               <div>
-                <Label htmlFor="localizacao">Localização (Município/Estado) *</Label>
+                <Label htmlFor="localizacao" className="flex items-center gap-2">
+                  <MapPin className="h-3 w-3" />
+                  Localização (Município/Estado) *
+                </Label>
                 <Input
                   id="localizacao"
                   placeholder="Ex: Cantá, Roraima"
@@ -354,47 +445,37 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
                       <HelpCircle className="h-4 w-4 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>Descreva: manejo atual, uso de insumos, gestão de pastagens, resíduos, reserva legal, APP, energia, interesse em certificações.</p>
+                      <p>Descreva: manejo atual, reserva legal, APP, nascentes, uso de queimadas, gestão de resíduos, bem-estar animal, interesse em certificações ou incentivos.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
                 <Textarea
                   id="praticas"
-                  placeholder="Descreva detalhadamente as práticas atuais da propriedade..."
+                  placeholder="Descreva as práticas atuais da propriedade, o que você já faz de bom para o meio ambiente e a produção..."
                   value={praticasAtuais}
                   onChange={(e) => setPraticasAtuais(e.target.value)}
                   className="min-h-[150px]"
                 />
               </div>
 
-              {/* Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={carregarExemplo}
-                  className="flex-1"
-                >
-                  <Lightbulb className="mr-2 h-4 w-4" />
-                  Exemplo
-                </Button>
-                <Button
-                  onClick={handleAnalyze}
-                  disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Analisando...
-                    </>
-                  ) : (
-                    <>
-                      <Leaf className="mr-2 h-4 w-4" />
-                      Analisar
-                    </>
-                  )}
-                </Button>
-              </div>
+              {/* Botão Analisar */}
+              <Button
+                onClick={handleAnalyze}
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analisando sua propriedade...
+                  </>
+                ) : (
+                  <>
+                    <Target className="mr-2 h-4 w-4" />
+                    Analisar Sustentabilidade
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -464,37 +545,40 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
             </Card>
           )}
 
-          {/* Main Result */}
+          {/* Main Result - TEXTO EM BLOCO CONTÍNUO */}
           {result && (
             <Card className="border-l-4 border-l-green-500">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Recycle className="h-5 w-5 text-green-600" />
-                    Relatório de Análise de Sustentabilidade
+                    Relatório Estratégico de Sustentabilidade
                   </CardTitle>
                 </div>
                 <CardDescription>
-                  VetAgro Sustentável AI
+                  VetAgro Sustentável AI — Valorização e oportunidades para sua propriedade
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <MarkdownTableRenderer 
-                  content={result}
-                  className="prose prose-sm max-w-none bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/30 dark:to-emerald-950/30 p-6 rounded-xl border border-green-200 dark:border-green-800"
-                />
+                {/* Texto em bloco contínuo - SEM scroll interno */}
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <MarkdownTableRenderer 
+                    content={result}
+                    className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/30 dark:to-emerald-950/30 p-6 rounded-xl border border-green-200 dark:border-green-800"
+                  />
+                </div>
                 
-                {/* Action Buttons - Padrão Global */}
+                {/* BOTÕES PADRÃO: Copiar + Compartilhar */}
                 <ResponseActionButtons
                   content={result}
-                  title="Relatório de Análise de Sustentabilidade"
+                  title="Relatório Estratégico de Sustentabilidade"
                   toolName="Análise de Sustentabilidade"
                 />
 
-                {/* Sharing encouragement */}
+                {/* Mensagem motivadora */}
                 <div className="mt-4 p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
-                  <p className="text-sm text-muted-foreground text-center">
-                    Compartilhar este relatório contribui para a disseminação de práticas sustentáveis no agro.
+                  <p className="text-sm text-center text-green-700 dark:text-green-300 font-medium">
+                    🌱 Você já está no caminho certo! Compartilhe este relatório e inspire outros produtores.
                   </p>
                 </div>
               </CardContent>
@@ -505,18 +589,47 @@ Gere o relatório completo seguindo a estrutura fixa de 9 seções.`,
           {!result && (
             <Card className="border-dashed border-2">
               <CardContent className="py-12 text-center">
-                <Droplets className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mx-auto mb-4">
+                  <Sprout className="h-8 w-8 text-green-600" />
+                </div>
                 <h3 className="text-lg font-medium text-foreground mb-2">
-                  Avalie sua Propriedade
+                  Descubra o Valor da Sua Propriedade
                 </h3>
-                <p className="text-muted-foreground max-w-md mx-auto mb-4">
-                  Preencha os dados da sua propriedade para receber um diagnóstico completo 
-                  de maturidade sustentável com roteiro de evolução personalizado.
+                <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                  Preencha os dados e descubra como suas práticas já geram valor ambiental, 
+                  quais incentivos você pode acessar e como se posicionar melhor para o futuro.
                 </p>
-                <Button variant="outline" onClick={carregarExemplo}>
-                  <Lightbulb className="mr-2 h-4 w-4" />
-                  Carregar Exemplo
-                </Button>
+                
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={carregarExemploRoraima}
+                    className="border-green-300 hover:bg-green-50 text-green-700"
+                  >
+                    <Sprout className="mr-2 h-4 w-4" />
+                    🌱 Usar exemplo de Roraima
+                  </Button>
+                </div>
+
+                {/* Benefícios destacados */}
+                <div className="mt-8 grid grid-cols-2 gap-4 max-w-lg mx-auto text-left">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs text-muted-foreground">Valorize o que você já faz</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs text-muted-foreground">Acesse crédito diferenciado</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs text-muted-foreground">Conheça políticas públicas</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs text-muted-foreground">Prepare-se para certificações</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
