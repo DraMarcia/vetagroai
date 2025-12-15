@@ -112,23 +112,16 @@ const CalculadoraRacao = () => {
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
           tool: "calculadora-racao",
-          question: `Formule uma ração balanceada com base nos seguintes dados:
+          question: `DADOS PARA FORMULAÇÃO:
 ${professionalInfo}
 
-DADOS DO ANIMAL:
+ANIMAL:
 • Espécie: ${species}
-• Finalidade: ${purpose}
-• Peso médio: ${weight}
-• Idade: ${age || 'Não informada'}
-• Número de animais: ${animalCount || '1'}
-• Ingredientes disponíveis: ${ingredients || 'Ingredientes comuns disponíveis no mercado'}
-
-INSTRUÇÕES DE FORMATAÇÃO:
-1. Apresente a formulação em formato de TABELA com colunas: Ingrediente | Quantidade (kg) | Proporção (%)
-2. Use apenas marcadores tradicionais (• ou -) nas listas
-3. NÃO use asteriscos, hashtags ou símbolos estranhos
-4. Organize a resposta em seções claras: Formulação, Composição Nutricional, Preparo, Observações
-5. Inclua referências técnicas no final`,
+• Categoria/Finalidade: ${purpose}
+• Peso corporal: ${weight}
+• Idade: ${age || "Não informada"}
+• Número de animais: ${animalCount || "1"}
+• Ingredientes disponíveis: ${ingredients || "Não informados (considere ingredientes comuns do mercado)"}`,
           isProfessional: isProfessional === "sim",
           professionalName: professionalName,
           councilNumber: `${councilType} ${councilNumber}`,
@@ -139,10 +132,17 @@ INSTRUÇÕES DE FORMATAÇÃO:
 
       if (error) throw error;
 
-      // Limpar formatação usando utilitário
+      // Limpar formatação usando utilitário + normalização específica desta ferramenta
       const cleanResult = cleanTextForDisplay(data.answer);
-      
-      setResult(cleanResult);
+      const normalized = cleanResult
+        // remove travessões soltos no fim de linhas
+        .replace(/[–-]\s*$/gm, "")
+        // garante espaço após marcadores e separadores
+        .replace(/\s+•\s*/g, "\n• ")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+
+      setResult(normalized);
       toast({
         title: "Formulação calculada",
         description: "A ração foi balanceada com sucesso.",
