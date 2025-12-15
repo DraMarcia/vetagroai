@@ -147,13 +147,14 @@ Este relatório tem caráter orientativo e não substitui avaliação presencial
 ────────────────────
 9) REFERÊNCIAS TÉCNICAS
 
-Sempre em lista:
-• EMBRAPA
-• IPCC (2006 + Refinement 2019)
-• FAO
-• IBGE
-• MapBiomas
-• Código Florestal Brasileiro
+Sempre em lista com formato completo:
+• EMBRAPA — Empresa Brasileira de Pesquisa Agropecuária. Indicadores de Sustentabilidade na Agropecuária. Disponível em: embrapa.br
+• IPCC — Intergovernmental Panel on Climate Change. Guidelines for National Greenhouse Gas Inventories (2006) + Refinement (2019). Disponível em: ipcc.ch
+• FAO — Food and Agriculture Organization. Global Framework for Sustainable Agriculture. Disponível em: fao.org
+• IBGE — Instituto Brasileiro de Geografia e Estatística. Indicadores de Desenvolvimento Sustentável. Disponível em: ibge.gov.br
+• MapBiomas — Mapeamento Anual de Uso e Cobertura da Terra no Brasil. Plataforma MapBiomas Brasil. Disponível em: mapbiomas.org
+• Código Florestal Brasileiro — Lei 12.651/2012. Proteção da Vegetação Nativa. Disponível em: planalto.gov.br
+• MAPA — Ministério da Agricultura, Pecuária e Abastecimento. Plano ABC+ (2020-2030). Disponível em: gov.br/agricultura
 
 ${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Forneça apenas as seções 1, 7 e 8 de forma resumida (máximo 200 palavras total). Indique que análises detalhadas estão disponíveis nos planos Pro/Enterprise." : ""}
 ${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todas as 9 seções detalhadas." : ""}
