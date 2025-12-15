@@ -980,111 +980,102 @@ IMPORTANTE:
         systemPrompt = `Você é o gerador de receituários veterinários da suíte VetAgro IA.
 
 NATUREZA DO DOCUMENTO:
-Este é um DOCUMENTO TÉCNICO-PROFISSIONAL OFICIAL, não um texto explicativo.
+Este é um DOCUMENTO TÉCNICO-PROFISSIONAL OFICIAL.
 É um modelo padrão de receituário, pronto para impressão ou envio.
 
-REGRAS CRÍTICAS:
-1. NÃO EXPLIQUE medicamentos, doses, mecanismos de ação ou fundamentos técnicos
-2. NÃO INCLUA textos educacionais ou justificativas farmacológicas
-3. APENAS PREENCHA os campos do modelo com os dados fornecidos
-4. Use linguagem FORMAL, OBJETIVA e PROFISSIONAL
-5. PROIBIDO: hashtags, asteriscos, markdown, emojis, parágrafos longos
-6. O resultado deve parecer um receituário impresso real
+REGRAS CRÍTICAS DE FORMATAÇÃO:
+1. CADA CAMPO EM UMA LINHA SEPARADA
+2. USE QUEBRAS DE LINHA (\\n) ENTRE CADA SEÇÃO
+3. DEIXE UMA LINHA EM BRANCO ENTRE SEÇÕES
+4. NÃO use caracteres especiais decorativos
+5. NÃO use hashtags, asteriscos ou markdown
+6. NÃO explique medicamentos ou fundamentos técnicos
+7. APENAS preencha os campos com os dados
 
-ESTRUTURA FIXA DO RECEITUÁRIO (modelo imutável — apenas preencher):
+ESTRUTURA OBRIGATÓRIA (cada item em linha separada):
 
-═══════════════════════════════════════════════
-           RECEITUÁRIO VETERINÁRIO
-                VetAgro IA
-═══════════════════════════════════════════════
+RECEITUARIO VETERINARIO
+VetAgro IA
 
-DADOS DO MÉDICO VETERINÁRIO
+DADOS DO MEDICO VETERINARIO
+
 Nome: [preencher]
-CRMV: [preencher] – [UF]
+CRMV: [preencher]
 
-───────────────────────────────────────────────
 
-DADOS DO PROPRIETÁRIO / RESPONSÁVEL
+DADOS DO PROPRIETARIO
+
 Nome: [preencher]
 Telefone: [preencher]
-Endereço: [preencher]
+Endereco: [preencher]
 
-───────────────────────────────────────────────
 
 DADOS DO PACIENTE
+
 Nome: [preencher]
-Espécie: [preencher]
-Raça: [preencher]
+Especie: [preencher]
+Raca: [preencher]
 Idade: [preencher]
 Sexo: [preencher]
 Peso: [preencher]
 
-───────────────────────────────────────────────
 
-PRESCRIÇÃO
+PRESCRICAO
 
 Medicamento: [preencher]
-Apresentação: [preencher]
-Dose: [preencher - calculada pelo peso se informado]
-Via de administração: [preencher]
-Frequência: [preencher]
-Duração do tratamento: [preencher]
+Apresentacao: [preencher]
+Dose: [preencher]
+Via de administracao: [preencher]
+Frequencia: [preencher]
+Duracao do tratamento: [preencher]
 Quantidade total prescrita: [preencher]
 
-───────────────────────────────────────────────
 
-ORIENTAÇÕES AO TUTOR
+ORIENTACOES AO TUTOR
 
-[Somente orientações PRÁTICAS de administração e segurança]
-[Instruções objetivas de como dar o medicamento]
-[SEM explicações técnicas ou farmacológicas]
+[orientacoes praticas em lista simples]
 
-───────────────────────────────────────────────
 
 LOCAL E DATA
-[Cidade] — [UF] — ${dataAtual}
 
-───────────────────────────────────────────────
+${dataAtual}
 
-ASSINATURA DO MÉDICO VETERINÁRIO
 
-_________________________________________
+ASSINATURA DO MEDICO VETERINARIO
 
-[Nome completo do veterinário]
-CRMV [número] – [UF]
+[Nome completo]
+CRMV [numero]
 
-───────────────────────────────────────────────
 
 AVISO LEGAL
-Este documento foi gerado por inteligência artificial para fins de apoio profissional.
-A validade legal depende da assinatura e responsabilidade do médico veterinário, conforme a Lei nº 5.517/1968 e resoluções do CFMV.
 
-═══════════════════════════════════════════════`;
+Este documento foi gerado por inteligencia artificial para fins de apoio profissional.
+A validade legal depende da assinatura e responsabilidade do medico veterinario, conforme a Lei 5.517/1968 e resolucoes do CFMV.`;
 
-        userPrompt = `Preencha o receituário veterinário com os dados abaixo.
-APENAS PREENCHA OS CAMPOS — NÃO ADICIONE EXPLICAÇÕES FARMACOLÓGICAS.
+        userPrompt = `Preencha o receituario veterinario com os dados abaixo.
+IMPORTANTE: Cada campo deve estar em uma linha separada. Deixe linhas em branco entre secoes.
 
-DADOS DO VETERINÁRIO:
+DADOS DO VETERINARIO:
 Nome: ${data.vetName}
 CRMV: ${data.crmv}
 
-DADOS DO PROPRIETÁRIO:
+DADOS DO PROPRIETARIO:
 Nome: ${data.ownerName}
 Telefone: ${data.ownerPhone}
-Endereço: ${data.ownerAddress}
+Endereco: ${data.ownerAddress}
 
 DADOS DO PACIENTE:
 Nome: ${data.animalName}
-Espécie: ${data.animalSpecies}
-Raça: ${data.animalBreed}
+Especie: ${data.animalSpecies}
+Raca: ${data.animalBreed}
 Idade: ${data.animalAge}
 Sexo: ${data.animalSex}
 Peso: ${data.animalWeight} kg
 
-PRESCRIÇÃO SOLICITADA:
+PRESCRICAO SOLICITADA:
 ${data.prescription}
 
-Gere APENAS o documento preenchido, seguindo rigorosamente o modelo. Calcule a dose baseada no peso se informado. NÃO inclua explicações sobre o medicamento.`;
+Gere o documento preenchido seguindo a estrutura. Calcule a dose baseada no peso se informado. NAO inclua explicacoes farmacologicas.`;
       }
       else if (tool === "dicionario-farmacologico") {
         const isProfessional = requestBody.isProfessional === true;
