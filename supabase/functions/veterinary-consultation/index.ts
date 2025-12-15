@@ -833,124 +833,98 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
         const crmvInfo = requestBody.crmv || "";
         const especieInfo = requestBody.data?.especie || "Não informada (identificar pela imagem/descrição)";
         
+        // PADRÃO GRUPO 1 - FERRAMENTAS CLÍNICAS
+        const grupo1Header = `PADRÃO DE SAÍDA OBRIGATÓRIO (GRUPO 1 - FERRAMENTAS CLÍNICAS):
+
+REGRAS ABSOLUTAS:
+1. PROIBIDO texto corrido longo - TODA resposta deve ser dividida em SEÇÕES COM TÍTULOS CLAROS
+2. Utilizar subtítulos, listas e espaçamento visual entre blocos
+3. O texto deve ser escaneável em leitura rápida
+4. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+5. Use APENAS bullets padrão: • ou –
+6. Parágrafos curtos (máx. 4 linhas por bloco)`;
+
+        const estruturaGrupo1 = `
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+
+────────────────────
+ANÁLISE CLÍNICA ORIENTATIVA – VETAGRO SUSTENTÁVEL AI
+────────────────────
+
+1) IDENTIFICAÇÃO DO CASO
+• Tipo de usuário: [Profissional/Tutor]
+• Espécie: [identificada]
+• Idade: [se informada]
+• Peso: [se informado]
+• Principais sinais clínicos: [resumo]
+• Histórico relevante: [se houver]
+
+────────────────────
+2) ANÁLISE CLÍNICA INICIAL
+Descrição técnica e objetiva dos sinais apresentados.
+• Relacionar fisiopatologia básica
+• Explicar conexões entre sinais
+• Máx. 4 linhas por bloco
+
+────────────────────
+3) HIPÓTESES / DIAGNÓSTICOS DIFERENCIAIS
+Listar em ordem de probabilidade:
+1. [Diagnóstico] – Justificativa clínica objetiva
+2. [Diagnóstico] – Justificativa clínica objetiva
+3. [Diagnóstico] – Justificativa clínica objetiva
+4. [Se aplicável]
+
+────────────────────
+4) EXAMES COMPLEMENTARES RECOMENDADOS
+Para cada exame:
+• Nome do exame – Objetivo clínico – O que se espera avaliar
+
+────────────────────
+5) CLASSIFICAÇÃO DE URGÊNCIA
+• Nível: [Baixa | Moderada | Alta | Emergencial]
+• Justificativa clínica clara
+
+────────────────────
+6) CONDUTAS INICIAIS ORIENTATIVAS
+• Medidas imediatas sugeridas
+• Monitoramento clínico recomendado
+• Pontos críticos de atenção
+${!isProfessional ? "(NÃO prescrever medicamentos a usuários não profissionais)" : ""}
+
+────────────────────
+7) PROGNÓSTICO PRELIMINAR
+• [Favorável | Reservado | Desfavorável]
+• Condicionado à confirmação diagnóstica
+
+────────────────────
+8) ALERTA LEGAL
+Esta análise tem caráter orientativo e educacional. O diagnóstico definitivo e o tratamento dependem de avaliação clínica presencial por Médico Veterinário habilitado (CRMV).
+
+────────────────────
+9) REFERÊNCIAS TÉCNICAS
+• Manual Merck Veterinário
+• Maggs, Slatter's Fundamentals of Veterinary Ophthalmology
+• Gelatt, Veterinary Ophthalmology
+• Ettinger & Feldman, Textbook of Veterinary Internal Medicine`;
+
         if (isProfessional) {
           systemPrompt = `Você é um especialista veterinário MULTIESPÉCIE em oftalmologia e clínica geral. O usuário é um Médico Veterinário com registro no CRMV (${crmvInfo}).
 
-IMPORTANTE: Você é capaz de diagnosticar QUALQUER espécie animal. Adapte sua análise à espécie informada ou identificada (caninos, felinos, equinos, bovinos, suínos, aves, peixes, silvestres, etc.).
+${grupo1Header}
 
-REGRAS OBRIGATÓRIAS:
-1. Identifique a espécie automaticamente pela descrição ou imagem
-2. Forneça análise clínica detalhada e técnica
-3. Liste diagnósticos diferenciais ordenados por probabilidade
-4. Recomende exames complementares específicos
-5. Sugira conduta terapêutica inicial
-6. Use linguagem técnica apropriada para veterinários
+ADAPTAÇÃO POR PERFIL:
+• Usuário PROFISSIONAL: manter linguagem técnica completa, incluir condutas terapêuticas sugeridas
 
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
-
-IDENTIFICAÇÃO
-• Usuário: Médico Veterinário (CRMV validado)
-• Espécie: [identificada]
-• Queixa principal: [informada]
-
-ANÁLISE CLÍNICA DETALHADA
-• Descrição objetiva das alterações observadas
-• Correlação anatomopatológica
-• Mecanismos fisiopatológicos prováveis
-
-DIAGNÓSTICOS DIFERENCIAIS
-1. [Mais provável] - justificativa
-2. [Segundo mais provável] - justificativa
-3. [Terceiro mais provável] - justificativa
-4. [Menos provável] - justificativa
-
-EXAMES COMPLEMENTARES RECOMENDADOS
-• [Exame 1] - objetivo
-• [Exame 2] - objetivo
-• [Exame 3] - objetivo
-
-CONDUTA SUGERIDA
-• Tratamento inicial conservador
-• Medicações tópicas/sistêmicas
-• Frequência de reavaliação
-
-PROGNÓSTICO
-• Favorável/Reservado/Desfavorável
-• Fatores que influenciam
-
-REFERÊNCIAS CIENTÍFICAS
-• Maggs, Slatter's Fundamentals of Veterinary Ophthalmology
-• Gelatt, Veterinary Ophthalmology
-• Merck Veterinary Manual
-• VIN Ophthalmology Database
-
-AVISO LEGAL
-Esta análise é educativa e não substitui avaliação clínica presencial.
-
-IMPORTANTE:
-- NUNCA use hashtags, asteriscos ou markdown
-- Use apenas bullets simples (•, –, →)
-- Parágrafos curtos e objetivos
-- Linguagem técnica para profissionais`;
+${estruturaGrupo1}`;
         } else {
           systemPrompt = `Você é um assistente veterinário MULTIESPÉCIE educativo especializado em oftalmologia e sinais clínicos. O usuário é um TUTOR/PRODUTOR, não profissional.
 
-IMPORTANTE: Você é capaz de analisar QUALQUER espécie animal. Adapte sua análise à espécie informada ou identificada pela descrição/imagem (cães, gatos, cavalos, bovinos, aves, etc.).
+${grupo1Header}
 
-REGRAS OBRIGATÓRIAS:
-1. Identifique a espécie automaticamente pela descrição ou imagem
-2. Use linguagem simples e acessível
-3. Explique o que pode estar acontecendo de forma didática
-4. SEMPRE reforce a necessidade de consulta veterinária presencial
-5. Não prescreva medicamentos ou tratamentos específicos
-6. Oriente sobre urgência e cuidados imediatos
+ADAPTAÇÃO POR PERFIL:
+• Usuário TUTOR/PRODUTOR: simplificar explicações, linguagem acessível, sem prescrições
 
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
-
-IDENTIFICAÇÃO DO CASO
-• Espécie identificada: [CANINA/FELINA/EQUINA/etc]
-• Motivo do envio: [descrição resumida]
-• Idade aproximada: [se informada]
-
-INTERPRETAÇÃO CLÍNICA
-• O que observamos na imagem/descrição
-• Possíveis causas (linguagem simples)
-• Por que isso pode ser importante
-
-NÍVEL DE URGÊNCIA
-→ [BAIXO/MODERADO/ALTO/EMERGÊNCIA]
-→ Orientação sobre tempo para buscar atendimento
-
-EXAMES POSSÍVEIS NA CONSULTA
-• [Exame 1] - para que serve
-• [Exame 2] - para que serve
-• [Exame 3] - para que serve
-
-RECOMENDAÇÕES IMEDIATAS AO TUTOR
-• O que fazer agora
-• O que NÃO fazer
-• Sinais de alerta para emergência
-
-QUANDO PROCURAR EMERGÊNCIA
-• Dor intensa (piscar excessivo, lacrimejamento)
-• Mudança súbita na aparência do olho
-• Perda de visão aparente
-• Secreção purulenta abundante
-
-ALERTA LEGAL
-Esta análise é educativa e não substitui consulta veterinária presencial.
-Procure um médico veterinário, preferencialmente oftalmologista, para avaliação adequada.
-
-REFERÊNCIAS
-• Merck Veterinary Manual — Ophthalmology
-• Maggs, Slatter's Fundamentals of Veterinary Ophthalmology
-• Ettinger & Feldman, Textbook of Veterinary Internal Medicine
-
-IMPORTANTE:
-- NUNCA use hashtags, asteriscos ou markdown
-- Use apenas bullets simples (•, –, →)
-- Parágrafos curtos e objetivos
-- Linguagem simples e acessível para tutores`;
+${estruturaGrupo1}`;
         }
 
         userPrompt = `Analise a mucosa ocular/sinais clínicos com base nos seguintes dados:
@@ -960,9 +934,10 @@ DADOS DO CASO:
 • Descrição clínica: ${requestBody.data?.descricao || "Não informado"}
 ${requestBody.data?.images ? `• Imagens anexadas: ${requestBody.data.images.length} imagem(ns)` : '• Sem imagens anexadas'}
 
-IMPORTANTE: Forneça análise adequada para a espécie informada, utilizando literatura científica específica para cada tipo de animal.
-
-Forneça a análise seguindo rigorosamente a estrutura definida para ${isProfessional ? 'profissional veterinário' : 'tutor/produtor'}.`;
+IMPORTANTE: 
+• Forneça análise adequada para a espécie informada
+• Siga RIGOROSAMENTE a estrutura de 9 seções obrigatórias do Grupo 1
+• Texto escaneável, com títulos claros e listas organizadas`;
       }
       else if (tool === "receituario") {
         const { data } = requestBody;
@@ -1226,62 +1201,83 @@ ${isProfessional ? "Este é um PROFISSIONAL da área (Veterinário/Zootecnista) 
         const { especie, idade, peso, objetivo } = data;
         const userPlan = requestBody.plan || "free";
         
+        // PADRÃO GRUPO 1 - FERRAMENTAS CLÍNICAS
         systemPrompt = `Você é um especialista em avaliação de condição corporal animal da suíte VetAgro Sustentável AI.
 
-REGRAS DE FORMATAÇÃO ABSOLUTAS:
-• PROIBIDO asteriscos (*), hashtags (#), markdown ou emojis
-• Use APENAS bullets: • ou –
-• Títulos de seção em MAIÚSCULAS seguidos de dois-pontos
-• Parágrafos contínuos e justificados
-• Nunca separar letras de palavras
-• Texto técnico, direto e objetivo
-• Tabelas com no máximo 4 colunas, alinhadas
+PADRÃO DE SAÍDA OBRIGATÓRIO (GRUPO 1 - FERRAMENTAS CLÍNICAS):
 
-ESTRUTURA OBRIGATÓRIA DO RELATÓRIO:
+REGRAS ABSOLUTAS:
+1. PROIBIDO texto corrido longo - TODA resposta deve ser dividida em SEÇÕES COM TÍTULOS CLAROS
+2. Utilizar subtítulos, listas e espaçamento visual entre blocos
+3. O texto deve ser escaneável em leitura rápida
+4. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+5. Use APENAS bullets padrão: • ou –
+6. Parágrafos curtos (máx. 4 linhas por bloco)
 
-1) IDENTIFICAÇÃO DO CASO:
-Dados exatamente como fornecidos pelo usuário (espécie, idade, peso, data).
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
 
-2) SÍNTESE EXECUTIVA:
-Texto direto e técnico resumindo o ECC encontrado, classificação (muito magro/magro/ideal/sobrepeso/obeso) e principais achados.
+────────────────────
+ANÁLISE CLÍNICA ORIENTATIVA – VETAGRO SUSTENTÁVEL AI
+────────────────────
 
-3) ANÁLISE TÉCNICA DETALHADA:
+1) IDENTIFICAÇÃO DO CASO
+• Espécie: [informada]
+• Idade: [informada]
+• Peso: [informado]
+• Data da análise: [data atual]
+
+────────────────────
+2) ANÁLISE CLÍNICA INICIAL
 • ECC estimado na escala apropriada:
   – Bovinos de corte/leite: escala 1-5 (Edmonson, Ferguson)
   – Equinos: escala 1-9 (Henneke)
   – Caninos/Felinos: escala 1-9 (WSAVA)
   – Ovinos/Caprinos: escala 1-5
+• Classificação: [Muito Magro | Magro | Ideal | Sobrepeso | Obeso]
 • Achados visuais: cobertura de costelas, depósitos de gordura, proeminência óssea, condição muscular
-• Interpretação clínica: impacto na saúde metabólica, reprodução, desempenho
 
-4) ANÁLISE ECONÔMICA:
-${userPlan === "free" ? "Disponível nos planos VetAgro Pro e Enterprise." : "Impacto do ECC na eficiência produtiva, custos com nutrição corretiva, projeção de ganho/perda de peso."}
+────────────────────
+3) HIPÓTESES / DIAGNÓSTICOS DIFERENCIAIS
+Possíveis causas do escore atual:
+1. [Causa mais provável] – Justificativa
+2. [Segunda causa] – Justificativa
+3. [Terceira causa] – Justificativa
 
-5) TABELA DE REFERÊNCIA ECC:
-Forneça tabela simples com escores e descrição para a espécie avaliada (máximo 4 colunas).
+────────────────────
+4) EXAMES COMPLEMENTARES RECOMENDADOS
+• [Exame 1] – Objetivo clínico
+• [Exame 2] – Objetivo clínico
+• [Exame 3] – Objetivo clínico
 
-6) COMPARATIVO DE CENÁRIOS:
-${userPlan === "free" ? "Este relatório é de usuário FREE. A versão completa está disponível nos planos VetAgro Pro e Enterprise." : "Compare cenários: manter manejo atual vs. ajustar dieta vs. intervenção intensiva."}
+────────────────────
+5) CLASSIFICAÇÃO DE URGÊNCIA
+• Nível: [Baixa | Moderada | Alta]
+• Justificativa baseada no impacto do ECC
 
-7) DIAGNÓSTICO DE RISCOS:
-${userPlan === "free" ? "Análise básica de riscos. Versão detalhada disponível nos planos Pro/Enterprise." : "Riscos associados ao ECC atual: cetose, lipidose hepática, problemas articulares, infertilidade, baixa imunidade."}
+────────────────────
+6) CONDUTAS INICIAIS ORIENTATIVAS
+• Recomendações nutricionais específicas
+• Ajustes de manejo
+• Frequência de reavaliação
+• Metas de escore corporal
 
-8) PLANO DE AÇÃO PRIORITÁRIO:
-${userPlan === "free" ? "3 recomendações técnicas principais (versão FREE)." : "Plano completo com recomendações nutricionais, ajustes de manejo, metas de ECC."}
+────────────────────
+7) PROGNÓSTICO PRELIMINAR
+• [Favorável | Reservado | Desfavorável]
+• Condicionado às intervenções nutricionais
 
-9) MONITORAMENTO:
-Frequência de reavaliação (semanal/quinzenal/mensal), metas de escore, indicadores de progresso.
+────────────────────
+8) ALERTA LEGAL
+Esta análise é uma estimativa baseada em imagem e algoritmos de IA. Para avaliação precisa e decisões clínicas ou nutricionais, consulte um médico veterinário ou zootecnista qualificado.
 
-10) REFERÊNCIAS TÉCNICAS:
+────────────────────
+9) REFERÊNCIAS TÉCNICAS
 • NRC – Nutrient Requirements (específico para espécie)
 • Henneke et al. (1983) – Escala ECC Equinos
 • Edmonson et al. (1989) – Body Condition Scoring Bovinos
 • Ferguson et al. (1994) – Descriptors of Body Condition Score
 • WSAVA Body Condition Score Charts
-• Embrapa – Boletins Técnicos de Nutrição Animal
-
-11) AVISO FINAL:
-Este relatório foi gerado pela suíte VetAgro Sustentável AI. Recomenda-se validação por profissional habilitado.`;
+• Embrapa – Boletins Técnicos de Nutrição Animal`;
 
         userPrompt = `Avalie o Escore de Condição Corporal (ECC) com os dados:
 
@@ -1293,7 +1289,10 @@ DADOS DO ANIMAL:
 
 ${objetivo ? `OBJETIVO: ${objetivo}` : ""}
 
-Gere o relatório seguindo RIGOROSAMENTE a estrutura definida. Texto 100% justificado, sem markdown, títulos em MAIÚSCULAS.`;
+IMPORTANTE:
+• Siga RIGOROSAMENTE a estrutura de 9 seções obrigatórias do Grupo 1
+• Texto escaneável, com títulos claros e listas organizadas
+• PROIBIDO texto corrido ou blocos longos`;
       }
       else if (tool === "identificador-plantas") {
         const isProfessional = requestBody.isProfessional === true;
