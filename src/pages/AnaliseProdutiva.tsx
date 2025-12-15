@@ -6,12 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { TrendingUp, Loader2, ChevronDown, Target, DollarSign, AlertTriangle, Lightbulb, BarChart3, FileText, User, Copy, Check } from "lucide-react";
+import { TrendingUp, Loader2, ChevronDown, Target, DollarSign, AlertTriangle, Lightbulb, BarChart3, FileText, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { ReportExporter } from "@/components/ReportExporter";
-// Text cleaning is only applied during PDF export, not display
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
 const SISTEMAS_PRODUCAO = [
   { value: "recria", label: "Recria" },
@@ -56,7 +55,6 @@ const AnaliseProdutiva = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState("");
   const [showOptional, setShowOptional] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   // Tipo de usuário e validação profissional
   const [tipoUsuario, setTipoUsuario] = useState("");
@@ -133,25 +131,6 @@ const AnaliseProdutiva = () => {
       setPrecoVenda("270");
       setMortalidade("2");
       setEficienciaReprodutiva("85");
-    }
-  };
-
-  const handleCopyReport = async () => {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result);
-      setCopied(true);
-      toast({
-        title: "Relatório copiado!",
-        description: "O conteúdo foi copiado para a área de transferência.",
-      });
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar o relatório.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -640,25 +619,12 @@ const AnaliseProdutiva = () => {
               </CardContent>
             </Card>
 
-            {/* Botões de Exportação */}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={handleCopyReport}
-                className="flex items-center gap-2"
-              >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? "Copiado!" : "Copiar Relatório"}
-              </Button>
-              
-              <ReportExporter
-                title="Planejamento Produtivo & Econômico — VetAgro Sustentável AI"
-                content={result}
-                toolName="Planejamento Produtivo & Econômico"
-                references={REFERENCIAS_ZOOTECNICAS}
-                userInputs={getUserInputs()}
-              />
-            </div>
+            {/* Botões Padrão Global: Copiar + Compartilhar */}
+            <ResponseActionButtons
+              content={result}
+              title="Planejamento Produtivo & Econômico"
+              toolName="Painel de Inteligência Produtiva"
+            />
           </div>
         )}
       </div>
