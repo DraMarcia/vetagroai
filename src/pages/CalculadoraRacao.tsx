@@ -137,6 +137,10 @@ ANIMAL:
       const normalized = cleanResult
         // remove travessões/hífens soltos no fim de linhas
         .replace(/[–-]\s*$/gm, "")
+        // garante que o título da tabela fique em linha própria antes do markdown
+        .replace(/(TABELA DE FORMULAÇÃO DA DIETA)\s*\|/gi, "$1\n\n|")
+        // corrige cabeçalho quando o modelo omite o símbolo %
+        .replace(/\|\s*da dieta\s*\|/gi, "| % da dieta |")
         // remove travessão solto antes de "Data da análise" e padroniza como bullet
         .replace(/\s*-\s*(Data da an[aá]lise:)/gi, "\n• $1")
         // garante espaço após bullets

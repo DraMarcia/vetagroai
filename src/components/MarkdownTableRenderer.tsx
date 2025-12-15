@@ -128,23 +128,22 @@ const preprocessContinuousText = (text: string): string => {
   processed = processed.replace(/([^\n])\s*([─]{5,})\s*/g, '$1\n\n$2\n\n');
   processed = processed.replace(/\s*([─]{5,})\s*([^\n])/g, '\n\n$1\n\n$2');
 
-  // STEP 0.0: Fix tool title/subtitle stuck together (ex: "CALCULADORA DE RAÇÃORELATÓRIO")
+  // STEP 0.0: Fix tool title/subtitle stuck together (ex: "CALCULADORA DE RAÇÃO RELATÓRIO")
   processed = processed.replace(/(CALCULADORA DE RAÇ[ÃA]O)\s*(RELAT[ÓO]RIO)/gi, '$1\n\n$2');
 
   // STEP 0: Handle square bracket titles like [DIAGNÓSTICO DIFERENCIAL]
   processed = processed.replace(/\]([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, ']\n\n$1');
 
   // STEP 0.1: CRITICAL - Force numbered section titles to be on their own line
-  // Pattern: "1) TÍTULO" - ensure line break before
   processed = processed.replace(/([^\n])(\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
 
   // STEP 0.2: If "1)" is alone in a line, merge it with next uppercase title line
   processed = processed.replace(/\n(\d+\))\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,})/g, '\n$1 $2');
 
-  // STEP 0.3: Ensure text after section title starts on new line
-  // Pattern: "OBJETIVO NUTRICIONALA ..." -> break after the title keyword
-  // (Handled again later for all keywords, but keep this early as a safeguard)
-  processed = processed.replace(/(OBJETIVO NUTRICIONAL)(?=[A-Za-zÁÉÍÓÚÂÊÔÃÕÇ])/gi, '$1\n\n');
+  // STEP 0.3: Force a break when a section title is immediately followed by text or a table pipe
+  // Examples: "OBJETIVO NUTRICIONALA ..." or "TABELA...| Ingrediente |"
+  processed = processed.replace(/(OBJETIVO NUTRICIONAL)(?=[A-Za-zÁÉÍÓÚÂÊÔÃÕÇ|])/gi, '$1\n\n');
+  processed = processed.replace(/(TABELA DE FORMULAÇÃO DA DIETA)(?=[A-Za-zÁÉÍÓÚÂÊÔÃÕÇ|])/gi, '$1\n\n');
 
   // STEP 0.4: Force bullet points (•) to start on a new line
   processed = processed.replace(/([^\n•\s])(•\s*)/g, '$1\n$2');
@@ -158,7 +157,7 @@ const preprocessContinuousText = (text: string): string => {
   // STEP 0.7: Break after closing parenthesis followed by uppercase section
   processed = processed.replace(/(\))([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
 
-  // STEP 0.8: Break after numbers followed by uppercase section (like "100,0DISTRIBUIÇÃO")
+  // STEP 0.8: Break after numbers followed by uppercase section
   processed = processed.replace(/(\d+[,.]?\d*)\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
 
   // STEP 0.10: Handle subtitle patterns
