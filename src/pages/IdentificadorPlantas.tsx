@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Leaf, Loader2, Upload, X, ImageIcon } from "lucide-react";
+import { Leaf, Loader2, Upload, X, ImageIcon, User, AlertTriangle, MapPin, Microscope } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UFS } from "@/hooks/useCrmvValidation";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
+import { cleanTextForDisplay } from "@/lib/textUtils";
 
 const COUNCIL_TYPES = [
   { value: "CREA", label: "CREA - Engenharia e Agronomia" },
   { value: "CRBio", label: "CRBio - Biologia" },
   { value: "CFTA", label: "CFTA - Técnicos Agrícolas" },
+  { value: "CRMV", label: "CRMV - Medicina Veterinária" },
   { value: "Outro", label: "Outro" },
 ];
 
@@ -30,6 +32,14 @@ const IdentificadorPlantas = () => {
   const [description, setDescription] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [result, setResult] = useState("");
+
+  const handleExampleFill = () => {
+    setDescription("Planta encontrada em pastagem de bovinos no Cerrado de Roraima. Folhas verde-escuras, formato de coração, caule ereto. Alguns animais apresentaram salivação excessiva e apatia após ingestão. Planta tem cerca de 50cm de altura, flores pequenas amareladas.");
+    toast({
+      title: "Exemplo carregado",
+      description: "Descrição de exemplo preenchida. Adicione imagens se disponíveis.",
+    });
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -65,7 +75,6 @@ const IdentificadorPlantas = () => {
   const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
-
 
   const handleIdentify = async () => {
     if (loading) return;
@@ -105,12 +114,70 @@ const IdentificadorPlantas = () => {
     try {
       toast({
         title: "Analisando...",
-        description: "Processando imagens e dados fornecidos.",
+        description: "Processando dados fornecidos.",
       });
+
+      const prompt = `IDENTIFICADOR DE PLANTAS — VetAgro Sustentável AI
+
+Você é o Identificador de Plantas VetAgro AI, uma ferramenta técnica de identificação botânica com foco em toxicidade animal e manejo de pastagens.
+
+DESCRIÇÃO FORNECIDA: ${description || "Sem descrição adicional — analisar apenas imagens"}
+NÚMERO DE IMAGENS: ${images.length}
+${isProfessional === "sim" ? `PROFISSIONAL: ${councilType} ${councilNumber}/${councilUF}` : "USUÁRIO: Não profissional da área"}
+
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA (seguir rigorosamente):
+
+1. IDENTIFICAÇÃO PRELIMINAR:
+– Nome popular (quando possível identificar)
+– Nome científico provável
+– Família botânica
+
+2. CARACTERÍSTICAS MORFOLÓGICAS:
+– Folhas: formato, cor, textura, nervação
+– Caule: tipo, cor, presença de pelos ou espinhos
+– Flores: cor, formato, disposição (se visíveis)
+– Frutos: tipo, cor, formato (se visíveis)
+– Raízes: características (se informadas)
+
+3. HABITAT E OCORRÊNCIA:
+– Regiões comuns no Brasil e biomas típicos
+– Ambientes de ocorrência: pastagem, mata, áreas alagadas, cerrado, etc.
+– Condições favoráveis ao desenvolvimento
+
+4. IMPORTÂNCIA VETERINÁRIA:
+– Planta tóxica: SIM / NÃO / POTENCIALMENTE
+– Espécies animais mais afetadas
+– Princípio tóxico (se conhecido)
+– Principais sinais clínicos em caso de intoxicação
+– Dose tóxica aproximada (se disponível na literatura)
+
+5. CONDUTA TÉCNICA RECOMENDADA:
+– Medidas preventivas para evitar intoxicação
+– Manejo de pastagem recomendado
+– Orientações gerais para produtores
+– Importância do diagnóstico diferencial
+
+6. ALERTA TÉCNICO:
+A identificação por imagem é indicativa e não substitui avaliação botânica especializada. Em casos de suspeita de intoxicação, procure assistência veterinária imediata.
+
+7. REFERÊNCIAS TÉCNICAS:
+– EMBRAPA — Plantas Tóxicas do Brasil
+– Tokarnia CH, Döbereiner J, Peixoto PV — Plantas Tóxicas do Brasil (2ª ed.)
+– Universidades brasileiras — herbários e estudos regionais
+– Manuais de identificação botânica
+
+REGRAS OBRIGATÓRIAS:
+– Linguagem técnica, clara e objetiva
+– Sem asteriscos, hashtags ou emojis
+– Use apenas bullets padrão: –, •
+– Formate títulos como "TÍTULO:" em maiúsculas
+– Se não for possível identificar com segurança, informar claramente
+– Não inventar características não observáveis nas imagens ou descrição`;
 
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
           tool: "identificador-plantas",
+          question: prompt,
           images: images,
           description: description || "Sem descrição adicional",
           isProfessional: isProfessional === "sim",
@@ -126,9 +193,10 @@ const IdentificadorPlantas = () => {
         throw new Error("Resposta vazia do servidor. Tente novamente.");
       }
 
-      setResult(data.answer);
+      const cleanedResult = cleanTextForDisplay(data.answer);
+      setResult(cleanedResult);
       toast({
-        title: "Identificação concluída!",
+        title: "Identificação concluída",
         description: "Relatório gerado com sucesso.",
       });
     } catch (error: any) {
@@ -145,24 +213,68 @@ const IdentificadorPlantas = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Header Institucional */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-600 to-teal-600 flex items-center justify-center">
-            <Leaf className="h-6 w-6 text-white" />
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-600 to-lime-600 flex items-center justify-center shadow-lg">
+            <Leaf className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Identificador de Plantas e Toxicidade</h1>
-            <p className="text-muted-foreground">Identificação botânica, fitossanidade, toxicidade e manejo de pastagens</p>
+            <h1 className="text-3xl font-bold text-foreground">Identificador de Plantas</h1>
+            <p className="text-muted-foreground">Identificação botânica, toxicidade animal e manejo de pastagens</p>
           </div>
         </div>
+
+        {/* Bloco Conceitual */}
+        <Card className="bg-gradient-to-r from-green-50 to-lime-50 dark:from-green-950/30 dark:to-lime-950/30 border-green-200 dark:border-green-800">
+          <CardContent className="pt-6">
+            <p className="text-foreground leading-relaxed mb-4">
+              Ferramenta técnica para identificação de plantas com foco em toxicidade veterinária e manejo de pastagens. Analisa características morfológicas, habitat, potencial tóxico e recomendações de conduta.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Microscope className="h-4 w-4 text-green-600" />
+                <span>Identificação botânica</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <AlertTriangle className="h-4 w-4 text-green-600" />
+                <span>Toxicidade animal</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 text-green-600" />
+                <span>Habitat e biomas</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Leaf className="h-4 w-4 text-green-600" />
+                <span>Manejo de pastagem</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 max-w-3xl">
+        {/* Botão de Exemplo */}
+        <div className="flex justify-start">
+          <Button
+            variant="outline"
+            onClick={handleExampleFill}
+            className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-950/50"
+          >
+            <Leaf className="mr-2 h-4 w-4" />
+            Usar exemplo: Planta suspeita no Cerrado
+          </Button>
+        </div>
+
+        {/* Identificação Profissional */}
         <Card>
           <CardHeader>
-            <CardTitle>Identificação Profissional</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <User className="h-5 w-5 text-green-600" />
+              Identificação Profissional
+            </CardTitle>
             <CardDescription>
-              Informe se você é um profissional da área (agrônomo, engenheiro florestal, biólogo, etc.)
+              Profissionais: agrônomos, engenheiros florestais, biólogos, veterinários
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -225,11 +337,15 @@ const IdentificadorPlantas = () => {
           </CardContent>
         </Card>
 
+        {/* Upload de Imagens */}
         <Card>
           <CardHeader>
-            <CardTitle>Imagens da Planta/Pastagem</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ImageIcon className="h-5 w-5 text-green-600" />
+              Imagens da Planta
+            </CardTitle>
             <CardDescription>
-              Envie até 5 imagens claras (folhas, caule, flores, frutos, raízes ou pastagem)
+              Envie até 5 imagens claras: folhas, caule, flores, frutos, raízes ou pastagem
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -251,7 +367,7 @@ const IdentificadorPlantas = () => {
                     {images.length} de 5 imagens carregadas
                   </span>
                   <span className="text-xs text-green-600 font-medium">
-                    ✓ Pronto para análise
+                    Pronto para análise
                   </span>
                 </div>
                 <div className="grid grid-cols-5 gap-2">
@@ -283,11 +399,15 @@ const IdentificadorPlantas = () => {
           </CardContent>
         </Card>
 
+        {/* Descrição */}
         <Card>
           <CardHeader>
-            <CardTitle>Descrição Adicional (Opcional)</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Leaf className="h-5 w-5 text-green-600" />
+              Descrição Adicional
+            </CardTitle>
             <CardDescription>
-              Descreva características da planta, local encontrado, bioma, sintomas observados em animais
+              Descreva características, local, bioma, sintomas observados em animais
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -301,11 +421,12 @@ const IdentificadorPlantas = () => {
           </CardContent>
         </Card>
 
+        {/* Botão de Análise */}
         <Button
           onClick={handleIdentify}
           disabled={loading || !isProfessional}
           size="lg"
-          className="w-full"
+          className="w-full bg-gradient-to-r from-green-600 to-lime-600 hover:from-green-700 hover:to-lime-700"
         >
           {loading ? (
             <>
@@ -315,30 +436,38 @@ const IdentificadorPlantas = () => {
           ) : (
             <>
               <Leaf className="mr-2 h-5 w-5" />
-              Identificar e Analisar
+              Identificar Planta
             </>
           )}
         </Button>
 
+        {/* Resultado */}
         {result && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Relatório de Identificação</CardTitle>
+          <Card className="border-green-200 dark:border-green-800">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-lime-50 dark:from-green-950/30 dark:to-lime-950/30 rounded-t-lg">
+              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                <Leaf className="h-5 w-5" />
+                Relatório de Identificação
+              </CardTitle>
               <CardDescription>
-                Identificação botânica, fitossanidade, toxicidade e recomendações de manejo
+                Identificação botânica, toxicidade e recomendações técnicas
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <MarkdownTableRenderer 
-                content={result}
-                className="bg-muted p-4 rounded-lg text-sm leading-relaxed"
-              />
-              
+            <CardContent className="pt-6">
+              {/* Result Display */}
+              <div className="prose prose-sm max-w-none">
+                <MarkdownTableRenderer 
+                  content={result}
+                  className="bg-muted/30 p-6 rounded-lg text-sm leading-relaxed border"
+                />
+              </div>
+
+              {/* Action Buttons */}
               <ResponseActionButtons
                 content={result}
                 title="Identificador de Plantas e Toxicidade"
                 toolName="Identificador de Plantas"
-                className="pt-4 border-t"
+                className="mt-6 pt-4 border-t"
               />
             </CardContent>
           </Card>
