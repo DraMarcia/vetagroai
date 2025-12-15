@@ -10,8 +10,18 @@ import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UFS, useCrmvValidation, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
-import { cleanTextForDisplay } from "@/lib/textUtils";
 
+// Simple cleaning for prescription - preserve line breaks
+const cleanPrescriptionText = (text: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/\*\*/g, '')
+    .replace(/\*/g, '')
+    .replace(/#{1,6}\s*/g, '')
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+    .replace(/[\u{2600}-\u{26FF}]/gu, '')
+    .trim();
+};
 const Receituario = () => {
   const { toast } = useToast();
   const { validateAndNotify } = useCrmvValidation();
@@ -115,7 +125,7 @@ const Receituario = () => {
         throw new Error("Resposta vazia do servidor");
       }
 
-      const cleanedResult = cleanTextForDisplay(data.answer);
+      const cleanedResult = cleanPrescriptionText(data.answer);
       setResult(cleanedResult);
       
       toast({
