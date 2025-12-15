@@ -3,16 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Upload, Download, Loader2, Image as ImageIcon, X, CheckCircle2, Copy, FileDown, AlertTriangle, FileType } from "lucide-react";
+import { FileText, Upload, Loader2, Image as ImageIcon, X, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UFS } from "@/hooks/useCrmvValidation";
-import jsPDF from "jspdf";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from "docx";
-import { saveAs } from "file-saver";
-import { cleanTextForPDF } from "@/lib/textUtils";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 const ResenhaEquinos = () => {
   const { toast } = useToast();
@@ -228,308 +225,10 @@ const ResenhaEquinos = () => {
     }
   };
 
-  const getFormattedSignature = () => {
-    return vetName 
-      ? `Responsável técnico: Méd. Vet. ${vetName} — CRMV-${uf} ${crmv}`
-      : `Responsável técnico: CRMV-${uf} ${crmv}`;
-  };
-
-  const getLegalDisclaimer = () => {
-    return `\n\n---\n${getFormattedSignature()}\n\nEste relatório foi gerado por inteligência artificial e não substitui exame presencial nem assinatura do médico veterinário responsável, sendo este obrigatório para validade oficial.\n\nEmitido por VetAgro Sustentável AI — ${new Date().toLocaleDateString("pt-BR")}`;
-  };
-
-  const handleCopyToClipboard = async () => {
-    if (!resenha) return;
-    
-    const textToCopy = resenha + getLegalDisclaimer();
-    
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      toast({
-        title: "Copiado!",
-        description: "Resenha copiada para a área de transferência.",
-      });
-    } catch (err) {
-      toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar o texto.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDownloadTxt = () => {
-    if (!resenha) return;
-    
-    const textContent = resenha + getLegalDisclaimer();
-    const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `resenha-equino-${horseName || 'sem-nome'}-${Date.now()}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "TXT baixado",
-      description: "Arquivo de texto salvo com sucesso.",
-    });
-  };
-
-  // Remove seção IDENTIFICAÇÃO duplicada e linhas repetidas do conteúdo da resenha
-  const getCleanResenhaContent = () => {
-    let cleaned = resenha
-      // Remove seção IDENTIFICAÇÃO inteira (evita duplicidade com bloco manual)
-      .replace(/IDENTIFICAÇÃO[\s\S]*?(?=MORFOLOGIA|PELAGEM|CONDIÇÃO|PONTOS|$)/gi, '')
-      // Remove linhas soltas de identificação que possam aparecer duplicadas
-      .replace(/•\s*Raça:.*\n?/gi, '')
-      .replace(/•\s*Idade:.*\n?/gi, '')
-      .replace(/•\s*Sexo:.*\n?/gi, '')
-      .replace(/•\s*Pelagem:.*\n?/gi, '')
-      .replace(/•\s*Finalidade:.*\n?/gi, '')
-      .replace(/•\s*Responsável técnico:.*\n?/gi, '')
-      .replace(/•\s*Nome:.*\n?/gi, '')
-      // Limpar linhas vazias excessivas
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-    return cleaned;
-  };
-
-  // Bloco institucional obrigatório antes da conclusão
-  const getInstitutionalBlock = () => {
-    return `
-NOTA INSTITUCIONAL
-• Este relatório descreve características fenotípicas observáveis a partir das imagens fornecidas.
-• A assinatura do médico veterinário responsável é obrigatória para validade oficial.`;
-  };
-
-  const handleDownloadPDF = () => {
-    if (!resenha) return;
-
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
-    let yPosition = 20;
-
-    // Header
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("RESENHA TÉCNICA — EQUINO", pageWidth / 2, yPosition, { align: "center" });
-    yPosition += 12;
-
-    // Separator line
-    doc.setLineWidth(0.5);
-    doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 10;
-
-    // IDENTIFICAÇÃO PADRONIZADA (única seção)
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text("IDENTIFICAÇÃO", margin, yPosition);
-    yPosition += 7;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    
-    // Padronizar nomenclatura de raça (PSI)
-    const displayBreed = breed.toLowerCase().includes("puro sangue") || breed.toLowerCase().includes("psi") 
-      ? "Puro Sangue Inglês (PSI)" 
-      : breed;
-    
-    const identData = [
-      horseName ? `• Nome: ${horseName}` : null,
-      `• Raça: ${displayBreed}`,
-      `• Idade: ${age}`,
-      sex ? `• Sexo: ${sex}` : null,
-      coat ? `• Pelagem: ${coat}` : null,
-      `• Finalidade: ${purpose}`,
-      `• ${getFormattedSignature()}`
-    ].filter(Boolean);
-    
-    identData.forEach((line) => {
-      doc.text(line as string, margin, yPosition);
-      yPosition += 6;
-    });
-    yPosition += 5;
-
-    // Separator
-    doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 8;
-
-    // Report content (sem seção IDENTIFICAÇÃO duplicada)
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    
-    const cleanContent = getCleanResenhaContent();
-    
-    // Inserir bloco institucional antes da CONCLUSÃO
-    let contentWithInstitutional = cleanContent;
-    if (cleanContent.includes('CONCLUSÃO')) {
-      contentWithInstitutional = cleanContent.replace(
-        /(CONCLUSÃO)/i, 
-        `${getInstitutionalBlock()}\n\n$1`
-      );
-    } else {
-      contentWithInstitutional = cleanContent + getInstitutionalBlock();
-    }
-    
-    // Apply aggressive PDF cleaning to prevent bugs
-    const cleanedForPDF = cleanTextForPDF(contentWithInstitutional);
-    
-    const lines = doc.splitTextToSize(cleanedForPDF, maxWidth);
-    lines.forEach((line: string) => {
-      if (yPosition > pageHeight - 40) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      
-      // Destacar títulos de seções
-      if (line.match(/^(MORFOLOGIA|PELAGEM|CONDICAO|PONTOS|OBSERVACOES|CONCLUSAO|NOTA INSTITUCIONAL)/i)) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(11);
-        yPosition += 3;
-      } else {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10);
-      }
-      
-      // Left-aligned text (no justification to prevent letter-spacing bugs)
-      doc.text(line, margin, yPosition);
-      yPosition += 5;
-    });
-
-    // Legal disclaimer
-    if (yPosition > pageHeight - 55) {
-      doc.addPage();
-      yPosition = 20;
-    }
-    yPosition += 10;
-    doc.setLineWidth(0.3);
-    doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 8;
-    
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "italic");
-    const disclaimer = "Este relatório foi gerado por inteligência artificial e não substitui exame presencial nem assinatura do médico veterinário responsável, sendo este obrigatório para validade oficial.";
-    const disclaimerLines = doc.splitTextToSize(disclaimer, maxWidth);
-    disclaimerLines.forEach((line: string) => {
-      doc.text(line, margin, yPosition);
-      yPosition += 4;
-    });
-
-    // Footer on all pages
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "italic");
-      doc.text(
-        `VetAgro Sustentável AI — ${new Date().toLocaleDateString("pt-BR")} — Página ${i} de ${pageCount}`,
-        pageWidth / 2,
-        pageHeight - 10,
-        { align: "center" }
-      );
-    }
-
-    doc.save(`resenha-equino-${horseName || 'sem-nome'}-${Date.now()}.pdf`);
-    toast({
-      title: "PDF baixado",
-      description: "A resenha foi salva com sucesso.",
-    });
-  };
-
-  const handleDownloadDOCX = async () => {
-    if (!resenha) return;
-
-    const displayBreed = breed.toLowerCase().includes("puro sangue") || breed.toLowerCase().includes("psi") 
-      ? "Puro Sangue Inglês (PSI)" 
-      : breed;
-
-    const cleanContent = getCleanResenhaContent();
-
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: [
-          // Título
-          new Paragraph({
-            children: [new TextRun({ text: "RESENHA TÉCNICA — EQUINO", bold: true, size: 32 })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 300 },
-          }),
-          // Identificação
-          new Paragraph({
-            children: [new TextRun({ text: "IDENTIFICAÇÃO", bold: true, size: 24 })],
-            spacing: { before: 200, after: 100 },
-          }),
-          ...[
-            horseName ? `Nome: ${horseName}` : null,
-            `Raça: ${displayBreed}`,
-            `Idade: ${age}`,
-            sex ? `Sexo: ${sex}` : null,
-            coat ? `Pelagem: ${coat}` : null,
-            `Finalidade: ${purpose}`,
-            getFormattedSignature()
-          ].filter(Boolean).map(text => new Paragraph({
-            children: [new TextRun({ text: `• ${text}`, size: 22 })],
-            spacing: { after: 60 },
-          })),
-          // Separador
-          new Paragraph({ children: [], spacing: { after: 200 } }),
-          // Conteúdo com bloco institucional
-          ...(() => {
-            let contentWithInstitutional = cleanContent;
-            if (cleanContent.includes('CONCLUSÃO')) {
-              contentWithInstitutional = cleanContent.replace(
-                /(CONCLUSÃO)/i, 
-                `${getInstitutionalBlock()}\n\n$1`
-              );
-            } else {
-              contentWithInstitutional = cleanContent + getInstitutionalBlock();
-            }
-            return contentWithInstitutional.split('\n').filter(line => line.trim());
-          })().map(line => {
-            const isTitle = line.match(/^(MORFOLOGIA|PELAGEM|CONDIÇÃO|PONTOS|OBSERVAÇÕES|CONCLUSÃO|NOTA INSTITUCIONAL)/i);
-            return new Paragraph({
-              children: [new TextRun({ 
-                text: line, 
-                bold: !!isTitle, 
-                size: isTitle ? 24 : 22 
-              })],
-              spacing: { before: isTitle ? 200 : 60, after: 60 },
-            });
-          }),
-          // Disclaimer
-          new Paragraph({ children: [], spacing: { after: 300 } }),
-          new Paragraph({
-            children: [new TextRun({ 
-              text: "Este relatório foi gerado por inteligência artificial e não substitui exame presencial nem assinatura do médico veterinário responsável, sendo este obrigatório para validade oficial.", 
-              italics: true, 
-              size: 18 
-            })],
-          }),
-          new Paragraph({
-            children: [new TextRun({ 
-              text: `Emitido por VetAgro Sustentável AI — ${new Date().toLocaleDateString("pt-BR")}`, 
-              italics: true, 
-              size: 18 
-            })],
-            spacing: { before: 100 },
-          }),
-        ],
-      }],
-    });
-
-    const blob = await Packer.toBlob(doc);
-    saveAs(blob, `resenha-equino-${horseName || 'sem-nome'}-${Date.now()}.docx`);
-    
-    toast({
-      title: "DOCX baixado",
-      description: "A resenha foi salva em formato Word.",
-    });
+  // Get full text for copy functionality
+  const getFullReportText = () => {
+    const footer = `\n\n────────────────────\nEmitido por VetAgro Sustentável AI — ${new Date().toLocaleDateString("pt-BR")}`;
+    return resenha + footer;
   };
 
   return (
@@ -774,45 +473,35 @@ NOTA INSTITUCIONAL
         </Button>
 
         {resenha && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Resenha Técnica Gerada</CardTitle>
-              <CardDescription>
-                Revise a resenha e exporte no formato desejado
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Textarea
-                value={resenha}
-                onChange={(e) => setResenha(e.target.value)}
-                className="min-h-[400px] font-mono text-sm"
-              />
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Button onClick={handleCopyToClipboard} variant="outline" className="w-full">
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copiar
-                </Button>
-                <Button onClick={handleDownloadPDF} variant="default" className="w-full">
-                  <Download className="mr-2 h-4 w-4" />
-                  PDF
-                </Button>
-                <Button onClick={handleDownloadDOCX} variant="secondary" className="w-full">
-                  <FileType className="mr-2 h-4 w-4" />
-                  DOCX
-                </Button>
-                <Button onClick={handleDownloadTxt} variant="outline" className="w-full">
-                  <FileDown className="mr-2 h-4 w-4" />
-                  TXT
-                </Button>
-              </div>
-              
-              <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                <p className="font-medium mb-1">Aviso Legal:</p>
-                <p>Este relatório foi gerado por inteligência artificial e não substitui exame presencial nem assinatura do médico veterinário responsável, sendo este obrigatório para validade oficial.</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            {/* Report Header */}
+            <div className="border-b-2 border-primary pb-4">
+              <h2 className="text-xl font-bold text-center text-foreground uppercase tracking-wide">
+                Resenha Técnica — Equino
+              </h2>
+              <p className="text-center text-sm text-muted-foreground mt-1">
+                Documento Técnico Oficial — VetAgro Sustentável AI
+              </p>
+            </div>
+
+            {/* Continuous Report Content - No scroll box */}
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <MarkdownTableRenderer content={resenha} />
+            </div>
+
+            {/* Footer with emission date */}
+            <div className="border-t border-border pt-4 text-sm text-muted-foreground">
+              <p className="text-center">
+                Emitido por VetAgro Sustentável AI — {new Date().toLocaleDateString("pt-BR")}
+              </p>
+            </div>
+
+            {/* Global App Buttons - Only Copiar and Compartilhar */}
+            <ResponseActionButtons 
+              content={getFullReportText()} 
+              toolName="Resenha Técnica de Equinos"
+            />
+          </div>
         )}
       </div>
     </div>
