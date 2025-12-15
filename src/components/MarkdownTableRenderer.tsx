@@ -124,34 +124,46 @@ const preprocessContinuousText = (text: string): string => {
 
   let processed = text;
 
+  // STEP 0: Keep divider lines (────) isolated
+  processed = processed.replace(/([^\n])\s*([─]{5,})\s*/g, '$1\n\n$2\n\n');
+  processed = processed.replace(/\s*([─]{5,})\s*([^\n])/g, '\n\n$1\n\n$2');
+
+  // STEP 0.0: Fix tool title/subtitle stuck together (ex: "CALCULADORA DE RAÇÃORELATÓRIO")
+  processed = processed.replace(/(CALCULADORA DE RAÇ[ÃA]O)\s*(RELAT[ÓO]RIO)/gi, '$1\n\n$2');
+
   // STEP 0: Handle square bracket titles like [DIAGNÓSTICO DIFERENCIAL]
   processed = processed.replace(/\]([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, ']\n\n$1');
 
   // STEP 0.1: CRITICAL - Force numbered section titles to be on their own line
-  // Pattern: "1) TÍTULO" or "1) Título" - ensure line break before
+  // Pattern: "1) TÍTULO" - ensure line break before
   processed = processed.replace(/([^\n])(\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
-  
-  // STEP 0.2: Ensure text after section title starts on new line
-  // Pattern: "1) IDENTIFICAÇÃO DO ANIMAL• Espécie" -> add line break before bullet
-  processed = processed.replace(/(\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç\s]+)(•)/g, '$1\n\n$2');
 
-  // STEP 0.3: Force bullet points (•) to start on a new line
+  // STEP 0.2: If "1)" is alone in a line, merge it with next uppercase title line
+  processed = processed.replace(/\n(\d+\))\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{3,})/g, '\n$1 $2');
+
+  // STEP 0.3: Ensure text after section title starts on new line
+  // Pattern: "OBJETIVO NUTRICIONALA ..." -> break after the title keyword
+  // (Handled again later for all keywords, but keep this early as a safeguard)
+  processed = processed.replace(/(OBJETIVO NUTRICIONAL)(?=[A-Za-zÁÉÍÓÚÂÊÔÃÕÇ])/gi, '$1\n\n');
+
+  // STEP 0.4: Force bullet points (•) to start on a new line
   processed = processed.replace(/([^\n•\s])(•\s*)/g, '$1\n$2');
-
-  // STEP 0.4: Force en-dash (–) used as bullet points to start on new line
-  processed = processed.replace(/([^\n\-–\s])(–\s*[A-Za-z])/g, '$1\n$2');
 
   // STEP 0.5: CRITICAL - Break UPPERCASE SECTION TITLES stuck to lowercase text
   processed = processed.replace(/([a-záéíóúâêôãõç\.\)\]])([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
 
-  // STEP 0.6: Break after units (mg, kg, ml) followed by uppercase letter
+  // STEP 0.6: Break after units (mg, kg, ml, %) followed by uppercase letter
   processed = processed.replace(/(mg|kg|ml|mL|UI|%)([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
 
   // STEP 0.7: Break after closing parenthesis followed by uppercase section
   processed = processed.replace(/(\))([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
-  
+
   // STEP 0.8: Break after numbers followed by uppercase section (like "100,0DISTRIBUIÇÃO")
   processed = processed.replace(/(\d+[,.]?\d*)\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
+
+  // STEP 0.10: Handle subtitle patterns
+  processed = processed.replace(/(Relatório Técnico Orientativo[^)\n]*)/gi, '\n\n$1\n\n');
+  processed = processed.replace(/(Análise Clínica Orientativa[^)\n]*)/gi, '\n\n$1\n\n');
 
   // STEP 0.10: Handle "Relatório Técnico Orientativo" subtitle pattern
   processed = processed.replace(/(Relatório Técnico Orientativo[^)\n]*)/gi, '\n\n$1\n\n');
@@ -294,10 +306,17 @@ const preprocessContinuousText = (text: string): string => {
   // STEP 1: Add space before section keywords stuck to previous word
   for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // a) If keyword is stuck to previous text, force a break before it
     const stuckRegex = new RegExp(`([a-záéíóúâêôãõç0-9\\)\\]])\\s*(${escapedKeyword})`, 'gi');
     processed = processed.replace(stuckRegex, '$1\n\n$2');
+
+    // b) If keyword is immediately followed by text (no spacing), break AFTER it
+    // Example: "OBJETIVO NUTRICIONALA formulação..."
+    const afterRegex = new RegExp(`(${escapedKeyword})(?=[A-Za-zÁÉÍÓÚÂÊÔÃÕÇ])`, 'gi');
+    processed = processed.replace(afterRegex, '$1\n\n');
   }
-  
+
   // STEP 2: Add line breaks before section keywords (normal case)
   for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

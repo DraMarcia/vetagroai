@@ -135,10 +135,16 @@ ANIMAL:
       // Limpar formatação usando utilitário + normalização específica desta ferramenta
       const cleanResult = cleanTextForDisplay(data.answer);
       const normalized = cleanResult
-        // remove travessões soltos no fim de linhas
+        // remove travessões/hífens soltos no fim de linhas
         .replace(/[–-]\s*$/gm, "")
-        // garante espaço após marcadores e separadores
+        // remove travessão solto antes de "Data da análise" e padroniza como bullet
+        .replace(/\s*-\s*(Data da an[aá]lise:)/gi, "\n• $1")
+        // garante espaço após bullets
         .replace(/\s+•\s*/g, "\n• ")
+        // corrige quebras indevidas dentro de palavras em CAIXA ALTA (ex: DISTRIBUI\nÇÃO)
+        .replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{3,})\n([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})/g, "$1$2")
+        // remove linhas com apenas hífen/travessão
+        .replace(/^\s*[–-]\s*$/gm, "")
         .replace(/\n{3,}/g, "\n\n")
         .trim();
 

@@ -1175,16 +1175,18 @@ PRINCÍPIO CENTRAL:
 - Todo o restante deve ser texto corrido organizado por seções.
 
 REGRAS DE TABELA (OBRIGATÓRIAS):
-- A tabela deve conter SOMENTE: Ingrediente; Quantidade/dia; Quantidade/refeição; % da dieta; (Observação curta opcional: máx 3 palavras)
+- A tabela deve conter SOMENTE: Ingrediente; Quantidade/dia; Quantidade/refeição; % da dieta; Obs. (máx 3 palavras).
 - PROIBIDO: parágrafos, justificativas, alertas, ou frases dentro da tabela.
-- PROIBIDO rolagem horizontal: use nomes de colunas curtos e unidades claras.
-- A tabela deve estar totalmente PREENCHIDA com números coerentes (NUNCA use placeholders tipo 0,0 ou "[preencher]").
+- A tabela deve estar totalmente PREENCHIDA com números coerentes (NUNCA use placeholders como 0,0; "[preencher]"; "[número]").
+- Cabeçalho da tabela deve ser EXATAMENTE:
+  | Ingrediente | Quantidade/dia | Quantidade/refeição | % da dieta | Obs. |
 
 REGRAS DE TEXTO:
 - PROIBIDO asteriscos (*), hashtags (#), emojis.
 - Use APENAS bullets “•” (não use “–”).
-- Não termine frases com travessão.
-- Títulos e enumerações SEMPRE em linha própria, com uma linha em branco antes/depois.
+- PROIBIDO terminar frases com travessão.
+- Nunca deixe "1)" sozinho em uma linha: sempre escreva "1) TÍTULO" na mesma linha.
+- Títulos e enumerações SEMPRE em linha própria, com uma linha em branco antes e depois.
 - Parágrafos curtos (máx 4 linhas).
 
 ${professionalInfo}
@@ -1209,15 +1211,20 @@ Relatório Técnico Orientativo — VetAgro Sustentável AI
 
 3) TABELA DE FORMULAÇÃO DA DIETA
 
+A seguir, gere a ÚNICA tabela do relatório (formato markdown) com os ingredientes e os números calculados.
+- Não use colchetes, não use placeholders.
+- Use quantidades e percentuais reais e coerentes com o peso/objetivo.
+
 | Ingrediente | Quantidade/dia | Quantidade/refeição | % da dieta | Obs. |
 |---|---:|---:|---:|---|
-| [Ingrediente 1] | [número] | [número] | [número] | [até 3 palavras] |
-| [Ingrediente 2] | [número] | [número] | [número] | [até 3 palavras] |
-| TOTAL | [número] | [número] | 100 |  |
+| (ingrediente 1) | (número) | (número) | (número) | (máx 3 palavras) |
+| (ingrediente 2) | (número) | (número) | (número) | (máx 3 palavras) |
+| TOTAL | (número) | (número) | 100 |  |
 
 Regras adicionais da tabela:
 - Use unidades consistentes (kg/dia ou g/dia) e mantenha o padrão em todas as linhas.
-- Alinhe números com ponto decimal (ex.: 2,50) e sem textos.
+- Use vírgula como separador decimal (ex.: 2,50).
+- Não repita textos explicativos na tabela.
 
 4) DISTRIBUIÇÃO DA ALIMENTAÇÃO
 
