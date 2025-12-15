@@ -3,13 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Activity, Loader2, Download, Copy, CheckCircle } from "lucide-react";
+import { Activity, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { cleanTextForDisplay, cleanTextForPDF } from "@/lib/textUtils";
-import { ReportExporter } from "@/components/ReportExporter";
+import { cleanTextForDisplay } from "@/lib/textUtils";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
-import jsPDF from "jspdf";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
 const EscoreCorporal = () => {
   const { toast } = useToast();
@@ -19,7 +18,6 @@ const EscoreCorporal = () => {
   const [weight, setWeight] = useState("");
   const [image, setImage] = useState("");
   const [result, setResult] = useState("");
-  const [copied, setCopied] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -36,180 +34,6 @@ const EscoreCorporal = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleCopyReport = async () => {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result);
-      setCopied(true);
-      toast({
-        title: "Copiado!",
-        description: "Relatório copiado para a área de transferência.",
-      });
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar o texto.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    const maxWidth = pageWidth - 2 * margin;
-    let yPosition = 20;
-    const lineHeight = 5;
-    let pageNumber = 1;
-
-    const addFooter = () => {
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text(
-        "Relatório gerado pela suíte VetAgro Sustentável AI — inteligência aplicada à saúde, produção e bem-estar animal.",
-        margin,
-        pageHeight - 15
-      );
-      doc.text(
-        `www.vetagroai.com.br — © 2025 VetAgro Sustentável AI | Página ${pageNumber}`,
-        margin,
-        pageHeight - 10
-      );
-      doc.setTextColor(0, 0, 0);
-    };
-
-    const checkPageBreak = (neededSpace: number = 30) => {
-      if (yPosition > pageHeight - neededSpace) {
-        addFooter();
-        doc.addPage();
-        pageNumber++;
-        yPosition = 20;
-      }
-    };
-
-    const drawGreenLine = () => {
-      doc.setDrawColor(13, 139, 68);
-      doc.setLineWidth(0.5);
-      doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 5;
-    };
-
-    const addJustifiedText = (text: string, fontSize: number = 10) => {
-      doc.setFontSize(fontSize);
-      doc.setFont("helvetica", "normal");
-      const cleanedText = cleanTextForPDF(text);
-      const lines = doc.splitTextToSize(cleanedText, maxWidth);
-      
-      lines.forEach((line: string) => {
-        checkPageBreak();
-        doc.text(line, margin, yPosition, { align: "left", maxWidth: maxWidth });
-        yPosition += lineHeight;
-      });
-    };
-
-    const addSectionTitle = (title: string) => {
-      checkPageBreak(20);
-      yPosition += 5;
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(13, 139, 68);
-      doc.text(title.toUpperCase(), margin, yPosition);
-      yPosition += 2;
-      drawGreenLine();
-      doc.setTextColor(0, 0, 0);
-      yPosition += 3;
-    };
-
-    // CABEÇALHO
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(13, 139, 68);
-    doc.text("VetAgro Sustentável AI", margin, yPosition);
-    yPosition += 6;
-    
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(80, 80, 80);
-    doc.text("Inteligência aplicada à saúde, produção e bem-estar animal", margin, yPosition);
-    yPosition += 8;
-
-    doc.setFontSize(13);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text("ESCORE DE CONDIÇÃO CORPORAL (ECC) — RELATÓRIO TÉCNICO", margin, yPosition);
-    yPosition += 5;
-    drawGreenLine();
-    yPosition += 5;
-
-    // IDENTIFICAÇÃO DO CASO
-    addSectionTitle("1) Identificação do Caso");
-    const tableData = [
-      ["Espécie:", species || "Não informado"],
-      ["Idade:", age || "Não informada"],
-      ["Peso Atual:", weight || "Não informado"],
-      ["Data da Análise:", new Date().toLocaleDateString("pt-BR")]
-    ];
-
-    doc.setFontSize(10);
-    tableData.forEach(([label, value]) => {
-      checkPageBreak();
-      doc.setFont("helvetica", "bold");
-      doc.text(label, margin, yPosition);
-      doc.setFont("helvetica", "normal");
-      doc.text(value, margin + 35, yPosition);
-      yPosition += 6;
-    });
-    yPosition += 3;
-
-    // PROCESSAR CONTEÚDO POR SEÇÕES
-    const cleanedResult = cleanTextForPDF(result);
-    const sections = cleanedResult.split(/\n(?=\d+\)|[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]+:)/);
-    
-    sections.forEach((section) => {
-      if (!section.trim()) return;
-      
-      const titleMatch = section.match(/^(\d+\)\s*)?([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]+):/);
-      if (titleMatch) {
-        const sectionTitle = titleMatch[2].trim();
-        addSectionTitle(sectionTitle);
-        const content = section.replace(titleMatch[0], "").trim();
-        if (content) {
-          addJustifiedText(content);
-        }
-      } else {
-        addJustifiedText(section);
-      }
-      yPosition += 3;
-    });
-
-    // AVISO LEGAL
-    checkPageBreak(30);
-    yPosition += 5;
-    doc.setFillColor(255, 248, 220);
-    doc.rect(margin, yPosition - 3, maxWidth, 18, "F");
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(139, 90, 0);
-    doc.text("AVISO IMPORTANTE", margin + 2, yPosition + 2);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    const avisoText = "Esta análise é uma estimativa baseada em imagem e algoritmos de IA. Para avaliação precisa e decisões clínicas ou nutricionais, consulte um médico veterinário ou zootecnista qualificado.";
-    const avisoLines = doc.splitTextToSize(avisoText, maxWidth - 4);
-    avisoLines.forEach((line: string, index: number) => {
-      doc.text(line, margin + 2, yPosition + 7 + (index * 4));
-    });
-    yPosition += 23;
-
-    addFooter();
-    doc.save("escore-corporal-vetagro.pdf");
-    toast({
-      title: "PDF gerado!",
-      description: "Relatório técnico baixado com sucesso.",
-    });
-  };
 
   const handleAnalyze = async () => {
     if (loading) return;
@@ -425,48 +249,17 @@ Liste as fontes técnicas utilizadas (NRC, Henneke, Edmonson, Ferguson, Embrapa)
                   className="bg-muted p-4 rounded-lg text-sm leading-relaxed"
                 />
                 
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    onClick={handleCopyReport}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    {copied ? (
-                      <>
-                        <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                        Copiado!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="mr-2 h-4 w-4" />
-                        Copiar Relatório
-                      </>
-                    )}
-                  </Button>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-3 italic">
+                    Relatório gerado via VetAgro Sustentável AI — Análise Assistida © 2025
+                  </p>
                   
-                  <Button
-                    onClick={handleDownloadPDF}
-                    variant="default"
-                    className="flex-1 bg-[#0d8b44] hover:bg-[#0a7038]"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Baixar PDF
-                  </Button>
+                  <ResponseActionButtons
+                    content={result}
+                    title="Escore de Condição Corporal (ECC)"
+                    toolName="escore-corporal"
+                  />
                 </div>
-                
-                <ReportExporter
-                  title="Escore de Condição Corporal (ECC)"
-                  content={result}
-                  toolName="Escore de Condição Corporal"
-                  userInputs={{
-                    especie: species,
-                    idade: age,
-                    peso: weight,
-                    dataAnalise: new Date().toLocaleDateString("pt-BR")
-                  }}
-                  className="w-full"
-                  variant="outline"
-                />
               </div>
             </CardContent>
           </Card>

@@ -27,7 +27,6 @@ const DiagnosticoDiferencial = () => {
   const [symptoms, setSymptoms] = useState("");
   const [history, setHistory] = useState("");
   const [result, setResult] = useState("");
-  const [copied, setCopied] = useState(false);
 
   const validateInputs = (): boolean => {
     if (!isProfessional) {
@@ -84,28 +83,6 @@ const DiagnosticoDiferencial = () => {
     }
 
     return true;
-  };
-
-  const handleCopyReport = async () => {
-    if (!result) return;
-
-    const fullReport = `${result}\n\n---\nRelatório gerado via VetAgro Sustentável AI — Análise Assistida © 2025`;
-
-    try {
-      await navigator.clipboard.writeText(fullReport);
-      setCopied(true);
-      toast({
-        title: "Copiado!",
-        description: "Relatório copiado para a área de transferência.",
-      });
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar. Selecione o texto manualmente.",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleAnalyze = async () => {

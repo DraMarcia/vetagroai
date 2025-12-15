@@ -242,7 +242,18 @@ Insira os valores no campo de texto ou envie uma imagem mais nítida do exame.${
          Utilize linguagem SIMPLES e ACOLHEDORA. Explique o significado dos valores de forma clara.
          SEMPRE inclua a recomendação: "Procure um médico veterinário para avaliação presencial."`;
 
+    // PADRÃO GRUPO 1 - FERRAMENTAS CLÍNICAS
     const systemPrompt = `Você é um especialista em medicina veterinária laboratorial, especializado em interpretação de exames.
+
+PADRÃO DE SAÍDA OBRIGATÓRIO (GRUPO 1 - FERRAMENTAS CLÍNICAS):
+
+REGRAS ABSOLUTAS:
+1. PROIBIDO texto corrido longo - TODA resposta deve ser dividida em SEÇÕES COM TÍTULOS CLAROS
+2. Utilizar subtítulos, listas e espaçamento visual entre blocos
+3. O texto deve ser escaneável em leitura rápida
+4. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+5. Use APENAS bullets padrão: • ou –
+6. Parágrafos curtos (máx. 4 linhas por bloco)
 
 INFORMAÇÕES DO PACIENTE:
 • Espécie: ${patient.species || 'Não informada'}
@@ -258,54 +269,63 @@ ${depthInstruction}
 
 ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
 
-IDENTIFICAÇÃO DO PACIENTE
+────────────────────
+ANÁLISE CLÍNICA ORIENTATIVA – VETAGRO SUSTENTÁVEL AI
+────────────────────
+
+1) IDENTIFICAÇÃO DO CASO
+• Tipo de usuário: [Profissional/Tutor]
 • Espécie: [espécie]
 • Idade: [idade]
 • Peso: [peso]
 • Tipo de exame: [tipo]
 
-INTERPRETAÇÃO DA TABELA DE VALORES
+────────────────────
+2) ANÁLISE CLÍNICA INICIAL
+INTERPRETAÇÃO DA TABELA DE VALORES:
 Para cada parâmetro encontrado, indique:
 • [Parâmetro]: [valor] [unidade] → [NORMAL/ALTO/BAIXO]
   Significado clínico: [explicação breve]
 
-CONCLUSÕES CLÍNICAS
-[Análise integrada dos achados, adaptada ao perfil do usuário]
+────────────────────
+3) HIPÓTESES / DIAGNÓSTICOS DIFERENCIAIS
+Listar em ordem de probabilidade:
+1. [Diagnóstico mais provável] – [probabilidade estimada]
+2. [Segundo mais provável] – [probabilidade]
+3. [Terceiro] – [probabilidade]
+4. [Quarto, se aplicável] – [probabilidade]
 
-DIAGNÓSTICOS DIFERENCIAIS
-1. [Diagnóstico mais provável] - [probabilidade estimada]
-2. [Segundo mais provável] - [probabilidade]
-3. [Terceiro] - [probabilidade]
-4. [Quarto, se aplicável] - [probabilidade]
+────────────────────
+4) EXAMES COMPLEMENTARES RECOMENDADOS
+• [Exame 1] – [justificativa]
+• [Exame 2] – [justificativa]
+• [Exame 3] – [justificativa]
 
-EXAMES COMPLEMENTARES RECOMENDADOS
-• [Exame 1] - [justificativa]
-• [Exame 2] - [justificativa]
+────────────────────
+5) CLASSIFICAÇÃO DE URGÊNCIA
+• Nível: [Baixa | Moderada | Alta | Emergencial]
+• Justificativa e indicação se há liberação para procedimentos cirúrgicos, quando aplicável
 
-NÍVEL DE URGÊNCIA
-[BAIXO/MODERADO/ALTO/URGÊNCIA]
-[Justificativa e indicação se há liberação para procedimentos cirúrgicos, quando aplicável]
-
-RECOMENDAÇÕES
+────────────────────
+6) CONDUTAS INICIAIS ORIENTATIVAS
 ${isProfessional ? '• Condutas terapêuticas sugeridas\n• Monitoramento indicado' : '• Orientações para o tutor\n• Quando procurar atendimento veterinário\n• Cuidados gerais'}
 
-REFERÊNCIAS
-• Merck Veterinary Manual
-• Nelson & Couto - Medicina Interna de Pequenos Animais
-• Ettinger & Feldman - Textbook of Veterinary Internal Medicine
-• VIN - Veterinary Information Network
+────────────────────
+7) PROGNÓSTICO PRELIMINAR
+• [Favorável | Reservado | Desfavorável]
+• Condicionado à confirmação diagnóstica
 
----
+────────────────────
+8) ALERTA LEGAL
 Esta análise tem caráter educativo e não substitui a consulta veterinária presencial.
 Relatório gerado via VetAgro Sustentável AI – Análise Assistida © 2025
 
-REGRAS DE FORMATAÇÃO:
-• NÃO use hashtags (#)
-• NÃO use asteriscos para negrito (**)
-• NÃO use markdown
-• Use apenas bullets padrão (•)
-• Títulos de seção em MAIÚSCULAS
-• Texto limpo e profissional`;
+────────────────────
+9) REFERÊNCIAS TÉCNICAS
+• Merck Veterinary Manual
+• Nelson & Couto – Medicina Interna de Pequenos Animais
+• Ettinger & Feldman – Textbook of Veterinary Internal Medicine
+• VIN – Veterinary Information Network`;
 
     console.log("Sending to AI for interpretation...");
 

@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Loader2, Upload, Copy, CheckCircle, X } from "lucide-react";
+import { Eye, Loader2, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
 const AnaliseMucosa = () => {
   const { toast } = useToast();
@@ -22,7 +23,6 @@ const AnaliseMucosa = () => {
   const [animalData, setAnimalData] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [result, setResult] = useState("");
-  const [copied, setCopied] = useState(false);
 
   const ufs = [
     "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
@@ -161,28 +161,6 @@ const AnaliseMucosa = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCopyReport = async () => {
-    if (!result) return;
-
-    const fullReport = `${result}\n\n---\nRelatório gerado via VetAgro Sustentável AI — Análise Assistida © 2025`;
-
-    try {
-      await navigator.clipboard.writeText(fullReport);
-      setCopied(true);
-      toast({
-        title: "Copiado!",
-        description: "Relatório copiado para a área de transferência.",
-      });
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar. Selecione o texto manualmente.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -391,23 +369,11 @@ const AnaliseMucosa = () => {
                   Relatório gerado via VetAgro Sustentável AI — Análise Assistida © 2025
                 </p>
                 
-                <Button
-                  onClick={handleCopyReport}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {copied ? (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                      Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copiar Relatório
-                    </>
-                  )}
-                </Button>
+                <ResponseActionButtons
+                  content={result}
+                  title="Análise de Mucosa Ocular"
+                  toolName="analise-mucosa"
+                />
               </div>
             </CardContent>
           </Card>
