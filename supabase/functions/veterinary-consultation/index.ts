@@ -1253,10 +1253,11 @@ ${isProfessional ? "Este relatório é gerado por IA para apoio técnico. A resp
 
 9) REFERÊNCIAS TÉCNICAS
 
-• NRC — National Research Council
-• EMBRAPA — Tabelas brasileiras de composição de alimentos e exigências
-• INRA — Alimentação de ruminantes
-• McDonald et al. — Animal Nutrition`;
+• NRC — Nutrient Requirements of Swine/Beef Cattle/Poultry (National Research Council, 11ª ed., 2012)
+• Rostagno, H.S. et al. — Tabelas Brasileiras para Aves e Suínos: Composição de Alimentos e Exigências Nutricionais (UFV, 4ª ed., 2017)
+• EMBRAPA — Sistema Brasileiro de Classificação de Solos e Nutrição Animal
+• McDonald, P. et al. — Animal Nutrition (Pearson, 7ª ed., 2010)
+• INRA — Tables de Composition et de Valeur Nutritive des Matières Premières (2018)`;
 
         userPrompt = question;
       }

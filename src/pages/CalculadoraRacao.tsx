@@ -139,9 +139,7 @@ ANIMAL:
       let normalized = cleanResult;
       
       // 1) Corrigir TABELA em linha única: adicionar quebras de linha entre linhas da tabela
-      // Padrão: "| texto ||" -> "| texto |\n|"
       normalized = normalized.replace(/\|\s*\|\s*(?=[A-Za-zÁÉÍÓÚÂÊÔÃÕÇ0-9])/g, '|\n| ');
-      // Separador da tabela: "|---|" seguido de "|" deve quebrar linha
       normalized = normalized.replace(/(\|[-:\s]+\|)\s*(?=\|)/g, '$1\n');
       
       // 2) Corrigir título da tabela colado: "TABELA...DIETA| Ing" -> quebra antes de |
@@ -151,30 +149,49 @@ ANIMAL:
       normalized = normalized.replace(/\|\s*da dieta\s*\|/gi, '| % da dieta |');
       
       // 4) Corrigir palavras MAIÚSCULAS quebradas (DISTRIBUI\nÇÃO -> DISTRIBUIÇÃO)
-      normalized = normalized.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})\s*\n\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})/g, '$1$2');
+      // Executa múltiplas vezes para pegar casos consecutivos
+      for (let i = 0; i < 3; i++) {
+        normalized = normalized.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})\s*\n\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})/g, '$1$2');
+      }
       
-      // 5) Corrigir "4) DISTRIBUI\nÇÃO" -> "4) DISTRIBUIÇÃO"
+      // 5) Corrigir palavras minúsculas quebradas no meio (manejo e\nfornecimento)
+      normalized = normalized.replace(/([a-záéíóúâêôãõç])\s*\n\s*([a-záéíóúâêôãõç])/g, '$1 $2');
+      
+      // 6) Corrigir "4) DISTRIBUI\nÇÃO" -> "4) DISTRIBUIÇÃO"
       normalized = normalized.replace(/(\d+\)\s*)([A-ZÁÉÍÓÚÂÊÔÃÕÇ]+)\s*\n\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]+)/g, '$1$2$3');
       
-      // 6) Corrigir título seguido de texto sem quebra (ex: "ALIMENTAÇÃOA alimentação")
+      // 7) Corrigir título seguido de texto sem quebra (ex: "ALIMENTAÇÃOA alimentação")
       normalized = normalized.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})([A-Z][a-z])/g, '$1\n\n$2');
       
-      // 7) Corrigir "1)\n\nIDENTIFICAÇÃO" -> "1) IDENTIFICAÇÃO"
+      // 8) Corrigir "1)\n\nIDENTIFICAÇÃO" -> "1) IDENTIFICAÇÃO"
       normalized = normalized.replace(/(\d+\))\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1 $2');
       
-      // 8) Remove travessões/hífens soltos no fim de linhas
+      // 9) Corrigir bullet sozinho em linha "•\n\nTEXTO" -> "• Texto"
+      normalized = normalized.replace(/•\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '• $1');
+      
+      // 10) Converter palavras MAIÚSCULAS no meio do texto para minúsculas
+      // Ex: "MONITORAMENTO de consumo" -> "Monitoramento de consumo"
+      // Não afeta títulos de seção (que começam com número ou são no início de linha após \n\n)
+      const uppercaseWordsInText = ['MONITORAMENTO', 'ANALISE', 'ANÁLISE', 'RESULTADOS', 'RELATORIO', 'RELATÓRIO'];
+      uppercaseWordsInText.forEach(word => {
+        const lowercase = word.charAt(0) + word.slice(1).toLowerCase();
+        // Só converte se não estiver no início de linha ou após ")"
+        normalized = normalized.replace(new RegExp(`(?<!^|\\n|\\d\\)\\s)${word}`, 'g'), lowercase);
+      });
+      
+      // 11) Remove travessões/hífens soltos no fim de linhas
       normalized = normalized.replace(/[–-]\s*$/gm, '');
       
-      // 9) Remover travessão solto antes de "Data" e padronizar como bullet
+      // 12) Remover travessão solto antes de "Data" e padronizar como bullet
       normalized = normalized.replace(/\s*-\s*(Data da an[aá]lise:)/gi, '\n• $1');
       
-      // 10) Garantir espaço após bullets
+      // 13) Garantir espaço após bullets
       normalized = normalized.replace(/\s+•\s*/g, '\n• ');
       
-      // 11) Remover linhas com apenas hífen/travessão
+      // 14) Remover linhas com apenas hífen/travessão
       normalized = normalized.replace(/^\s*[–-]\s*$/gm, '');
       
-      // 12) Limpar múltiplas quebras de linha
+      // 15) Limpar múltiplas quebras de linha
       normalized = normalized.replace(/\n{3,}/g, '\n\n').trim();
 
       setResult(normalized);
