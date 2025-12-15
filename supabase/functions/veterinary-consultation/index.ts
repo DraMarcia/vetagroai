@@ -1221,7 +1221,10 @@ A seguir, gere a ÚNICA tabela do relatório (formato markdown) com os ingredien
 | (ingrediente 2) | (número) | (número) | (número) | (máx 3 palavras) |
 | TOTAL | (número) | (número) | 100 |  |
 
-Regras adicionais da tabela:
+REGRAS CRÍTICAS DA TABELA:
+- A linha TOTAL deve terminar com | (pipe) e NADA MAIS.
+- OBRIGATÓRIO: Após a última linha da tabela, deixe UMA LINHA EM BRANCO antes de "4) DISTRIBUIÇÃO".
+- PROIBIDO: colocar texto da seção 4 ou qualquer outro texto na mesma linha da tabela.
 - Use unidades consistentes (kg/dia ou g/dia) e mantenha o padrão em todas as linhas.
 - Use vírgula como separador decimal (ex.: 2,50).
 - Não repita textos explicativos na tabela.
