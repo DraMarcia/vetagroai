@@ -261,26 +261,42 @@ const SimuladorConfinamento = () => {
   return (
     <TooltipProvider>
       <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Header Institucional */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
-              <Warehouse className="h-6 w-6 text-white" />
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg">
+              <Warehouse className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Simulador de Confinamento Sustentável</h1>
-              <p className="text-muted-foreground">Análise econômica, zootécnica e ambiental completa</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Simulador de Confinamento Sustentável</h1>
+              <p className="text-muted-foreground">Ferramenta de inteligência para decisão estratégica em confinamento</p>
             </div>
           </div>
 
-          {/* Texto comercial */}
-          <Card className="bg-gradient-to-r from-emerald-500/10 to-green-500/10 border-emerald-500/20 mb-6">
-            <CardContent className="py-4">
-              <div className="flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-emerald-600 mt-0.5" />
-                <p className="text-sm text-muted-foreground">
-                  <strong>Simulação profissional de confinamento.</strong> Calcule rentabilidade, custos por arroba, 
-                  emissões de metano, análise de sensibilidade e viabilidade com múltiplos ciclos anuais.
-                </p>
+          {/* Bloco Conceitual */}
+          <Card className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 border-emerald-200 dark:border-emerald-800 mb-6">
+            <CardContent className="py-5">
+              <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-4">
+                <strong>Planeje o confinamento com base em dados e resultados.</strong> Esta ferramenta combina análise econômica, 
+                zootécnica e ambiental para projetar rentabilidade, custos por arroba, emissões de metano e viabilidade operacional.
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                  <span>Análise econômica</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <TrendingUp className="h-4 w-4 text-emerald-600" />
+                  <span>Projeção zootécnica</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Leaf className="h-4 w-4 text-emerald-600" />
+                  <span>Impacto ambiental</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Sparkles className="h-4 w-4 text-emerald-600" />
+                  <span>Cenários de sensibilidade</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -647,26 +663,36 @@ const SimuladorConfinamento = () => {
           </div>
         </div>
 
-        {/* Resposta */}
+        {/* Resposta - Relatório Executivo */}
         {resposta && (
-          <Card className="mt-6">
-            <CardHeader>
+          <Card className="mt-6 border-2 border-emerald-200 dark:border-emerald-800">
+            <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30">
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5 text-emerald-600" />
-                Resultado da Simulação
+                Relatório Executivo — Simulação de Confinamento
               </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Análise integrada: econômica, zootécnica e ambiental
+              </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <MarkdownTableRenderer 
                 content={resposta}
-                className="prose prose-sm max-w-none dark:prose-invert mb-4 text-sm leading-relaxed"
+                className="prose prose-sm max-w-none dark:prose-invert mb-6 text-sm leading-relaxed"
               />
+              
+              {/* Mensagem Final */}
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4 mb-4">
+                <p className="text-sm text-emerald-800 dark:text-emerald-200 font-medium">
+                  📊 Planeje o confinamento com base em dados e resultados.
+                </p>
+              </div>
               
               <ResponseActionButtons
                 content={resposta}
                 title="Simulação de Confinamento Sustentável"
                 toolName="Simulador de Confinamento"
-                className="mt-4 pt-4 border-t"
+                className="pt-4 border-t"
               />
               
               {plan === "free" && (

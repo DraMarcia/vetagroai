@@ -841,16 +841,23 @@ Para maximizar seu potencial de créditos de carbono:
               })}
             </div>
             
+            {/* Mensagem Final */}
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
+              <p className="text-sm text-green-800 dark:text-green-200 font-medium">
+                🌱 Entenda o potencial de carbono da sua produção.
+              </p>
+            </div>
+            
             {isPremium ? (
               <ResponseActionButtons
                 content={generateReportContent()}
                 title="Relatório de Carbono e Créditos Ambientais"
                 toolName="Modelador de Carbono"
-                className="w-full"
+                className="w-full pt-4 border-t"
               />
             ) : (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-sm text-amber-800 flex items-center gap-2">
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <p className="text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2">
                   <Crown className="h-4 w-4" />
                   Para relatórios completos e recomendações avançadas, faça upgrade para Pro ou Expert.
                 </p>
@@ -899,23 +906,45 @@ Para maximizar seu potencial de créditos de carbono:
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Header Institucional */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-            <Leaf className="h-6 w-6 text-white" />
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
+            <Leaf className="h-7 w-7 text-white" />
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Modelador de Carbono e Créditos Ambientais</h1>
-            <p className="text-muted-foreground text-sm md:text-base">Elegibilidade em mercados de carbono e projeção de receita</p>
+            <p className="text-muted-foreground">Ferramenta de inteligência para elegibilidade em mercados de carbono</p>
           </div>
         </div>
         
-        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 mb-6">
-          <p className="text-sm text-green-800">
-            <Info className="h-4 w-4 inline mr-2" />
-            Você está usando inteligência aplicada à sustentabilidade. Cada análise combina dados técnicos com recomendações práticas para operações mais eficientes, lucrativas e responsáveis ambientalmente.
-          </p>
-        </div>
+        {/* Bloco Conceitual */}
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-800 mb-6">
+          <CardContent className="py-5">
+            <p className="text-sm text-green-800 dark:text-green-200 mb-4">
+              <strong>Entenda o potencial de carbono da sua produção.</strong> Esta ferramenta calcula emissões, sequestro e balanço de carbono, 
+              simulando o potencial de receita com créditos ambientais baseado em práticas sustentáveis.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <Factory className="h-4 w-4 text-red-500" />
+                <span>Emissões</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <TreePine className="h-4 w-4 text-green-600" />
+                <span>Sequestro</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Target className="h-4 w-4 text-blue-600" />
+                <span>Balanço</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Coins className="h-4 w-4 text-amber-500" />
+                <span>Créditos</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
       {step === "welcome" && renderWelcome()}
