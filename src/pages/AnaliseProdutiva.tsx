@@ -239,49 +239,53 @@ const AnaliseProdutiva = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
+      {/* Header Institucional */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-4 mb-6">
           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
             <BarChart3 className="h-7 w-7 text-white" />
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              Planejamento Produtivo & Econômico
+              Painel de Inteligência Produtiva
             </h1>
             <p className="text-muted-foreground">
-              Diagnóstico técnico avançado, análise econômica e recomendações estratégicas
+              Ferramenta de inteligência para eficiência global e benchmarking produtivo
             </p>
           </div>
         </div>
 
-        {/* O que a ferramenta faz */}
-        <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-800">
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-              <div className="flex items-center gap-2">
+        {/* Bloco Conceitual */}
+        <Card className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-800">
+          <CardContent className="py-5">
+            <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
+              <strong>Monitore, compare e evolua sua produção com inteligência.</strong> Esta ferramenta integra diagnóstico zootécnico, 
+              análise econômica, identificação de riscos e cenários de otimização para tomada de decisão estratégica.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="flex items-center gap-2 text-sm">
                 <Target className="h-4 w-4 text-amber-600" />
-                <span>Diagnóstico zootécnico detalhado</span>
+                <span>Diagnóstico</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm">
                 <AlertTriangle className="h-4 w-4 text-orange-600" />
-                <span>Identifica gargalos e riscos</span>
+                <span>Riscos</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm">
                 <DollarSign className="h-4 w-4 text-green-600" />
-                <span>Análise econômica completa</span>
+                <span>Econômico</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm">
                 <Lightbulb className="h-4 w-4 text-yellow-600" />
-                <span>Cenários de otimização</span>
+                <span>Cenários</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm">
                 <TrendingUp className="h-4 w-4 text-blue-600" />
-                <span>Estimativa de emissões CH₄</span>
+                <span>Emissões</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm">
                 <FileText className="h-4 w-4 text-purple-600" />
-                <span>Plano de ação e cronograma</span>
+                <span>Plano de Ação</span>
               </div>
             </div>
           </CardContent>
@@ -595,20 +599,20 @@ const AnaliseProdutiva = () => {
           )}
         </Button>
 
-        {/* Resultado */}
+        {/* Resultado - Relatório Executivo */}
         {result && (
           <div className="space-y-4">
             <Card className="border-2 border-amber-200 dark:border-amber-800">
-              <CardHeader>
+              <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30">
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-amber-500" />
-                  Planejamento Produtivo & Econômico
+                  Relatório Executivo — Inteligência Produtiva
                 </CardTitle>
                 <CardDescription>
-                  Diagnóstico técnico com análise econômica, cenários e recomendações
+                  Diagnóstico técnico integrado com análise econômica, cenários e plano de ação
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <div className="prose prose-sm max-w-none dark:prose-invert">
                   <div 
                     className="bg-muted/50 p-4 rounded-lg text-sm leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-amber-700 [&_h2]:dark:text-amber-400 [&_table]:my-4 [&_th]:bg-gray-200 [&_th]:dark:bg-gray-700 [&_td]:align-top [&_strong]:font-semibold"
@@ -616,13 +620,20 @@ const AnaliseProdutiva = () => {
                     dangerouslySetInnerHTML={{ __html: result }}
                   />
                 </div>
+                
+                {/* Mensagem Final */}
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-6 mb-4">
+                  <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
+                    📈 Monitore, compare e evolua sua produção com inteligência.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
             {/* Botões Padrão Global: Copiar + Compartilhar */}
             <ResponseActionButtons
               content={result}
-              title="Planejamento Produtivo & Econômico"
+              title="Relatório de Inteligência Produtiva"
               toolName="Painel de Inteligência Produtiva"
             />
           </div>
