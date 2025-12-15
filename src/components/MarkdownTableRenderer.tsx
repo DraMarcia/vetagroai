@@ -432,14 +432,14 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
     if (!parsed) return null;
     
     return (
-      <div key={key} className="my-6 overflow-x-auto rounded-lg border border-border shadow-sm">
-        <Table className="w-full">
+      <div key={key} className="my-6 rounded-lg border border-border shadow-sm">
+        <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow className="bg-primary/10 border-b-2 border-primary/30">
               {parsed.headers.map((header, idx) => (
-                <TableHead 
-                  key={idx} 
-                  className="font-bold text-primary border-r border-border last:border-r-0 px-4 py-3 text-left whitespace-nowrap"
+                <TableHead
+                  key={idx}
+                  className="font-bold text-primary border-r border-border last:border-r-0 px-3 py-3 text-left text-sm break-words"
                 >
                   {header}
                 </TableHead>
@@ -448,15 +448,15 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
           </TableHeader>
           <TableBody>
             {parsed.rows.map((row, rowIdx) => (
-              <TableRow 
-                key={rowIdx} 
+              <TableRow
+                key={rowIdx}
                 className={`${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/30"} hover:bg-muted/50 transition-colors`}
               >
                 {row.map((cell, cellIdx) => (
-                  <TableCell 
-                    key={cellIdx} 
-                    className={`border-r border-border last:border-r-0 px-4 py-2.5 text-sm ${
-                      cellIdx === 0 ? 'font-medium text-foreground' : 'text-muted-foreground'
+                  <TableCell
+                    key={cellIdx}
+                    className={`border-r border-border last:border-r-0 px-3 py-2 text-sm align-top break-words ${
+                      cellIdx === 0 ? "font-medium text-foreground" : "text-muted-foreground"
                     }`}
                   >
                     {cell}
