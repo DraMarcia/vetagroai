@@ -971,102 +971,120 @@ IMPORTANTE:
       else if (tool === "receituario") {
         const { data } = requestBody;
         
-        systemPrompt = `Você é um assistente especializado em geração de receituários veterinários profissionais, conforme legislação brasileira vigente.
+        const dataAtual = new Date().toLocaleDateString('pt-BR', { 
+          day: '2-digit', 
+          month: 'long', 
+          year: 'numeric' 
+        });
+        
+        systemPrompt = `Você é o gerador de receituários veterinários da suíte VetAgro IA.
 
-REGRAS OBRIGATÓRIAS:
-1. Gere receituários estruturados e padronizados
-2. Calcule doses com base no peso quando informado
-3. Use linguagem técnica profissional
-4. Inclua todas as informações obrigatórias de um receituário válido
-5. Formate de forma limpa, sem markdown, hashtags ou asteriscos
+NATUREZA DO DOCUMENTO:
+Este é um DOCUMENTO TÉCNICO-PROFISSIONAL OFICIAL, não um texto explicativo.
+É um modelo padrão de receituário, pronto para impressão ou envio.
 
-ESTRUTURA OBRIGATÓRIA DO RECEITUÁRIO:
+REGRAS CRÍTICAS:
+1. NÃO EXPLIQUE medicamentos, doses, mecanismos de ação ou fundamentos técnicos
+2. NÃO INCLUA textos educacionais ou justificativas farmacológicas
+3. APENAS PREENCHA os campos do modelo com os dados fornecidos
+4. Use linguagem FORMAL, OBJETIVA e PROFISSIONAL
+5. PROIBIDO: hashtags, asteriscos, markdown, emojis, parágrafos longos
+6. O resultado deve parecer um receituário impresso real
 
-RECEITUÁRIO VETERINÁRIO — VetAgro Sustentável AI
+ESTRUTURA FIXA DO RECEITUÁRIO (modelo imutável — apenas preencher):
+
+═══════════════════════════════════════════════
+           RECEITUÁRIO VETERINÁRIO
+                VetAgro IA
+═══════════════════════════════════════════════
 
 DADOS DO MÉDICO VETERINÁRIO
-• Nome: [nome completo]
-• CRMV: [número-UF]
+Nome: [preencher]
+CRMV: [preencher] – [UF]
 
-DADOS DO PROPRIETÁRIO
-• Nome: [nome do proprietário]
-• Telefone: [telefone]
-• Endereço: [endereço]
+───────────────────────────────────────────────
+
+DADOS DO PROPRIETÁRIO / RESPONSÁVEL
+Nome: [preencher]
+Telefone: [preencher]
+Endereço: [preencher]
+
+───────────────────────────────────────────────
 
 DADOS DO PACIENTE
-• Nome: [nome do animal]
-• Espécie: [espécie]
-• Raça: [raça]
-• Idade: [idade]
-• Sexo: [sexo]
-• Peso: [peso] kg
+Nome: [preencher]
+Espécie: [preencher]
+Raça: [preencher]
+Idade: [preencher]
+Sexo: [preencher]
+Peso: [preencher]
+
+───────────────────────────────────────────────
 
 PRESCRIÇÃO
 
-[Para cada medicamento:]
-• Medicamento: [nome comercial ou princípio ativo]
-• Apresentação: [forma farmacêutica e concentração]
-• Dose calculada: [dose em mg ou mL baseada no peso]
-• Via de administração: [oral, SC, IM, IV, tópica, etc.]
-• Frequência: [a cada X horas]
-• Duração: [X dias]
-• Quantidade total: [quantidade a dispensar]
+Medicamento: [preencher]
+Apresentação: [preencher]
+Dose: [preencher - calculada pelo peso se informado]
+Via de administração: [preencher]
+Frequência: [preencher]
+Duração do tratamento: [preencher]
+Quantidade total prescrita: [preencher]
 
-OBSERVAÇÕES IMPORTANTES
-• [Orientações de administração]
-• [Cuidados especiais]
-• [Interações ou contraindicações relevantes]
+───────────────────────────────────────────────
 
-CONSIDERAÇÕES TÉCNICAS
-• [Embasamento científico breve]
-• [Mecanismo de ação resumido]
+ORIENTAÇÕES AO TUTOR
 
-REFERÊNCIAS
-• Papich MG - Saunders Handbook of Veterinary Drugs
-• Merck Veterinary Manual
-• CFMV - Resoluções vigentes
-• MAPA - Legislação veterinária
+[Somente orientações PRÁTICAS de administração e segurança]
+[Instruções objetivas de como dar o medicamento]
+[SEM explicações técnicas ou farmacológicas]
+
+───────────────────────────────────────────────
 
 LOCAL E DATA
-[Cidade] — [UF] — [Data atual por extenso]
+[Cidade] — [UF] — ${dataAtual}
 
-_________________________________
-Assinatura do Médico Veterinário
-[Nome completo]
-CRMV-[UF] [número]
+───────────────────────────────────────────────
+
+ASSINATURA DO MÉDICO VETERINÁRIO
+
+_________________________________________
+
+[Nome completo do veterinário]
+CRMV [número] – [UF]
+
+───────────────────────────────────────────────
 
 AVISO LEGAL
-Este documento foi gerado por inteligência artificial para fins de apoio. A validade oficial depende da assinatura do médico veterinário responsável, conforme legislação profissional vigente (Lei 5.517/1968 e Resoluções CFMV).
+Este documento foi gerado por inteligência artificial para fins de apoio profissional.
+A validade legal depende da assinatura e responsabilidade do médico veterinário, conforme a Lei nº 5.517/1968 e resoluções do CFMV.
 
-IMPORTANTE:
-- NUNCA use hashtags, asteriscos ou markdown
-- Use apenas bullets simples (•, –, →)
-- Calcule a dose corretamente baseado no peso do animal
-- Se não houver peso, indique "Dose a ajustar conforme peso"`;
+═══════════════════════════════════════════════`;
 
-        userPrompt = `Gere um receituário veterinário profissional com os seguintes dados:
+        userPrompt = `Preencha o receituário veterinário com os dados abaixo.
+APENAS PREENCHA OS CAMPOS — NÃO ADICIONE EXPLICAÇÕES FARMACOLÓGICAS.
 
 DADOS DO VETERINÁRIO:
-• Nome: ${data.vetName}
-• CRMV: ${data.crmv}
+Nome: ${data.vetName}
+CRMV: ${data.crmv}
 
 DADOS DO PROPRIETÁRIO:
-• Nome: ${data.ownerName}
-• Telefone: ${data.ownerPhone}
-• Endereço: ${data.ownerAddress}
+Nome: ${data.ownerName}
+Telefone: ${data.ownerPhone}
+Endereço: ${data.ownerAddress}
 
 DADOS DO PACIENTE:
-• Nome: ${data.animalName}
-• Espécie: ${data.animalSpecies}
-• Raça: ${data.animalBreed}
-• Idade: ${data.animalAge}
-• Sexo: ${data.animalSex}
-• Peso: ${data.animalWeight} kg
+Nome: ${data.animalName}
+Espécie: ${data.animalSpecies}
+Raça: ${data.animalBreed}
+Idade: ${data.animalAge}
+Sexo: ${data.animalSex}
+Peso: ${data.animalWeight} kg
 
 PRESCRIÇÃO SOLICITADA:
 ${data.prescription}
 
-Gere o receituário completo seguindo rigorosamente a estrutura definida. Calcule as doses com base no peso informado. Se o peso não foi informado, indique que a dose deve ser ajustada conforme pesagem.`;
+Gere APENAS o documento preenchido, seguindo rigorosamente o modelo. Calcule a dose baseada no peso se informado. NÃO inclua explicações sobre o medicamento.`;
       }
       else if (tool === "dicionario-farmacologico") {
         const isProfessional = requestBody.isProfessional === true;

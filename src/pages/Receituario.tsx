@@ -5,20 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pill, Loader2 } from "lucide-react";
+import { FileText, Loader2, Shield, Stethoscope, ClipboardList, AlertTriangle } from "lucide-react";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UFS, useCrmvValidation, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
-import { exportToPDF, exportToDocx } from "@/lib/reportExport";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 
 const Receituario = () => {
   const { toast } = useToast();
   const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
-  const [exportingPdf, setExportingPdf] = useState(false);
-  const [exportingDocx, setExportingDocx] = useState(false);
   
   // Veterinarian data
   const [vetName, setVetName] = useState("");
@@ -42,103 +39,32 @@ const Receituario = () => {
   const [prescription, setPrescription] = useState("");
   const [result, setResult] = useState("");
 
-  const handleCopyResult = async () => {
-    try {
-      await navigator.clipboard.writeText(result);
-      toast({
-        title: "Copiado!",
-        description: "Receituário copiado para a área de transferência.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar o texto.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleExportPDF = async () => {
-    if (!result) return;
-    setExportingPdf(true);
-    try {
-      await exportToPDF({
-        title: "Receituário Veterinário",
-        content: result,
-        toolName: "Receituário Veterinário — VetAgro Sustentável AI",
-        references: receituarioReferences,
-        userInputs: {
-          "Médico Veterinário": vetName,
-          "CRMV": `${crmv}-${uf}`,
-          "Proprietário": ownerName || "Não informado",
-          "Paciente": animalName,
-          "Espécie": animalSpecies,
-          "Raça": animalBreed || "Não informado",
-          "Idade": animalAge || "Não informado",
-          "Sexo": animalSex || "Não informado",
-          "Peso": animalWeight ? `${animalWeight} kg` : "Não informado"
-        }
-      });
-      toast({
-        title: "PDF gerado!",
-        description: "O receituário foi salvo em PDF.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao gerar PDF",
-        description: "PDF temporariamente indisponível — utilize Copiar Relatório.",
-        variant: "destructive",
-      });
-    } finally {
-      setExportingPdf(false);
-    }
-  };
-
-  const handleExportDocx = async () => {
-    if (!result) return;
-    setExportingDocx(true);
-    try {
-      await exportToDocx({
-        title: "Receituário Veterinário",
-        content: result,
-        toolName: "Receituário Veterinário — VetAgro Sustentável AI",
-        references: receituarioReferences,
-        userInputs: {
-          "Médico Veterinário": vetName,
-          "CRMV": `${crmv}-${uf}`,
-          "Proprietário": ownerName || "Não informado",
-          "Paciente": animalName,
-          "Espécie": animalSpecies,
-          "Raça": animalBreed || "Não informado",
-          "Idade": animalAge || "Não informado",
-          "Sexo": animalSex || "Não informado",
-          "Peso": animalWeight ? `${animalWeight} kg` : "Não informado"
-        }
-      });
-      toast({
-        title: "DOCX gerado!",
-        description: "O receituário foi salvo em Word.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao gerar DOCX",
-        description: "DOCX temporariamente indisponível — utilize Copiar Relatório.",
-        variant: "destructive",
-      });
-    } finally {
-      setExportingDocx(false);
-    }
+  const handleUseExample = () => {
+    setVetName("Dr(a). Maria Silva");
+    setCrmv("12345");
+    setUf("RR");
+    setOwnerName("João da Silva");
+    setOwnerPhone("(95) 99999-0000");
+    setOwnerAddress("Boa Vista - RR");
+    setAnimalName("Rex");
+    setAnimalSpecies("Canino");
+    setAnimalBreed("SRD");
+    setAnimalAge("5 anos");
+    setAnimalSex("Macho");
+    setAnimalWeight("12");
+    setPrescription("Amoxicilina + Clavulanato para tratamento de infecção cutânea bacteriana. Via oral, 10 dias de tratamento.");
+    
+    toast({
+      title: "Exemplo carregado",
+      description: "Dados de exemplo preenchidos. Você pode editar antes de gerar.",
+    });
   };
 
   const handleGenerate = async () => {
-    // Prevent double-click
     if (loading) return;
 
-    // Validate veterinarian fields - MANDATORY
     const validation = validateAndNotify(true, crmv, uf);
-    if (!validation.isValid) {
-      return;
-    }
+    if (!validation.isValid) return;
 
     if (!vetName.trim()) {
       toast({
@@ -189,13 +115,12 @@ const Receituario = () => {
         throw new Error("Resposta vazia do servidor");
       }
 
-      // Clean the result
       const cleanedResult = cleanTextForDisplay(data.answer);
       setResult(cleanedResult);
       
       toast({
-        title: "Receituário gerado!",
-        description: "O receituário está pronto para download.",
+        title: "Receituário gerado",
+        description: "Documento pronto para cópia ou compartilhamento.",
       });
     } catch (error: any) {
       console.error("Erro:", error);
@@ -209,33 +134,67 @@ const Receituario = () => {
     }
   };
 
-  const receituarioReferences = [
-    "Papich MG - Saunders Handbook of Veterinary Drugs",
-    "Merck Veterinary Manual",
-    "CFMV - Conselho Federal de Medicina Veterinária",
-    "MAPA - Ministério da Agricultura, Pecuária e Abastecimento",
-    "Lei 5.517/1968 - Regulamentação da Profissão de Médico Veterinário"
-  ];
-
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Header Institucional */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-            <Pill className="h-6 w-6 text-white" />
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-600 to-emerald-700 flex items-center justify-center shadow-lg">
+            <FileText className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Gerador de Receituário Veterinário</h1>
-            <p className="text-muted-foreground">Emita prescrições padronizadas conforme legislação vigente</p>
+            <h1 className="text-3xl font-bold text-foreground">Receituário Veterinário</h1>
+            <p className="text-muted-foreground">Documento técnico-profissional padronizado</p>
           </div>
         </div>
+
+        {/* Bloco Conceitual */}
+        <Card className="border-green-200 dark:border-green-800 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 mb-6">
+          <CardContent className="pt-6">
+            <p className="text-sm text-green-800 dark:text-green-200 leading-relaxed mb-4">
+              Gere receituários veterinários profissionais, padronizados conforme a legislação brasileira vigente. 
+              O documento gerado está pronto para impressão ou envio digital, necessitando apenas da assinatura do médico veterinário responsável.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-300">
+                <Shield className="h-4 w-4" />
+                <span>Lei 5.517/1968</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-300">
+                <Stethoscope className="h-4 w-4" />
+                <span>CRMV Obrigatório</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-300">
+                <ClipboardList className="h-4 w-4" />
+                <span>Formato Oficial</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-green-700 dark:text-green-300">
+                <FileText className="h-4 w-4" />
+                <span>Pronto para Uso</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Botão de Exemplo */}
+        <Button
+          variant="outline"
+          onClick={handleUseExample}
+          className="mb-6 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-950"
+        >
+          <ClipboardList className="mr-2 h-4 w-4" />
+          Usar exemplo de receituário (Roraima)
+        </Button>
       </div>
 
       <div className="grid gap-6 max-w-3xl">
         {/* Veterinarian Data - MANDATORY */}
         <Card className="border-2 border-primary/20">
           <CardHeader className="bg-primary/5">
-            <CardTitle className="text-primary">Dados do Médico Veterinário</CardTitle>
+            <CardTitle className="text-primary flex items-center gap-2">
+              <Stethoscope className="h-5 w-5" />
+              Dados do Médico Veterinário
+            </CardTitle>
             <CardDescription>
               Campos obrigatórios para emissão do receituário
             </CardDescription>
@@ -284,7 +243,7 @@ const Receituario = () => {
         {/* Owner Data */}
         <Card>
           <CardHeader>
-            <CardTitle>Dados do Proprietário</CardTitle>
+            <CardTitle>Dados do Proprietário / Responsável</CardTitle>
             <CardDescription>
               Informações do responsável pelo animal
             </CardDescription>
@@ -410,7 +369,7 @@ const Receituario = () => {
           <CardHeader>
             <CardTitle>Prescrição</CardTitle>
             <CardDescription>
-              Medicamentos e orientações de tratamento
+              Medicamentos e tratamento (apenas dados objetivos)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -418,13 +377,13 @@ const Receituario = () => {
               <Label htmlFor="prescription">Prescrição *</Label>
               <Textarea
                 id="prescription"
-                placeholder="Ex: Cefalexina 500mg para infecção cutânea..."
+                placeholder="Ex: Amoxicilina 500mg, via oral, a cada 12 horas, por 7 dias..."
                 value={prescription}
                 onChange={(e) => setPrescription(e.target.value)}
                 className="min-h-[120px]"
               />
               <p className="text-xs text-muted-foreground mt-2">
-                Informe medicamento, indicação, dose desejada e observações relevantes.
+                Informe: medicamento, dose, via de administração, frequência e duração.
               </p>
             </div>
           </CardContent>
@@ -443,43 +402,56 @@ const Receituario = () => {
             </>
           ) : (
             <>
-              <Pill className="mr-2 h-5 w-5" />
+              <FileText className="mr-2 h-5 w-5" />
               Gerar Receituário
             </>
           )}
         </Button>
 
+        {/* Resultado - Documento Oficial */}
         {result && (
-          <Card className="border-2 border-green-200">
-            <CardHeader className="bg-green-50">
-              <CardTitle className="text-green-800">Receituário Gerado</CardTitle>
+          <Card className="border-2 border-green-300 dark:border-green-700">
+            <CardHeader className="bg-green-50 dark:bg-green-950/30 border-b border-green-200 dark:border-green-800">
+              <CardTitle className="text-green-800 dark:text-green-200 flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Receituário Veterinário
+              </CardTitle>
               <CardDescription>
-                Revise o receituário antes de baixar ou imprimir
+                Documento pronto para uso — revise antes de assinar
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <div className="prose prose-sm max-w-none">
-                <div className="whitespace-pre-wrap bg-muted p-4 rounded-lg text-sm font-mono">
+            <CardContent className="pt-6">
+              {/* Documento com aparência oficial */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+                <pre className="whitespace-pre-wrap text-sm font-mono text-gray-800 dark:text-gray-200 leading-relaxed">
                   {result}
-                </div>
+                </pre>
               </div>
 
-              {/* Action Buttons - Padrão Global */}
-              <div className="pt-4 border-t">
+              {/* Botões Padrão - Copiar e Compartilhar */}
+              <div className="pt-6 border-t border-green-200 dark:border-green-800 mt-6">
                 <ResponseActionButtons
                   content={result}
                   title="Receituário Veterinário"
-                  toolName="Gerador de Receituário Veterinário"
+                  toolName="Receituário Veterinário"
                 />
               </div>
 
-              {/* Legal disclaimer */}
-              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-4">
-                <p className="text-xs text-amber-800 dark:text-amber-200">
-                  <strong>⚠ AVISO LEGAL:</strong> Este documento foi gerado por inteligência artificial para fins de apoio. 
-                  A validade oficial depende da assinatura do médico veterinário responsável, conforme legislação profissional 
-                  vigente (Lei 5.517/1968 e Resoluções CFMV).
-                </p>
+              {/* Aviso Legal */}
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mt-6">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
+                      AVISO LEGAL
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Este documento foi gerado por inteligência artificial para fins de apoio profissional. 
+                      A validade legal depende da assinatura e responsabilidade do médico veterinário, 
+                      conforme a Lei nº 5.517/1968 e resoluções do CFMV.
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
