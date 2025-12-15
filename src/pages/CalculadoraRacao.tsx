@@ -156,29 +156,35 @@ ANIMAL:
       normalized = normalized.replace(/\|\s*da dieta\s*\|/gi, '| % da dieta |');
       
       // 4) Corrigir palavras MAIÚSCULAS quebradas (DISTRIBUI\nÇÃO -> DISTRIBUIÇÃO, ANALIS\nEs -> ANÁLISES)
-      // Executa múltiplas vezes para pegar casos consecutivos
+      // Executa múltiplas vezes para pegar casos consecutivos (inclui \r e separadores Unicode)
       for (let i = 0; i < 5; i++) {
-        normalized = normalized.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})\s*\n\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç]{2,})/g, '$1$2');
+        normalized = normalized.replace(
+          /([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})\s*[\r\n\u2028\u2029]+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç]{2,})/g,
+          '$1$2'
+        );
       }
       
       // 4.1) Corrigir caso específico "ANALIS\nEs" -> "Análises"
-      normalized = normalized.replace(/ANALIS\s*\n?\s*Es/gi, 'Análises');
+      normalized = normalized.replace(/ANALIS\s*[\r\n\u2028\u2029]?\s*Es/gi, 'Análises');
       
       // 5) Corrigir palavras minúsculas quebradas no meio (manejo e\nfornecimento)
-      normalized = normalized.replace(/([a-záéíóúâêôãõç])\s*\n\s*([a-záéíóúâêôãõç])/g, '$1 $2');
+      normalized = normalized.replace(/([a-záéíóúâêôãõç])\s*[\r\n\u2028\u2029]+\s*([a-záéíóúâêôãõç])/g, '$1 $2');
       
       // 6) Corrigir "4) DISTRIBUI\nÇÃO" -> "4) DISTRIBUIÇÃO"
-      normalized = normalized.replace(/(\d+\)\s*)([A-ZÁÉÍÓÚÂÊÔÃÕÇ]+)\s*\n\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]+)/g, '$1$2$3');
+      normalized = normalized.replace(
+        /(\d+\)\s*)([A-ZÁÉÍÓÚÂÊÔÃÕÇ]+)\s*[\r\n\u2028\u2029]+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]+)/g,
+        '$1$2$3'
+      );
       
       // 7) Corrigir título seguido de texto sem quebra (ex: "ALIMENTAÇÃOA alimentação")
       normalized = normalized.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})([A-Z][a-z])/g, '$1\n\n$2');
       
-      // 8) Corrigir "1)\n\nIDENTIFICAÇÃO" -> "1) IDENTIFICAÇÃO"
-      normalized = normalized.replace(/(\d+\))\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1 $2');
+      // 8) Corrigir "5)\n\nJUSTIFICATIVA" -> "5) JUSTIFICATIVA" (inclui \r e separadores Unicode)
+      normalized = normalized.replace(/(\d+\))\s*[\r\n\u2028\u2029]+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1 $2');
       
-      // 9) Corrigir bullet sozinho em linha "•\n\nTEXTO" -> "• Texto"
-      normalized = normalized.replace(/•\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '• $1');
-      
+      // 9) Corrigir bullet sozinho em linha "•\n\nTEXTO" -> "• Texto" (mesmo se vier com quebra após o bullet)
+      normalized = normalized.replace(/•\s*[\r\n\u2028\u2029]+\s*/g, '• ');
+
       // 10) Converter palavras MAIÚSCULAS no meio do texto para minúsculas (exceto após bullets)
       const uppercaseWordsInText = ['MONITORAMENTO', 'ANALISE', 'ANÁLISE', 'RESULTADOS', 'RELATORIO', 'RELATÓRIO', 'ANÁLISES'];
       uppercaseWordsInText.forEach(word => {
