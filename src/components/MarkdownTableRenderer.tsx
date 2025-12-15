@@ -68,6 +68,28 @@ const preprocessContinuousText = (text: string): string => {
   
   let processed = text;
   
+  // STEP 0: Handle square bracket titles like [DIAGNÓSTICO DIFERENCIAL]
+  // Add line break after closing bracket if followed by text
+  processed = processed.replace(/\]([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, ']\n\n$1');
+  
+  // STEP 0.1: Handle divider lines (────) stuck to content
+  // Add line break before and after divider lines
+  processed = processed.replace(/(─{4,})(\d+\))/g, '$1\n\n$2');
+  processed = processed.replace(/(─{4,})([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
+  processed = processed.replace(/([^\n])(─{4,})/g, '$1\n\n$2');
+  processed = processed.replace(/(─{4,})([^\n])/g, '$1\n\n$2');
+  
+  // STEP 0.2: Handle numbered sections like "1)", "2)" stuck to previous text
+  processed = processed.replace(/([^\n\d])(\d+\))\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2 $3');
+  
+  // STEP 0.3: Handle section titles stuck to previous content
+  // Pattern: lowercase letter or punctuation followed by uppercase section title
+  processed = processed.replace(/([a-záéíóúâêôãõç.!?:)])(\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
+  
+  // STEP 0.4: Handle bullet points stuck to dividers or previous text
+  processed = processed.replace(/(─{4,})(•)/g, '$1\n\n$2');
+  processed = processed.replace(/([.!?:])(•\s*[A-Za-z])/g, '$1\n$2');
+  
   // Known section title patterns - add line breaks before them
   const sectionKeywords = [
     'SÍNTESE EXECUTIVA',
@@ -119,13 +141,18 @@ const preprocessContinuousText = (text: string): string => {
     'ANÁLISE DE SUSTENTABILIDADE',
     'EMISSOES E SUSTENTABILIDADE',
     'EMISSÕES E SUSTENTABILIDADE',
+    'ANÁLISE CLÍNICA INICIAL',
+    'ANALISE CLINICA INICIAL',
+    'HIPÓTESES',
+    'HIPOTESES',
+    'CONDUTAS INICIAIS',
+    'PROGNÓSTICO PRELIMINAR',
+    'PROGNOSTICO PRELIMINAR',
   ];
   
   // STEP 1: Add space before section keywords that are stuck to previous word
-  // Example: "DEFICITÁRIODados do produtor" -> "DEFICITÁRIO\n\nDados do produtor"
   for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // Match lowercase letter or number directly followed by keyword (no space)
     const stuckRegex = new RegExp(`([a-záéíóúâêôãõç0-9])(${escapedKeyword})`, 'gi');
     processed = processed.replace(stuckRegex, '$1\n\n$2');
   }
@@ -144,16 +171,19 @@ const preprocessContinuousText = (text: string): string => {
   processed = processed.replace(/([.!?:])(\s*)(-\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$3');
   processed = processed.replace(/([a-záéíóúâêôãõç])(-\s+[A-Z])/gi, '$1\n$2');
   
-  // STEP 5: Fix bullet points that are stuck together (ending with period followed by dash)
+  // STEP 5: Fix bullet points that are stuck together (ending with period followed by dash or bullet)
   processed = processed.replace(/(\.)(-\s+)/g, '.\n$2');
+  processed = processed.replace(/(\.)(\•\s+)/g, '.\n$2');
   
   // STEP 6: Add line breaks after colon followed by section content
-  // Example: "SÍNTESE EXECUTIVA:A simulação" -> "SÍNTESE EXECUTIVA:\nA simulação"
   processed = processed.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,}):([A-Za-z])/g, '$1:\n$2');
   
   // STEP 7: Ensure bullet points are on separate lines
-  // Match: "...texto.- Localização:" -> "...texto.\n- Localização:"
   processed = processed.replace(/([.!?])(-\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$2');
+  processed = processed.replace(/([.!?])(•\s*[A-Za-z])/g, '$1\n$2');
+  
+  // STEP 8: Handle numbered items stuck to previous text (e.g., "infecção.2. Nome")
+  processed = processed.replace(/([.!?])(\d+\.\s+[A-Z])/g, '$1\n\n$2');
   
   // Clean up multiple line breaks
   processed = processed.replace(/\n{3,}/g, '\n\n');
@@ -161,10 +191,25 @@ const preprocessContinuousText = (text: string): string => {
   return processed.trim();
 };
 
+// Check if line is a divider (────)
+const isDividerLine = (line: string): boolean => {
+  const trimmed = line.trim();
+  return /^─{4,}$/.test(trimmed);
+};
+
 // Check if line is a section title (uppercase or ends with :)
 const isSectionTitle = (line: string): boolean => {
   const trimmed = line.trim();
   if (trimmed.length < 3 || trimmed.length > 100) return false;
+  
+  // Skip divider lines
+  if (isDividerLine(trimmed)) return false;
+  
+  // Lines in square brackets like [DIAGNÓSTICO DIFERENCIAL]
+  if (/^\[.+\]$/.test(trimmed)) return true;
+  
+  // Numbered section headers like "1) IDENTIFICAÇÃO DO CASO"
+  if (/^\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(trimmed)) return true;
   
   // Lines that are mostly uppercase (>60%) and have at least 3 chars
   const uppercaseChars = (trimmed.match(/[A-ZÀ-Ü]/g) || []).length;
@@ -177,7 +222,7 @@ const isSectionTitle = (line: string): boolean => {
   
   // Common section patterns
   const sectionPatterns = [
-    /^(IDENTIFICAÇÃO|ANÁLISE|DIAGNÓSTICO|RECOMENDAÇÕES|REFERÊNCIAS|CONCLUSÃO|RESUMO|SÍNTESE|PROJEÇÃO|CUSTOS|EMISSÕES|RESULTADOS|METODOLOGIA|PARÂMETROS|INDICADORES|VIABILIDADE|CENÁRIOS|OBSERVAÇÕES|ALERTAS|CONSIDERAÇÕES|DADOS|MANEJO|ESTRATÉGIAS|ALTERNATIVAS|REDUÇÃO)/i,
+    /^(IDENTIFICAÇÃO|ANÁLISE|DIAGNÓSTICO|RECOMENDAÇÕES|REFERÊNCIAS|CONCLUSÃO|RESUMO|SÍNTESE|PROJEÇÃO|CUSTOS|EMISSÕES|RESULTADOS|METODOLOGIA|PARÂMETROS|INDICADORES|VIABILIDADE|CENÁRIOS|OBSERVAÇÕES|ALERTAS|CONSIDERAÇÕES|DADOS|MANEJO|ESTRATÉGIAS|ALTERNATIVAS|REDUÇÃO|HIPÓTESES|EXAMES|CLASSIFICAÇÃO|CONDUTAS|PROGNÓSTICO|ALERTA)/i,
     /^\d+\.\s*[A-ZÀ-Ü]/,
     /^\d+\.\d+\s+[A-ZÀ-Ü]/,
   ];
@@ -322,16 +367,33 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
         continue;
       }
       
+      // Handle divider lines (────) as visual separators
+      if (isDividerLine(trimmedLine)) {
+        flushParagraph();
+        flushList();
+        parts.push(
+          <hr 
+            key={`hr-${parts.length}`} 
+            className="my-4 border-t-2 border-primary/20"
+          />
+        );
+        continue;
+      }
+      
       // Section title (H2)
       if (isSectionTitle(trimmedLine)) {
         flushParagraph();
         flushList();
+        // Clean up the title: remove square brackets and trailing colons
+        let cleanTitle = trimmedLine
+          .replace(/^\[|\]$/g, '') // Remove [ and ]
+          .replace(/:$/, '');      // Remove trailing colon
         parts.push(
           <h2 
             key={`h2-${parts.length}`} 
             className="text-lg font-bold text-primary mt-6 mb-3 pb-1 border-b-2 border-primary/30"
           >
-            {trimmedLine.replace(/:$/, '')}
+            {cleanTitle}
           </h2>
         );
         continue;
