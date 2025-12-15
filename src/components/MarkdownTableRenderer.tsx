@@ -65,31 +65,29 @@ const extractTables = (text: string): { tables: { start: number; end: number; co
  */
 const preprocessContinuousText = (text: string): string => {
   if (!text) return '';
-  
+
   let processed = text;
-  
+
   // STEP 0: Handle square bracket titles like [DIAGNÓSTICO DIFERENCIAL]
-  // Add line break after closing bracket if followed by text
   processed = processed.replace(/\]([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, ']\n\n$1');
-  
-  // STEP 0.1: Handle divider lines (────) stuck to content
-  // Add line break before and after divider lines
-  processed = processed.replace(/(─{4,})(\d+\))/g, '$1\n\n$2');
-  processed = processed.replace(/(─{4,})([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
-  processed = processed.replace(/([^\n])(─{4,})/g, '$1\n\n$2');
-  processed = processed.replace(/(─{4,})([^\n])/g, '$1\n\n$2');
-  
-  // STEP 0.2: Handle numbered sections like "1)", "2)" stuck to previous text
-  processed = processed.replace(/([^\n\d])(\d+\))\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2 $3');
-  
-  // STEP 0.3: Handle section titles stuck to previous content
-  // Pattern: lowercase letter or punctuation followed by uppercase section title
-  processed = processed.replace(/([a-záéíóúâêôãõç.!?:)])(\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
-  
-  // STEP 0.4: Handle bullet points stuck to dividers or previous text
-  processed = processed.replace(/(─{4,})(•)/g, '$1\n\n$2');
-  processed = processed.replace(/([.!?:])(•\s*[A-Za-z])/g, '$1\n$2');
-  
+
+  // STEP 0.1: Normalize divider lines (──── or single ─) to be on their own line
+  // Ensure line breaks around any run of "─"
+  processed = processed.replace(/([^\n])\s*(─{1,})\s*([^\n])/g, '$1\n\n$2\n\n$3');
+
+  // STEP 0.2: Ensure numbered section markers are not stuck to previous text
+  processed = processed.replace(/([^\n\d])(\d+\))\s*/g, '$1\n\n$2 ');
+
+  // STEP 0.3: If a section marker is on its own line and the title is next line, join them
+  // Example: "1)\n\nIDENTIFICAÇÃO DO CASO" -> "1) IDENTIFICAÇÃO DO CASO"
+  processed = processed.replace(/(\d+\))\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{2,})/g, '$1 $2');
+
+  // STEP 0.4: Force bullet points (•) to start on a new line (common issue in clinical tools)
+  processed = processed.replace(/([^\n])\s*(•\s*)/g, '$1\n$2');
+
+  // STEP 0.5: Force numbered list items like "1." to start on a new line when stuck
+  processed = processed.replace(/([^\n])\s*(\d+\.)\s*/g, '$1\n\n$2 ');
+
   // Known section title patterns - add line breaks before them
   const sectionKeywords = [
     'SÍNTESE EXECUTIVA',
@@ -173,7 +171,7 @@ const preprocessContinuousText = (text: string): string => {
   
   // STEP 5: Fix bullet points that are stuck together (ending with period followed by dash or bullet)
   processed = processed.replace(/(\.)(-\s+)/g, '.\n$2');
-  processed = processed.replace(/(\.)(\•\s+)/g, '.\n$2');
+  processed = processed.replace(/(\.)(•\s+)/g, '.\n$2');
   
   // STEP 6: Add line breaks after colon followed by section content
   processed = processed.replace(/([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,}):([A-Za-z])/g, '$1:\n$2');
@@ -194,7 +192,8 @@ const preprocessContinuousText = (text: string): string => {
 // Check if line is a divider (────)
 const isDividerLine = (line: string): boolean => {
   const trimmed = line.trim();
-  return /^─{4,}$/.test(trimmed);
+  // Some responses come as a single "─" instead of a long run
+  return /^─{1,}$/.test(trimmed);
 };
 
 // Check if line is a section title (uppercase or ends with :)
