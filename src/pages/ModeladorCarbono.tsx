@@ -11,7 +11,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from "sonner";
 import { UpgradeModal } from "@/components/UpgradeModal";
-import { ReportExporter } from "@/components/ReportExporter";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
 type UserMode = "produtor" | "tecnico";
 type Step = "welcome" | "education" | "form" | "diagnosis" | "simulation" | "credits" | "results";
@@ -842,19 +842,11 @@ Para maximizar seu potencial de créditos de carbono:
             </div>
             
             {isPremium ? (
-              <ReportExporter
-                title="Relatório de Carbono e Créditos Ambientais"
+              <ResponseActionButtons
                 content={generateReportContent()}
-                toolName="Modelador de Carbono VetAgro IA"
-                references={carbonReferences}
-                userInputs={{
-                  "Tipo de Produção": tiposProducao.find(t => t.value === formData.tipoProducao)?.label || "-",
-                  "Número de Animais": formData.numeroAnimais,
-                  "Área de Pasto (ha)": formData.areaPasto,
-                  "Área de Árvores (ha)": formData.areaArvores
-                }}
+                title="Relatório de Carbono e Créditos Ambientais"
+                toolName="Modelador de Carbono"
                 className="w-full"
-                variant="outline"
               />
             ) : (
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
