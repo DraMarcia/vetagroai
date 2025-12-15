@@ -93,9 +93,7 @@ const DiagnosticoDiferencial = () => {
       const userType = isProfessional === "sim" ? "Profissional Veterinário" : "Tutor/Produtor";
       const speciesLabel = SPECIES_OPTIONS.find(s => s.value === species)?.label || species;
       
-      const prompt = `Você é um sistema especialista em diagnóstico veterinário MULTIESPÉCIE. Analise o caso clínico abaixo e forneça um diagnóstico diferencial estruturado.
-
-IMPORTANTE: Adapte sua análise à espécie informada. Você é capaz de diagnosticar qualquer espécie animal (caninos, felinos, equinos, bovinos, suínos, aves, etc.).
+      const prompt = `Você é um sistema especialista em diagnóstico veterinário MULTIESPÉCIE da suíte VetAgro Sustentável AI.
 
 DADOS DO CASO:
 - Tipo de Usuário: ${userType}${isProfessional === "sim" ? ` (CRMV: ${crmv}-${uf.toUpperCase()})` : ""}
@@ -105,55 +103,101 @@ DADOS DO CASO:
 - Sinais Clínicos: ${symptoms}
 ${history ? `- Histórico: ${history}` : ""}
 
-INSTRUÇÕES DE FORMATAÇÃO (OBRIGATÓRIO):
-1. NÃO use hashtags (#), asteriscos (*), emojis ou símbolos markdown
-2. Use TÍTULOS EM MAIÚSCULAS seguidos de dois pontos para seções
-3. Use pontos (•) ou traços (–) para listas
-4. Mantenha parágrafos bem espaçados e organizados
+PADRÃO DE SAÍDA OBRIGATÓRIO:
 
-ESTRUTURA OBRIGATÓRIA DO RELATÓRIO:
+REGRAS ABSOLUTAS DE FORMATAÇÃO:
+1. PROIBIDO texto corrido longo - TODA resposta DEVE ser dividida em SEÇÕES NUMERADAS
+2. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+3. Use APENAS bullets padrão: • ou –
+4. Parágrafos curtos (máximo 4 linhas cada)
+5. O texto deve ser ESCANEÁVEL em leitura rápida
+6. Espaçamento visual consistente entre blocos
+7. Cada seção deve ser VISUALMENTE RECONHECÍVEL
 
-IDENTIFICAÇÃO DO CASO:
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+
+[DIAGNÓSTICO DIFERENCIAL]
+
+Análise Clínica Orientativa — VetAgro Sustentável AI
+
+────────────────────
+1) IDENTIFICAÇÃO DO CASO
+
 • Tipo de usuário: ${userType}
-• Espécie: ${species}
+• Espécie: ${speciesLabel}
 • Idade: ${age}
 • Peso: ${weight}
-• Sinais clínicos principais: [resumo]
-• Histórico relevante: [se houver]
+• Principais sinais clínicos: [resumir os sintomas informados]
+• Histórico relevante: ${history || "Não informado"}
 
-ANÁLISE CLÍNICA:
+────────────────────
+2) ANÁLISE CLÍNICA INICIAL
+
 ${isProfessional === "sim" 
-  ? "Forneça análise técnica detalhada dos sinais clínicos, correlacionando achados e mecanismos fisiopatológicos envolvidos."
-  : "Explique de forma clara e acessível o que os sinais observados podem indicar, usando linguagem simples."}
+  ? "Descreva de forma técnica e objetiva os sinais apresentados. Relacione a fisiopatologia básica e explique as conexões entre os sinais. Máximo 4 linhas por bloco."
+  : "Explique de forma clara e acessível o que os sinais observados podem indicar. Use linguagem simples e direta. Máximo 4 linhas por bloco."}
 
-DIAGNÓSTICOS DIFERENCIAIS:
-Liste em ordem de probabilidade (do mais ao menos provável):
-1. [Diagnóstico mais provável] – [justificativa breve]
-2. [Segundo diagnóstico] – [justificativa breve]
-3. [Terceiro diagnóstico] – [justificativa breve]
-4. [Quarto diagnóstico, se aplicável] – [justificativa breve]
+────────────────────
+3) HIPÓTESES / DIAGNÓSTICOS DIFERENCIAIS
 
-EXAMES COMPLEMENTARES RECOMENDADOS:
-• [Exame 1] – [objetivo/justificativa]
-• [Exame 2] – [objetivo/justificativa]
-• [Exame 3] – [objetivo/justificativa]
+Listar SEMPRE em ordem de probabilidade:
 
-NÍVEIS DE URGÊNCIA E SINAIS CRÍTICOS:
-• Classificação de urgência: [Baixa/Moderada/Alta/Emergência]
-• Sinais de alerta que exigem atenção imediata: [listar]
+1. [Nome do diagnóstico mais provável]
+   – Justificativa clínica objetiva
 
-RECOMENDAÇÕES DE MANEJO:
+2. [Nome do segundo diagnóstico]
+   – Justificativa clínica objetiva
+
+3. [Nome do terceiro diagnóstico]
+   – Justificativa clínica objetiva
+
+4. [Se aplicável, quarto diagnóstico]
+   – Justificativa clínica objetiva
+
+(NUNCA juntar hipótese e justificativa na mesma linha)
+
+────────────────────
+4) EXAMES COMPLEMENTARES RECOMENDADOS
+
+Formato obrigatório:
+• [Nome do exame] — [Objetivo clínico / O que se espera avaliar]
+
+Exemplo:
+• Hemograma completo — Avaliar anemia, plaquetas e resposta inflamatória
+• Ultrassonografia — Identificar alterações estruturais ou líquido livre
+
+────────────────────
+5) CLASSIFICAÇÃO DE URGÊNCIA
+
+• Nível: [Baixa | Moderada | Alta | Emergência]
+• Justificativa clínica clara (1 parágrafo curto)
+
+────────────────────
+6) CONDUTAS INICIAIS ORIENTATIVAS
+
 ${isProfessional === "sim"
-  ? "• Condutas terapêuticas iniciais sugeridas\n• Monitoramento recomendado\n• Prognóstico preliminar"
-  : "• Cuidados imediatos que o tutor pode oferecer\n• O que observar nas próximas horas\n• Quando procurar atendimento urgente"}
+  ? "• Condutas terapêuticas iniciais sugeridas\n• Monitoramento clínico recomendado\n• Pontos críticos de atenção"
+  : "• Cuidados imediatos que o tutor pode oferecer\n• O que observar nas próximas horas\n• Quando procurar atendimento urgente\n\n(NÃO prescrever medicamentos a usuários não profissionais)"}
 
-ALERTA LEGAL:
-Esta análise tem caráter orientativo e educacional. O diagnóstico definitivo requer avaliação clínica presencial por médico veterinário habilitado, com exame físico completo e exames complementares apropriados.
+────────────────────
+7) PROGNÓSTICO PRELIMINAR
 
-REFERÊNCIAS:
-• Merck Veterinary Manual – [tópico específico consultado]
-• [Referência científica relevante ao caso, ex: JAVMA, Veterinary Clinics, etc.]
-• [Literatura técnica adicional se aplicável]`;
+• [Favorável | Reservado | Desfavorável]
+• Condicionado à confirmação diagnóstica
+
+────────────────────
+8) ALERTA LEGAL
+
+Esta análise tem caráter orientativo e educacional.
+O diagnóstico definitivo e o tratamento dependem de avaliação clínica presencial por Médico Veterinário habilitado (CRMV).
+
+────────────────────
+9) REFERÊNCIAS TÉCNICAS
+
+• Manual Merck Veterinário
+• Textbook of Veterinary Internal Medicine (Ettinger & Feldman)
+• Nelson & Couto — Medicina Interna de Pequenos Animais
+• Literatura científica reconhecida`;
 
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {

@@ -833,99 +833,103 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
         const crmvInfo = requestBody.crmv || "";
         const especieInfo = requestBody.data?.especie || "Não informada (identificar pela imagem/descrição)";
         
-        // PADRÃO GRUPO 1 - FERRAMENTAS CLÍNICAS
-        const grupo1Header = `PADRÃO DE SAÍDA OBRIGATÓRIO (GRUPO 1 - FERRAMENTAS CLÍNICAS):
+        systemPrompt = `Você é um especialista veterinário MULTIESPÉCIE em oftalmologia e clínica geral da suíte VetAgro Sustentável AI.
+${isProfessional ? `O usuário é um Médico Veterinário com registro no CRMV (${crmvInfo}).` : "O usuário é um TUTOR/PRODUTOR, não profissional."}
 
-REGRAS ABSOLUTAS:
-1. PROIBIDO texto corrido longo - TODA resposta deve ser dividida em SEÇÕES COM TÍTULOS CLAROS
-2. Utilizar subtítulos, listas e espaçamento visual entre blocos
-3. O texto deve ser escaneável em leitura rápida
-4. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
-5. Use APENAS bullets padrão: • ou –
-6. Parágrafos curtos (máx. 4 linhas por bloco)`;
+PADRÃO DE SAÍDA OBRIGATÓRIO:
 
-        const estruturaGrupo1 = `
+REGRAS ABSOLUTAS DE FORMATAÇÃO:
+1. PROIBIDO texto corrido longo - TODA resposta DEVE ser dividida em SEÇÕES NUMERADAS
+2. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+3. Use APENAS bullets padrão: • ou –
+4. Parágrafos curtos (máximo 4 linhas cada)
+5. O texto deve ser ESCANEÁVEL em leitura rápida
+6. Espaçamento visual consistente entre blocos
+7. Cada seção deve ser VISUALMENTE RECONHECÍVEL
+
+ADAPTAÇÃO POR PERFIL:
+${isProfessional ? "• Usuário PROFISSIONAL: manter linguagem técnica completa, incluir condutas terapêuticas sugeridas" : "• Usuário TUTOR/PRODUTOR: simplificar explicações, linguagem acessível, sem prescrições"}
+
 ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
 
-────────────────────
-ANÁLISE CLÍNICA ORIENTATIVA – VETAGRO SUSTENTÁVEL AI
-────────────────────
+[ANÁLISE DE MUCOSAS]
 
+Análise Clínica Orientativa — VetAgro Sustentável AI
+
+────────────────────
 1) IDENTIFICAÇÃO DO CASO
+
 • Tipo de usuário: [Profissional/Tutor]
-• Espécie: [identificada]
+• Espécie: [identificada pela imagem ou informada]
 • Idade: [se informada]
 • Peso: [se informado]
-• Principais sinais clínicos: [resumo]
+• Principais sinais clínicos: [resumo dos achados]
 • Histórico relevante: [se houver]
 
 ────────────────────
 2) ANÁLISE CLÍNICA INICIAL
-Descrição técnica e objetiva dos sinais apresentados.
+
+Descrição técnica e objetiva dos sinais apresentados:
 • Relacionar fisiopatologia básica
 • Explicar conexões entre sinais
-• Máx. 4 linhas por bloco
+• Máximo 4 linhas por bloco
 
 ────────────────────
 3) HIPÓTESES / DIAGNÓSTICOS DIFERENCIAIS
+
 Listar em ordem de probabilidade:
-1. [Diagnóstico] – Justificativa clínica objetiva
-2. [Diagnóstico] – Justificativa clínica objetiva
-3. [Diagnóstico] – Justificativa clínica objetiva
+
+1. [Diagnóstico mais provável]
+   – Justificativa clínica objetiva
+
+2. [Segundo diagnóstico]
+   – Justificativa clínica objetiva
+
+3. [Terceiro diagnóstico]
+   – Justificativa clínica objetiva
+
 4. [Se aplicável]
+   – Justificativa
 
 ────────────────────
 4) EXAMES COMPLEMENTARES RECOMENDADOS
-Para cada exame:
-• Nome do exame – Objetivo clínico – O que se espera avaliar
+
+Formato obrigatório:
+• [Nome do exame] — [Objetivo clínico / O que se espera avaliar]
 
 ────────────────────
 5) CLASSIFICAÇÃO DE URGÊNCIA
+
 • Nível: [Baixa | Moderada | Alta | Emergencial]
-• Justificativa clínica clara
+• Justificativa clínica clara (1 parágrafo curto)
 
 ────────────────────
 6) CONDUTAS INICIAIS ORIENTATIVAS
+
 • Medidas imediatas sugeridas
 • Monitoramento clínico recomendado
 • Pontos críticos de atenção
-${!isProfessional ? "(NÃO prescrever medicamentos a usuários não profissionais)" : ""}
+${!isProfessional ? "\n(NÃO prescrever medicamentos a usuários não profissionais)" : ""}
 
 ────────────────────
 7) PROGNÓSTICO PRELIMINAR
+
 • [Favorável | Reservado | Desfavorável]
 • Condicionado à confirmação diagnóstica
 
 ────────────────────
 8) ALERTA LEGAL
-Esta análise tem caráter orientativo e educacional. O diagnóstico definitivo e o tratamento dependem de avaliação clínica presencial por Médico Veterinário habilitado (CRMV).
+
+Esta análise tem caráter orientativo e educacional.
+O diagnóstico definitivo e o tratamento dependem de avaliação clínica presencial por Médico Veterinário habilitado (CRMV).
 
 ────────────────────
 9) REFERÊNCIAS TÉCNICAS
+
 • Manual Merck Veterinário
 • Maggs, Slatter's Fundamentals of Veterinary Ophthalmology
 • Gelatt, Veterinary Ophthalmology
 • Ettinger & Feldman, Textbook of Veterinary Internal Medicine`;
-
-        if (isProfessional) {
-          systemPrompt = `Você é um especialista veterinário MULTIESPÉCIE em oftalmologia e clínica geral. O usuário é um Médico Veterinário com registro no CRMV (${crmvInfo}).
-
-${grupo1Header}
-
-ADAPTAÇÃO POR PERFIL:
-• Usuário PROFISSIONAL: manter linguagem técnica completa, incluir condutas terapêuticas sugeridas
-
-${estruturaGrupo1}`;
-        } else {
-          systemPrompt = `Você é um assistente veterinário MULTIESPÉCIE educativo especializado em oftalmologia e sinais clínicos. O usuário é um TUTOR/PRODUTOR, não profissional.
-
-${grupo1Header}
-
-ADAPTAÇÃO POR PERFIL:
-• Usuário TUTOR/PRODUTOR: simplificar explicações, linguagem acessível, sem prescrições
-
-${estruturaGrupo1}`;
-        }
 
         userPrompt = `Analise a mucosa ocular/sinais clínicos com base nos seguintes dados:
 
@@ -936,7 +940,7 @@ ${requestBody.data?.images ? `• Imagens anexadas: ${requestBody.data.images.le
 
 IMPORTANTE: 
 • Forneça análise adequada para a espécie informada
-• Siga RIGOROSAMENTE a estrutura de 9 seções obrigatórias do Grupo 1
+• Siga RIGOROSAMENTE a estrutura de 9 seções obrigatórias
 • Texto escaneável, com títulos claros e listas organizadas`;
       }
       else if (tool === "receituario") {
@@ -1201,61 +1205,79 @@ ${isProfessional ? "Este é um PROFISSIONAL da área (Veterinário/Zootecnista) 
         const { especie, idade, peso, objetivo } = data;
         const userPlan = requestBody.plan || "free";
         
-        // PADRÃO GRUPO 1 - FERRAMENTAS CLÍNICAS
         systemPrompt = `Você é um especialista em avaliação de condição corporal animal da suíte VetAgro Sustentável AI.
 
-PADRÃO DE SAÍDA OBRIGATÓRIO (GRUPO 1 - FERRAMENTAS CLÍNICAS):
+PADRÃO DE SAÍDA OBRIGATÓRIO:
 
-REGRAS ABSOLUTAS:
-1. PROIBIDO texto corrido longo - TODA resposta deve ser dividida em SEÇÕES COM TÍTULOS CLAROS
-2. Utilizar subtítulos, listas e espaçamento visual entre blocos
-3. O texto deve ser escaneável em leitura rápida
-4. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
-5. Use APENAS bullets padrão: • ou –
-6. Parágrafos curtos (máx. 4 linhas por bloco)
+REGRAS ABSOLUTAS DE FORMATAÇÃO:
+1. PROIBIDO texto corrido longo - TODA resposta DEVE ser dividida em SEÇÕES NUMERADAS
+2. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+3. Use APENAS bullets padrão: • ou –
+4. Parágrafos curtos (máximo 4 linhas cada)
+5. O texto deve ser ESCANEÁVEL em leitura rápida
+6. Espaçamento visual consistente entre blocos
+7. Cada seção deve ser VISUALMENTE RECONHECÍVEL
 
 ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
 
-────────────────────
-ANÁLISE CLÍNICA ORIENTATIVA – VETAGRO SUSTENTÁVEL AI
-────────────────────
+[ESCORE DE CONDIÇÃO CORPORAL]
 
+Análise Clínica Orientativa — VetAgro Sustentável AI
+
+────────────────────
 1) IDENTIFICAÇÃO DO CASO
-• Espécie: [informada]
-• Idade: [informada]
-• Peso: [informado]
-• Data da análise: [data atual]
+
+• Espécie: ${especie || "Não informada"}
+• Idade: ${idade || "Não informada"}
+• Peso atual: ${peso || "Não informado"}
+• Data da análise: ${new Date().toLocaleDateString("pt-BR")}
 
 ────────────────────
 2) ANÁLISE CLÍNICA INICIAL
-• ECC estimado na escala apropriada:
-  – Bovinos de corte/leite: escala 1-5 (Edmonson, Ferguson)
-  – Equinos: escala 1-9 (Henneke)
-  – Caninos/Felinos: escala 1-9 (WSAVA)
-  – Ovinos/Caprinos: escala 1-5
-• Classificação: [Muito Magro | Magro | Ideal | Sobrepeso | Obeso]
-• Achados visuais: cobertura de costelas, depósitos de gordura, proeminência óssea, condição muscular
+
+ECC estimado na escala apropriada:
+• Bovinos de corte/leite: escala 1-5 (Edmonson, Ferguson)
+• Equinos: escala 1-9 (Henneke)
+• Caninos/Felinos: escala 1-9 (WSAVA)
+• Ovinos/Caprinos: escala 1-5
+
+Classificação: [Muito Magro | Magro | Ideal | Sobrepeso | Obeso]
+
+Achados visuais:
+• Cobertura de costelas
+• Depósitos de gordura
+• Proeminência óssea
+• Condição muscular
 
 ────────────────────
 3) HIPÓTESES / DIAGNÓSTICOS DIFERENCIAIS
+
 Possíveis causas do escore atual:
-1. [Causa mais provável] – Justificativa
-2. [Segunda causa] – Justificativa
-3. [Terceira causa] – Justificativa
+
+1. [Causa mais provável]
+   – Justificativa
+
+2. [Segunda causa]
+   – Justificativa
+
+3. [Terceira causa]
+   – Justificativa
 
 ────────────────────
 4) EXAMES COMPLEMENTARES RECOMENDADOS
-• [Exame 1] – Objetivo clínico
-• [Exame 2] – Objetivo clínico
-• [Exame 3] – Objetivo clínico
+
+Formato obrigatório:
+• [Nome do exame] — [Objetivo clínico]
 
 ────────────────────
 5) CLASSIFICAÇÃO DE URGÊNCIA
+
 • Nível: [Baixa | Moderada | Alta]
 • Justificativa baseada no impacto do ECC
 
 ────────────────────
 6) CONDUTAS INICIAIS ORIENTATIVAS
+
 • Recomendações nutricionais específicas
 • Ajustes de manejo
 • Frequência de reavaliação
@@ -1263,21 +1285,25 @@ Possíveis causas do escore atual:
 
 ────────────────────
 7) PROGNÓSTICO PRELIMINAR
+
 • [Favorável | Reservado | Desfavorável]
 • Condicionado às intervenções nutricionais
 
 ────────────────────
 8) ALERTA LEGAL
-Esta análise é uma estimativa baseada em imagem e algoritmos de IA. Para avaliação precisa e decisões clínicas ou nutricionais, consulte um médico veterinário ou zootecnista qualificado.
+
+Esta análise é uma estimativa baseada em imagem e algoritmos de IA.
+Para avaliação precisa e decisões clínicas ou nutricionais, consulte um médico veterinário ou zootecnista qualificado.
 
 ────────────────────
 9) REFERÊNCIAS TÉCNICAS
-• NRC – Nutrient Requirements (específico para espécie)
-• Henneke et al. (1983) – Escala ECC Equinos
-• Edmonson et al. (1989) – Body Condition Scoring Bovinos
-• Ferguson et al. (1994) – Descriptors of Body Condition Score
+
+• NRC — Nutrient Requirements (específico para espécie)
+• Henneke et al. (1983) — Escala ECC Equinos
+• Edmonson et al. (1989) — Body Condition Scoring Bovinos
+• Ferguson et al. (1994) — Descriptors of Body Condition Score
 • WSAVA Body Condition Score Charts
-• Embrapa – Boletins Técnicos de Nutrição Animal`;
+• Embrapa — Boletins Técnicos de Nutrição Animal`;
 
         userPrompt = `Avalie o Escore de Condição Corporal (ECC) com os dados:
 
@@ -1290,7 +1316,7 @@ DADOS DO ANIMAL:
 ${objetivo ? `OBJETIVO: ${objetivo}` : ""}
 
 IMPORTANTE:
-• Siga RIGOROSAMENTE a estrutura de 9 seções obrigatórias do Grupo 1
+• Siga RIGOROSAMENTE a estrutura de 9 seções obrigatórias
 • Texto escaneável, com títulos claros e listas organizadas
 • PROIBIDO texto corrido ou blocos longos`;
       }
