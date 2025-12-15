@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Warehouse, Sparkles, Loader2, FileText, Crown, Info, Copy, TrendingUp, DollarSign, Leaf } from "lucide-react";
+import { Warehouse, Sparkles, Loader2, FileText, Crown, Info, TrendingUp, DollarSign, Leaf } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,8 +13,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cleanTextForDisplay } from "@/lib/textUtils";
-import { ReportExporter } from "@/components/ReportExporter";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
 const categoriasAnimal = [
   "Boi gordo (Nelore)",
@@ -183,12 +183,6 @@ const SimuladorConfinamento = () => {
     toast.success("Exemplo carregado! Clique em Simular para executar.");
   };
 
-  const handleCopiar = () => {
-    if (resposta) {
-      navigator.clipboard.writeText(resposta);
-      toast.success("Relatório copiado para a área de transferência!");
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -668,17 +662,12 @@ const SimuladorConfinamento = () => {
                 className="prose prose-sm max-w-none dark:prose-invert mb-4 text-sm leading-relaxed"
               />
               
-              <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-                <Button variant="outline" onClick={handleCopiar} className="flex items-center gap-2">
-                  <Copy className="h-4 w-4" />
-                  Copiar Relatório
-                </Button>
-                <ReportExporter
-                  title="Simulação de Confinamento Sustentável"
-                  content={resposta}
-                  toolName="Simulador de Confinamento"
-                />
-              </div>
+              <ResponseActionButtons
+                content={resposta}
+                title="Simulação de Confinamento Sustentável"
+                toolName="Simulador de Confinamento"
+                className="mt-4 pt-4 border-t"
+              />
               
               {plan === "free" && (
                 <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">

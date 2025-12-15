@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Leaf, Loader2, Upload, Copy, X, ImageIcon } from "lucide-react";
+import { Leaf, Loader2, Upload, X, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UFS } from "@/hooks/useCrmvValidation";
-import { ReportExporter } from "@/components/ReportExporter";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
+import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
 const COUNCIL_TYPES = [
   { value: "CREA", label: "CREA - Engenharia e Agronomia" },
@@ -66,21 +66,6 @@ const IdentificadorPlantas = () => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleCopyResult = async () => {
-    try {
-      await navigator.clipboard.writeText(result);
-      toast({
-        title: "Copiado!",
-        description: "Relatório copiado para a área de transferência.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao copiar",
-        description: "Não foi possível copiar o texto.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleIdentify = async () => {
     if (loading) return;
@@ -349,17 +334,12 @@ const IdentificadorPlantas = () => {
                 className="bg-muted p-4 rounded-lg text-sm leading-relaxed"
               />
               
-              <div className="flex flex-wrap gap-2 pt-4 border-t">
-                <Button variant="outline" size="sm" onClick={handleCopyResult}>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copiar Relatório
-                </Button>
-                <ReportExporter
-                  title="Identificador de Plantas e Toxicidade"
-                  content={result}
-                  variant="outline"
-                />
-              </div>
+              <ResponseActionButtons
+                content={result}
+                title="Identificador de Plantas e Toxicidade"
+                toolName="Identificador de Plantas"
+                className="pt-4 border-t"
+              />
             </CardContent>
           </Card>
         )}
