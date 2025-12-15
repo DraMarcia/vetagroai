@@ -14,17 +14,16 @@ import {
 } from "@/components/ui/select";
 import { Calculator, Loader2 } from "lucide-react";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
+import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { UFS } from "@/hooks/useCrmvValidation";
-
 const CalculadoraRacao = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isProfessional, setIsProfessional] = useState<string>("");
   const [result, setResult] = useState("");
-  const [copied, setCopied] = useState(false);
 
   // Campos profissionais
   const [professionalName, setProfessionalName] = useState("");
@@ -158,121 +157,6 @@ INSTRUÇÕES DE FORMATAÇÃO:
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleCopyReport = () => {
-    if (!result) return;
-    navigator.clipboard.writeText(result);
-    setCopied(true);
-    toast({
-      title: "Copiado!",
-      description: "Relatório copiado para a área de transferência.",
-    });
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Função para renderizar resultado com tabelas formatadas
-  const renderResult = () => {
-    if (!result) return null;
-
-    // Detectar e formatar tabelas no texto
-    const lines = result.split('\n');
-    const elements: React.ReactNode[] = [];
-    let tableLines: string[] = [];
-    let inTable = false;
-
-    lines.forEach((line, index) => {
-      // Detectar linha de tabela (contém | e não é separador)
-      const isTableLine = line.includes('|') && !line.match(/^\s*\|?[\s-|]+\|?\s*$/);
-      const isSeparator = line.match(/^\s*\|?[\s-|]+\|?\s*$/);
-
-      if (isTableLine || isSeparator) {
-        if (!inTable) inTable = true;
-        if (!isSeparator) tableLines.push(line);
-      } else {
-        // Se saímos de uma tabela, renderizar
-        if (inTable && tableLines.length > 0) {
-          elements.push(
-            <div key={`table-${index}`} className="overflow-x-auto my-4">
-              <table className="min-w-full border-collapse border border-border">
-                <thead>
-                  <tr className="bg-muted">
-                    {tableLines[0].split('|').filter(cell => cell.trim()).map((cell, i) => (
-                      <th key={i} className="border border-border px-4 py-2 text-left font-semibold text-sm">
-                        {cell.trim()}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableLines.slice(1).map((row, rowIndex) => (
-                    <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
-                      {row.split('|').filter(cell => cell.trim()).map((cell, cellIndex) => (
-                        <td key={cellIndex} className="border border-border px-4 py-2 text-sm">
-                          {cell.trim()}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-          tableLines = [];
-          inTable = false;
-        }
-
-        // Renderizar linha normal
-        if (line.trim()) {
-          const isHeading = line.match(/^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][A-Za-záéíóúâêîôûãõç\s]+:?\s*$/);
-          if (isHeading) {
-            elements.push(
-              <h3 key={index} className="font-semibold text-primary mt-4 mb-2">
-                {line.trim()}
-              </h3>
-            );
-          } else {
-            elements.push(
-              <p key={index} className="text-sm text-foreground mb-1">
-                {line}
-              </p>
-            );
-          }
-        }
-      }
-    });
-
-    // Renderizar tabela restante se houver
-    if (tableLines.length > 0) {
-      elements.push(
-        <div key="final-table" className="overflow-x-auto my-4">
-          <table className="min-w-full border-collapse border border-border">
-            <thead>
-              <tr className="bg-muted">
-                {tableLines[0].split('|').filter(cell => cell.trim()).map((cell, i) => (
-                  <th key={i} className="border border-border px-4 py-2 text-left font-semibold text-sm">
-                    {cell.trim()}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {tableLines.slice(1).map((row, rowIndex) => (
-                <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/30'}>
-                  {row.split('|').filter(cell => cell.trim()).map((cell, cellIndex) => (
-                    <td key={cellIndex} className="border border-border px-4 py-2 text-sm">
-                      {cell.trim()}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
-    return elements;
   };
 
   return (
@@ -487,18 +371,16 @@ INSTRUÇÕES DE FORMATAÇÃO:
             <CardHeader>
               <CardTitle className="text-lg">Formulação Calculada</CardTitle>
               <CardDescription>
-                Revise os ingredientes e proporções
+                Relatório técnico orientativo com tabela de formulação
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div 
-                className="prose prose-sm max-w-none"
-                style={{ textAlign: 'justify', textJustify: 'inter-word' }}
-              >
-                {renderResult()}
+              {/* Bloco contínuo com rolagem da página - não usar scroll interno */}
+              <div className="text-foreground leading-relaxed">
+                <MarkdownTableRenderer content={result} />
               </div>
               
-              {/* Action Buttons - Padrão Global */}
+              {/* Botões Padrão Global: Copiar + Compartilhar */}
               <div className="pt-4 border-t">
                 <ResponseActionButtons
                   content={result}
