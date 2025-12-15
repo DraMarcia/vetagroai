@@ -30,52 +30,112 @@ const AnaliseClimatica = () => {
 
     setLoading(true);
     try {
+      const dataAtual = new Date().toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
-          question: `Forneça uma análise climática estratégica completa para planejamento rural:
+          question: `PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 2 (RELATÓRIOS TÉCNICOS):
 
-CENÁRIO DESCRITO:
-${scenario}
+REGRAS ABSOLUTAS DE FORMATAÇÃO:
+1. PROIBIDO texto corrido longo - TODA resposta DEVE ser dividida em SEÇÕES NUMERADAS
+2. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+3. Use APENAS bullets padrão: • ou –
+4. Parágrafos curtos (máximo 4-5 linhas cada)
+5. O texto deve ser ESCANEÁVEL em leitura rápida
+6. Cada seção deve ser VISUALMENTE RECONHECÍVEL
 
-FORNEÇA:
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
 
-1. NÍVEL DE RISCO CLIMÁTICO
-Classifique como: BAIXO, MODERADO, ALTO ou CRÍTICO
-Formato: RISCO: [nível]
+[ANÁLISE CLIMÁTICA]
 
-2. PREVISÃO DE RISCOS DOMINANTES
-- Principais ameaças climáticas para a região
-- Probabilidade de ocorrência
-- Períodos de maior vulnerabilidade
+Relatório Técnico Orientativo — VetAgro Sustentável AI
 
-3. IMPACTOS ESPERADOS
-Analise impactos em:
-- Produção agrícola/pecuária
-- Qualidade de pastagem
-- Sanidade animal
-- Recursos hídricos
-- Balanço de carbono
+────────────────────
+1) IDENTIFICAÇÃO GERAL
 
-4. MEDIDAS PREVENTIVAS RECOMENDADAS
-- Infraestrutura necessária
-- Ajustes no manejo
-- Reservas estratégicas
-- Seguro rural
+• Região/Estado: [identificar do cenário]
+• Tipo de atividade: [identificar do cenário]
+• Principais preocupações: [identificar do cenário]
+• Data da análise: ${dataAtual}
 
-5. LINHA DO TEMPO DE AÇÕES
-📅 30 dias: Ações imediatas
-📅 90 dias: Preparações de médio prazo
-📅 180 dias: Estratégias de longo prazo
+────────────────────
+2) OBJETIVO DA AVALIAÇÃO
 
-6. MONITORAMENTO CLIMÁTICO
-Links e fontes recomendadas para acompanhamento:
-- INMET
-- CPTEC/INPE
-- ANA - Agência Nacional de Águas
-- Defesa Civil
+• Análise de riscos climáticos para planejamento rural
+• Identificação de impactos e estratégias de adaptação
 
-7. REFERÊNCIAS TÉCNICAS
-Bases científicas e normativas consultadas`,
+────────────────────
+3) DADOS AVALIADOS
+
+• Características climáticas regionais
+• Padrões meteorológicos recentes
+• Vulnerabilidades identificadas
+
+────────────────────
+4) ANÁLISE TÉCNICA INTERPRETATIVA
+
+NÍVEL DE RISCO CLIMÁTICO:
+• Classificação: BAIXO | MODERADO | ALTO | CRÍTICO
+• RISCO: [nível] (usar exatamente este formato)
+
+PREVISÃO DE RISCOS DOMINANTES:
+• Principais ameaças climáticas para a região
+• Probabilidade de ocorrência
+• Períodos de maior vulnerabilidade
+
+IMPACTOS ESPERADOS:
+• Produção agrícola/pecuária
+• Qualidade de pastagem
+• Sanidade animal
+• Recursos hídricos
+
+────────────────────
+5) ACHADOS PRINCIPAIS
+
+• Achado 1 — interpretação objetiva
+• Achado 2 — interpretação objetiva
+• Achado 3 — interpretação objetiva
+
+────────────────────
+6) RECOMENDAÇÕES TÉCNICAS
+
+30 DIAS (Ações imediatas):
+• Medida preventiva — justificativa
+
+90 DIAS (Médio prazo):
+• Preparação — justificativa
+
+180 DIAS (Longo prazo):
+• Estratégia estrutural — justificativa
+
+────────────────────
+7) CONSIDERAÇÕES FINAIS
+
+• Síntese do cenário climático
+• Monitoramento recomendado (INMET, CPTEC/INPE, ANA)
+• Seguro rural quando aplicável
+
+────────────────────
+8) ALERTA LEGAL
+
+Este relatório tem caráter orientativo e não substitui avaliação presencial por profissional habilitado ou consulta a órgãos oficiais de meteorologia.
+
+────────────────────
+9) REFERÊNCIAS TÉCNICAS
+
+• INMET — Instituto Nacional de Meteorologia
+• CPTEC/INPE
+• EMBRAPA
+• ANA — Agência Nacional de Águas
+• IPCC
+• FAO
+
+CENÁRIO A ANALISAR:
+${scenario}`,
           isProfessional: true,
           context: "Análise climática para planejamento rural estratégico",
         },
