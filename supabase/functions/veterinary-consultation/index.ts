@@ -287,11 +287,13 @@ Este relatório tem caráter orientativo e não substitui avaliação presencial
 ────────────────────
 9) REFERÊNCIAS TÉCNICAS
 
-• IPCC
-• EMBRAPA
-• IBGE
-• MapBiomas
-• FAO
+• IPCC — Intergovernmental Panel on Climate Change. Guidelines for National Greenhouse Gas Inventories (2006) + Refinement (2019). Disponível em: ipcc.ch
+• EMBRAPA — Empresa Brasileira de Pesquisa Agropecuária. Zoneamento Agroecológico e Sistemas de Produção Sustentável. Disponível em: embrapa.br
+• IBGE — Instituto Brasileiro de Geografia e Estatística. Dados Geoespaciais e Indicadores Territoriais. Disponível em: ibge.gov.br
+• MapBiomas — Mapeamento Anual de Uso e Cobertura da Terra no Brasil. Plataforma MapBiomas Brasil. Disponível em: mapbiomas.org
+• FAO — Food and Agriculture Organization. Guidelines for Land-Use Planning and Sustainable Agriculture. Disponível em: fao.org
+• INPE — Instituto Nacional de Pesquisas Espaciais. Monitoramento de Biomas e Alertas de Desmatamento. Disponível em: inpe.br
+• Código Florestal Brasileiro — Lei 12.651/2012. Proteção da Vegetação Nativa. Disponível em: planalto.gov.br
 
 ${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Forneça apenas as seções 1, 7 e 8 de forma resumida (máximo 200 palavras total)." : ""}
 ${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todas as 9 seções detalhadas." : ""}
