@@ -158,7 +158,10 @@ REGRAS OBRIGATÓRIAS:
 
       if (error) throw error;
 
-      const cleanedResult = cleanTextForDisplay(data.answer);
+      const cleanedResult = cleanTextForDisplay(data.answer)
+        // Correção pontual: evita quebra indevida no meio da palavra "EQUINOS"
+        .replace(/EQUI\s*\n\s*NOS/gi, "EQUINOS");
+
       setResult(cleanedResult);
       toast({
         title: "Consulta realizada",
