@@ -11,8 +11,16 @@ const parseMarkdownTable = (tableText: string): ParsedTable | null => {
   const lines = tableText.trim().split('\n').filter(line => line.trim());
   if (lines.length < 2) return null;
   
-  // Parse header
-  const headerLine = lines[0];
+  // Find header line (first line with pipes)
+  let headerLineIdx = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('|') && !lines[i].match(/^[\|\s\-:]+$/)) {
+      headerLineIdx = i;
+      break;
+    }
+  }
+  
+  const headerLine = lines[headerLineIdx];
   const headers = headerLine
     .split('|')
     .map(cell => cell.trim())
@@ -20,10 +28,22 @@ const parseMarkdownTable = (tableText: string): ParsedTable | null => {
   
   if (headers.length === 0) return null;
   
-  // Skip separator line (line with dashes)
+  // Find separator line (line with dashes after header)
+  let separatorIdx = headerLineIdx + 1;
+  for (let i = headerLineIdx + 1; i < lines.length; i++) {
+    if (lines[i].match(/^[\|\s\-:]+$/)) {
+      separatorIdx = i;
+      break;
+    }
+  }
+  
+  // Parse data rows (after separator)
   const rows: string[][] = [];
-  for (let i = 2; i < lines.length; i++) {
-    const cells = lines[i]
+  for (let i = separatorIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line.includes('|')) break; // End of table
+    
+    const cells = line
       .split('|')
       .map(cell => cell.trim())
       .filter(cell => cell.length > 0);
@@ -35,23 +55,59 @@ const parseMarkdownTable = (tableText: string): ParsedTable | null => {
   return { headers, rows };
 };
 
-// Check if text contains a markdown table
+// Check if text contains a markdown table (more flexible pattern)
 const containsMarkdownTable = (text: string): boolean => {
-  const tablePattern = /\|[^|]+\|.*\n\|[-:\s|]+\|.*\n(\|[^|]+\|.*\n?)+/;
+  // Look for pipe-separated content followed by a separator line
+  const tablePattern = /\|[^|\n]+\|[^|\n]*\|?\n\s*\|[-:\s|]+\|/;
   return tablePattern.test(text);
 };
 
 // Extract tables and their positions from text
 const extractTables = (text: string): { tables: { start: number; end: number; content: string }[]; } => {
   const tables: { start: number; end: number; content: string }[] = [];
-  const tablePattern = /(\|[^|]+\|.*\n\|[-:\s|]+\|.*\n(?:\|[^|]+\|.*\n?)+)/g;
   
-  let match;
-  while ((match = tablePattern.exec(text)) !== null) {
+  // More flexible pattern to catch tables
+  const lines = text.split('\n');
+  let inTable = false;
+  let tableStart = 0;
+  let tableLines: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const hasPipes = line.includes('|') && line.split('|').length >= 2;
+    const isSeparator = /^[\|\s\-:]+$/.test(line) && line.includes('|');
+    
+    if (hasPipes || (inTable && isSeparator)) {
+      if (!inTable) {
+        inTable = true;
+        tableStart = text.indexOf(lines[i], i > 0 ? text.indexOf(lines[i-1]) + lines[i-1].length : 0);
+        tableLines = [];
+      }
+      tableLines.push(lines[i]);
+    } else if (inTable) {
+      // End of table
+      if (tableLines.length >= 2) {
+        const tableContent = tableLines.join('\n');
+        const startIdx = text.indexOf(tableLines[0]);
+        tables.push({
+          start: startIdx,
+          end: startIdx + tableContent.length,
+          content: tableContent
+        });
+      }
+      inTable = false;
+      tableLines = [];
+    }
+  }
+  
+  // Handle table at end of text
+  if (inTable && tableLines.length >= 2) {
+    const tableContent = tableLines.join('\n');
+    const startIdx = text.indexOf(tableLines[0]);
     tables.push({
-      start: match.index,
-      end: match.index + match[0].length,
-      content: match[0]
+      start: startIdx,
+      end: startIdx + tableContent.length,
+      content: tableContent
     });
   }
   
@@ -71,37 +127,31 @@ const preprocessContinuousText = (text: string): string => {
   // STEP 0: Handle square bracket titles like [DIAGNÓSTICO DIFERENCIAL]
   processed = processed.replace(/\]([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, ']\n\n$1');
 
-  // STEP 0.1: Normalize divider lines (──── or single ─) to be on their own line
-  // Handle any sequence of box-drawing characters as dividers
-  processed = processed.replace(/([^\n])\s*(─{3,})\s*/g, '$1\n\n$2\n\n');
-  processed = processed.replace(/\s*(─{3,})\s*([^\n])/g, '\n\n$1\n\n$2');
+  // STEP 0.1: CRITICAL - Force numbered section titles to be on their own line
+  // Pattern: "1) TÍTULO" or "1) Título" - ensure line break before
+  processed = processed.replace(/([^\n])(\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
   
-  // Single dash dividers
-  processed = processed.replace(/([^\n─])(─{1,2})([^\n─])/g, '$1\n\n$2\n\n$3');
+  // STEP 0.2: Ensure text after section title starts on new line
+  // Pattern: "1) IDENTIFICAÇÃO DO ANIMAL• Espécie" -> add line break before bullet
+  processed = processed.replace(/(\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇa-záéíóúâêôãõç\s]+)(•)/g, '$1\n\n$2');
 
-  // STEP 0.2: Ensure numbered section markers like "1)" are not stuck to previous text
-  processed = processed.replace(/([^\n\d])(\d+\))\s*/g, '$1\n\n$2 ');
+  // STEP 0.3: Force bullet points (•) to start on a new line
+  processed = processed.replace(/([^\n•\s])(•\s*)/g, '$1\n$2');
 
-  // STEP 0.3: If a section marker "1)" is alone and title is next line, join them
-  processed = processed.replace(/(\d+\))\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{2,})/g, '$1 $2');
+  // STEP 0.4: Force en-dash (–) used as bullet points to start on new line
+  processed = processed.replace(/([^\n\-–\s])(–\s*[A-Za-z])/g, '$1\n$2');
 
-  // STEP 0.4: Force bullet points (•) to start on a new line
-  processed = processed.replace(/([^\n•])(•\s*)/g, '$1\n$2');
-
-  // STEP 0.5: Force numbered list items like "1." to start on a new line when stuck
-  processed = processed.replace(/([^\n\s\d])(\d+\.)\s+/g, '$1\n\n$2 ');
-
-  // STEP 0.6: Handle en-dash (–) used as bullet points - force new line
-  processed = processed.replace(/([^\n\-–])(–\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$2');
-
-  // STEP 0.7: CRITICAL - Break UPPERCASE SECTION TITLES stuck to lowercase text
+  // STEP 0.5: CRITICAL - Break UPPERCASE SECTION TITLES stuck to lowercase text
   processed = processed.replace(/([a-záéíóúâêôãõç\.\)\]])([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
 
-  // STEP 0.8: Break after units (mg, kg, ml) followed by uppercase letter
-  processed = processed.replace(/(mg|kg|ml|mL|UI)([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
+  // STEP 0.6: Break after units (mg, kg, ml) followed by uppercase letter
+  processed = processed.replace(/(mg|kg|ml|mL|UI|%)([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
 
-  // STEP 0.9: Break after closing parenthesis followed by uppercase section
+  // STEP 0.7: Break after closing parenthesis followed by uppercase section
   processed = processed.replace(/(\))([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
+  
+  // STEP 0.8: Break after numbers followed by uppercase section (like "100,0DISTRIBUIÇÃO")
+  processed = processed.replace(/(\d+[,.]?\d*)\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
 
   // STEP 0.10: Handle "Relatório Técnico Orientativo" subtitle pattern
   processed = processed.replace(/(Relatório Técnico Orientativo[^)\n]*)/gi, '\n\n$1\n\n');
@@ -176,7 +226,20 @@ const preprocessContinuousText = (text: string): string => {
     'POPULAÇÕES ESPECIAIS',
     'POPULACOES ESPECIAIS',
     'MONITORAMENTO',
-    // Ração/Nutrição
+    // Ração/Nutrição - CALCULADORA DE RAÇÃO
+    'IDENTIFICAÇÃO DO ANIMAL',
+    'IDENTIFICACAO DO ANIMAL',
+    'OBJETIVO NUTRICIONAL',
+    'TABELA DE FORMULAÇÃO',
+    'TABELA DE FORMULACAO',
+    'DISTRIBUIÇÃO DA ALIMENTAÇÃO',
+    'DISTRIBUICAO DA ALIMENTACAO',
+    'JUSTIFICATIVA TÉCNICA',
+    'JUSTIFICATIVA TECNICA',
+    'RECOMENDAÇÕES DE MANEJO',
+    'RECOMENDACOES DE MANEJO',
+    'ALERTAS TÉCNICOS',
+    'ALERTAS TECNICOS',
     'FORMULAÇÃO DA RAÇÃO',
     'FORMULACAO DA RACAO',
     'COMPOSIÇÃO NUTRICIONAL',
@@ -369,14 +432,14 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
     if (!parsed) return null;
     
     return (
-      <div key={key} className="my-4 overflow-x-auto">
-        <Table className="border border-border">
+      <div key={key} className="my-6 overflow-x-auto rounded-lg border border-border shadow-sm">
+        <Table className="w-full">
           <TableHeader>
-            <TableRow className="bg-muted/50">
+            <TableRow className="bg-primary/10 border-b-2 border-primary/30">
               {parsed.headers.map((header, idx) => (
                 <TableHead 
                   key={idx} 
-                  className="font-semibold text-foreground border-b border-border px-3 py-2 text-left"
+                  className="font-bold text-primary border-r border-border last:border-r-0 px-4 py-3 text-left whitespace-nowrap"
                 >
                   {header}
                 </TableHead>
@@ -387,12 +450,14 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
             {parsed.rows.map((row, rowIdx) => (
               <TableRow 
                 key={rowIdx} 
-                className={rowIdx % 2 === 0 ? "bg-background" : "bg-muted/30"}
+                className={`${rowIdx % 2 === 0 ? "bg-background" : "bg-muted/30"} hover:bg-muted/50 transition-colors`}
               >
                 {row.map((cell, cellIdx) => (
                   <TableCell 
                     key={cellIdx} 
-                    className="border-b border-border px-3 py-2 text-sm"
+                    className={`border-r border-border last:border-r-0 px-4 py-2.5 text-sm ${
+                      cellIdx === 0 ? 'font-medium text-foreground' : 'text-muted-foreground'
+                    }`}
                   >
                     {cell}
                   </TableCell>
