@@ -152,7 +152,7 @@ REGRAS OBRIGATÓRIAS:
           question: prompt,
           isProfessional: isProfessional,
           context: "Dicionário Veterinário",
-          tool: "dicionario-veterinario"
+          tool: "dicionario-farmacologico"
         },
       });
 
