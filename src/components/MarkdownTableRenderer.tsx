@@ -461,13 +461,22 @@ const isNumberedItem = (line: string): boolean => {
 interface MarkdownTableRendererProps {
   content: string;
   className?: string;
+  /**
+   * When true, applies aggressive line-break insertion for unstructured AI text.
+   * Set to false if the caller already normalized the content.
+   */
+  preprocess?: boolean;
 }
 
-export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ content, className = "" }) => {
-  // Pre-process the content: first fix inline tables, then add line breaks before section titles
+export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({
+  content,
+  className = "",
+  preprocess = true,
+}) => {
+  // Pre-process the content: first fix inline tables, then (optionally) add line breaks before section titles
   const tableFixed = preprocessInlineTable(content);
-  const processedContent = preprocessContinuousText(tableFixed);
-  
+  const processedContent = preprocess ? preprocessContinuousText(tableFixed) : tableFixed;
+
   const renderTable = (tableContent: string, key: string) => {
     const parsed = parseMarkdownTable(tableContent);
     if (!parsed) return null;
@@ -683,13 +692,13 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
     const textForSlicing = tableFixed;
 
     tables.forEach((table, tableIndex) => {
-      // Add text before table (use preprocessContinuousText on this segment)
+      // Add text before table
       if (table.start > lastIndex) {
         const textBefore = textForSlicing.slice(lastIndex, table.start);
         if (textBefore.trim()) {
           allParts.push(
             <div key={`text-${tableIndex}`}>
-              {renderStructuredContent(preprocessContinuousText(textBefore))}
+              {renderStructuredContent(preprocess ? preprocessContinuousText(textBefore) : textBefore)}
             </div>
           );
         }
@@ -706,7 +715,7 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
       if (textAfter.trim()) {
         allParts.push(
           <div key="text-final">
-            {renderStructuredContent(preprocessContinuousText(textAfter))}
+            {renderStructuredContent(preprocess ? preprocessContinuousText(textAfter) : textAfter)}
           </div>
         );
       }

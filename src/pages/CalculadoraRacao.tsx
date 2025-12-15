@@ -137,14 +137,21 @@ ANIMAL:
       
       // CRITICAL: Normalização agressiva para corrigir problemas de formatação
       let normalized = cleanResult;
+
+      // 0) Remover caracteres invisíveis que quebram palavras e normalizar separadores de linha
+      normalized = normalized
+        .replace(/[\u00ad\u200b\u200c\u200d\ufeff]/g, "") // soft hyphen / zero-width
+        .replace(/[\u2028\u2029]/g, "\n")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n");
       
-      // 0) CRÍTICO: Separar seções que ficaram dentro da última célula da tabela
-      // Padrão: "| Dieta total	4) DISTRIBUIÇÃO" -> "| Dieta total |\n\n4) DISTRIBUIÇÃO"
+      // 0.1) CRÍTICO: Separar seções que ficaram dentro da última célula da tabela
+      // Padrão: "| Dieta total\t4) DISTRIBUIÇÃO" -> "| Dieta total |\n\n4) DISTRIBUIÇÃO"
       normalized = normalized.replace(/(\|\s*[^|]*?)\s*(\d+\)\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1 |\n\n$2');
       
-      // 0.1) Garantir que a linha TOTAL termine corretamente
+      // 0.2) Garantir que a linha TOTAL termine corretamente
       normalized = normalized.replace(/(TOTAL[^|]*\|[^|]*\|[^|]*\|[^|]*\|[^|\n]*)\s*(\d+\))/gi, '$1 |\n\n$2');
-      
+
       // 1) Corrigir TABELA em linha única: adicionar quebras de linha entre linhas da tabela
       normalized = normalized.replace(/\|\s*\|\s*(?=[A-Za-zÁÉÍÓÚÂÊÔÃÕÇ0-9])/g, '|\n| ');
       normalized = normalized.replace(/(\|[-:\s]+\|)\s*(?=\|)/g, '$1\n');
@@ -448,7 +455,7 @@ ANIMAL:
             <CardContent className="space-y-4">
               {/* Bloco contínuo com rolagem da página - não usar scroll interno */}
               <div className="text-foreground leading-relaxed">
-                <MarkdownTableRenderer content={result} />
+                <MarkdownTableRenderer content={result} preprocess={false} />
               </div>
               
               {/* Botões Padrão Global: Copiar + Compartilhar */}
