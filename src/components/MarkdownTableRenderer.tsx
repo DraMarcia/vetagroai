@@ -6,12 +6,28 @@ interface ParsedTable {
   rows: string[][];
 }
 
+// Pre-process inline tables (tables that come as a single line without newlines)
+const preprocessInlineTable = (text: string): string => {
+  let processed = text;
+  
+  // Pattern: "| Cell ||" followed by word/number -> add newline  
+  // This handles tables that come as: | Header ||---|| Row1 || Row2 |
+  processed = processed.replace(/\|\s*\|\s*(?=[A-Za-zÁÉÍÓÚÂÊÔÃÕÇ0-9\-:])/g, '|\n| ');
+  
+  // Pattern: separator line (|---|) followed by | -> add newline
+  processed = processed.replace(/(\|[-:\s|]+\|)\s*(?=\|[^-])/g, '$1\n');
+  
+  return processed;
+};
+
 // Parse markdown table to structured data
 const parseMarkdownTable = (tableText: string): ParsedTable | null => {
-  const lines = tableText.trim().split('\n').filter(line => line.trim());
+  // First, preprocess to handle inline tables
+  const preprocessed = preprocessInlineTable(tableText);
+  const lines = preprocessed.trim().split('\n').filter(line => line.trim());
   if (lines.length < 2) return null;
   
-  // Find header line (first line with pipes)
+  // Find header line (first line with pipes that's not just separators)
   let headerLineIdx = 0;
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes('|') && !lines[i].match(/^[\|\s\-:]+$/)) {
@@ -56,31 +72,34 @@ const parseMarkdownTable = (tableText: string): ParsedTable | null => {
 };
 
 // Check if text contains a markdown table (more flexible pattern)
+// NOTE: This will preprocess the text to check for inline tables
 const containsMarkdownTable = (text: string): boolean => {
+  // First preprocess to handle inline tables if needed
+  const preprocessed = preprocessInlineTable(text);
   // Look for pipe-separated content followed by a separator line
   const tablePattern = /\|[^|\n]+\|[^|\n]*\|?\n\s*\|[-:\s|]+\|/;
-  return tablePattern.test(text);
+  return tablePattern.test(preprocessed);
 };
 
 // Extract tables and their positions from text
+// NOTE: Expects text that has already been preprocessed with preprocessInlineTable
 const extractTables = (text: string): { tables: { start: number; end: number; content: string }[]; } => {
   const tables: { start: number; end: number; content: string }[] = [];
   
-  // More flexible pattern to catch tables
   const lines = text.split('\n');
   let inTable = false;
-  let tableStart = 0;
   let tableLines: string[] = [];
+  let tableStartLine = 0;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    const hasPipes = line.includes('|') && line.split('|').length >= 2;
+    const hasPipes = line.includes('|') && line.split('|').length >= 3;
     const isSeparator = /^[\|\s\-:]+$/.test(line) && line.includes('|');
     
     if (hasPipes || (inTable && isSeparator)) {
       if (!inTable) {
         inTable = true;
-        tableStart = text.indexOf(lines[i], i > 0 ? text.indexOf(lines[i-1]) + lines[i-1].length : 0);
+        tableStartLine = i;
         tableLines = [];
       }
       tableLines.push(lines[i]);
@@ -88,7 +107,9 @@ const extractTables = (text: string): { tables: { start: number; end: number; co
       // End of table
       if (tableLines.length >= 2) {
         const tableContent = tableLines.join('\n');
-        const startIdx = text.indexOf(tableLines[0]);
+        // Calculate approximate position in preprocessed text
+        const beforeLines = lines.slice(0, tableStartLine).join('\n');
+        const startIdx = beforeLines.length > 0 ? beforeLines.length + 1 : 0;
         tables.push({
           start: startIdx,
           end: startIdx + tableContent.length,
@@ -103,7 +124,8 @@ const extractTables = (text: string): { tables: { start: number; end: number; co
   // Handle table at end of text
   if (inTable && tableLines.length >= 2) {
     const tableContent = tableLines.join('\n');
-    const startIdx = text.indexOf(tableLines[0]);
+    const beforeLines = lines.slice(0, tableStartLine).join('\n');
+    const startIdx = beforeLines.length > 0 ? beforeLines.length + 1 : 0;
     tables.push({
       start: startIdx,
       end: startIdx + tableContent.length,
@@ -442,8 +464,9 @@ interface MarkdownTableRendererProps {
 }
 
 export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ content, className = "" }) => {
-  // Pre-process the content to add line breaks before section titles
-  const processedContent = preprocessContinuousText(content);
+  // Pre-process the content: first fix inline tables, then add line breaks before section titles
+  const tableFixed = preprocessInlineTable(content);
+  const processedContent = preprocessContinuousText(tableFixed);
   
   const renderTable = (tableContent: string, key: string) => {
     const parsed = parseMarkdownTable(tableContent);
@@ -650,19 +673,23 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
   };
 
   // If content has tables, handle them specially
-  if (containsMarkdownTable(processedContent)) {
-    const { tables } = extractTables(processedContent);
+  // Use tableFixed (with inline tables converted) for table extraction
+  if (containsMarkdownTable(tableFixed)) {
+    const { tables } = extractTables(tableFixed);
     const allParts: React.ReactNode[] = [];
     let lastIndex = 0;
+    
+    // Use tableFixed for slicing since that's what extractTables operates on
+    const textForSlicing = tableFixed;
 
     tables.forEach((table, tableIndex) => {
-      // Add text before table
+      // Add text before table (use preprocessContinuousText on this segment)
       if (table.start > lastIndex) {
-        const textBefore = processedContent.slice(lastIndex, table.start);
+        const textBefore = textForSlicing.slice(lastIndex, table.start);
         if (textBefore.trim()) {
           allParts.push(
             <div key={`text-${tableIndex}`}>
-              {renderStructuredContent(textBefore)}
+              {renderStructuredContent(preprocessContinuousText(textBefore))}
             </div>
           );
         }
@@ -674,12 +701,12 @@ export const MarkdownTableRenderer: React.FC<MarkdownTableRendererProps> = ({ co
     });
 
     // Add remaining text after last table
-    if (lastIndex < processedContent.length) {
-      const textAfter = processedContent.slice(lastIndex);
+    if (lastIndex < textForSlicing.length) {
+      const textAfter = textForSlicing.slice(lastIndex);
       if (textAfter.trim()) {
         allParts.push(
           <div key="text-final">
-            {renderStructuredContent(textAfter)}
+            {renderStructuredContent(preprocessContinuousText(textAfter))}
           </div>
         );
       }
