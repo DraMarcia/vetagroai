@@ -399,7 +399,7 @@ REGRAS OBRIGATÓRIAS:
               <div className="prose prose-sm max-w-none">
                 <MarkdownTableRenderer 
                   content={result}
-                  className="bg-muted/30 p-6 rounded-lg text-sm leading-relaxed border"
+                  className="bg-muted/30 p-6 rounded-lg text-sm leading-relaxed border [&_*]:break-keep [&_*]:hyphens-none"
                 />
               </div>
 

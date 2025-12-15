@@ -1105,12 +1105,24 @@ Explicação técnica e científica do mecanismo de ação.
 Liste as apresentações e concentrações mais comuns no mercado brasileiro.
 
 6. INDICAÇÕES POR ESPÉCIE
-• Cães: indicações específicas
-• Gatos: indicações específicas (alertas de toxicidade se aplicável)
-• Equinos: indicações específicas
-• Ruminantes: quando aplicável
-• Aves: quando aplicável
-• Animais silvestres: se houver literatura
+
+CÃES:
+• [indicações específicas para cães]
+
+GATOS:
+• [indicações específicas para gatos - alertas de toxicidade se aplicável]
+
+EQUINOS:
+• [indicações específicas para equinos]
+
+RUMINANTES:
+• [quando aplicável]
+
+AVES:
+• [quando aplicável]
+
+ANIMAIS SILVESTRES:
+• [se houver literatura]
 
 7. POSOLOGIA DETALHADA
 Para cada espécie e apresentação, forneça:
@@ -1154,9 +1166,10 @@ REGRAS OBRIGATÓRIAS DE FORMATAÇÃO:
 • PROIBIDO usar emojis ou símbolos decorativos
 • Use APENAS bullets padrão: • ou – para listas
 • Títulos devem ser numerados: "1. TÍTULO", "2. TÍTULO", etc.
-• Subtítulos internos sem numeração, apenas texto em maiúsculas seguido de dois pontos
+• NUNCA quebre palavras no meio de uma linha (ex: "EQUI" em uma linha e "NOS" na próxima é PROIBIDO)
+• Palavras como EQUINOS, CÃES, GATOS, RUMINANTES devem estar completas na mesma linha
+• Cada espécie deve ter seu próprio título em linha separada seguido de quebra de linha
 • Parágrafos devem ser bem estruturados e completos
-• Nunca quebrar palavras no meio (ex: "a r t r i t e" é PROIBIDO)
 • Texto técnico, claro, com linguagem científica profissional
 • Jamais inventar informações
 • Se não houver dados confiáveis → "Informação não disponível em fontes confiáveis até o momento"
