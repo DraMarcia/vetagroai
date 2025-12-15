@@ -72,21 +72,32 @@ const preprocessContinuousText = (text: string): string => {
   processed = processed.replace(/\]([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, ']\n\n$1');
 
   // STEP 0.1: Normalize divider lines (──── or single ─) to be on their own line
-  // Ensure line breaks around any run of "─"
   processed = processed.replace(/([^\n])\s*(─{1,})\s*([^\n])/g, '$1\n\n$2\n\n$3');
 
   // STEP 0.2: Ensure numbered section markers are not stuck to previous text
   processed = processed.replace(/([^\n\d])(\d+\))\s*/g, '$1\n\n$2 ');
 
   // STEP 0.3: If a section marker is on its own line and the title is next line, join them
-  // Example: "1)\n\nIDENTIFICAÇÃO DO CASO" -> "1) IDENTIFICAÇÃO DO CASO"
   processed = processed.replace(/(\d+\))\s*\n+\s*([A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s]{2,})/g, '$1 $2');
 
-  // STEP 0.4: Force bullet points (•) to start on a new line (common issue in clinical tools)
+  // STEP 0.4: Force bullet points (•) to start on a new line
   processed = processed.replace(/([^\n])\s*(•\s*)/g, '$1\n$2');
 
   // STEP 0.5: Force numbered list items like "1." to start on a new line when stuck
-  processed = processed.replace(/([^\n])\s*(\d+\.)\s*/g, '$1\n\n$2 ');
+  processed = processed.replace(/([^\n\s])(\d+\.)\s+/g, '$1\n\n$2 ');
+
+  // STEP 0.6: Handle en-dash (–) used as bullet points - force new line
+  processed = processed.replace(/([^\n\-–])(–\s*[A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n$2');
+
+  // STEP 0.7: CRITICAL - Break UPPERCASE SECTION TITLES stuck to lowercase text
+  // Pattern: lowercase letter, period, or closing paren followed by UPPERCASE word (4+ chars)
+  processed = processed.replace(/([a-záéíóúâêôãõç\.\)\]])([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
+
+  // STEP 0.8: Break after units (mg, kg, ml) followed by uppercase letter
+  processed = processed.replace(/(mg|kg|ml|mL|UI)([A-ZÁÉÍÓÚÂÊÔÃÕÇ])/g, '$1\n\n$2');
+
+  // STEP 0.9: Break after closing parenthesis followed by uppercase section
+  processed = processed.replace(/(\))([A-ZÁÉÍÓÚÂÊÔÃÕÇ]{4,})/g, '$1\n\n$2');
 
   // Known section title patterns - add line breaks before them
   const sectionKeywords = [
@@ -146,19 +157,36 @@ const preprocessContinuousText = (text: string): string => {
     'CONDUTAS INICIAIS',
     'PROGNÓSTICO PRELIMINAR',
     'PROGNOSTICO PRELIMINAR',
+    // Calculadora de Dose specific
+    'CÁLCULO DA DOSE',
+    'CALCULO DA DOSE',
+    'POSOLOGIA',
+    'ORIENTAÇÕES CLÍNICAS',
+    'ORIENTACOES CLINICAS',
+    'ALERTAS DE SEGURANÇA',
+    'ALERTAS DE SEGURANCA',
+    'REFERÊNCIAS CIENTÍFICAS',
+    'REFERENCIAS CIENTIFICAS',
+    'CONTRAINDICAÇÕES',
+    'CONTRAINDICACOES',
+    'INTERAÇÕES MEDICAMENTOSAS',
+    'INTERACOES MEDICAMENTOSAS',
+    'POPULAÇÕES ESPECIAIS',
+    'POPULACOES ESPECIAIS',
+    'MONITORAMENTO',
   ];
   
   // STEP 1: Add space before section keywords that are stuck to previous word
   for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const stuckRegex = new RegExp(`([a-záéíóúâêôãõç0-9])(${escapedKeyword})`, 'gi');
+    const stuckRegex = new RegExp(`([a-záéíóúâêôãõç0-9\\)\\]])\\s*(${escapedKeyword})`, 'gi');
     processed = processed.replace(stuckRegex, '$1\n\n$2');
   }
   
   // STEP 2: Add line breaks before section keywords (normal case with space before)
   for (const keyword of sectionKeywords) {
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`([^\\n])\\s*(${escapedKeyword})`, 'gi');
+    const regex = new RegExp(`([^\\n])\\s+(${escapedKeyword})`, 'gi');
     processed = processed.replace(regex, '$1\n\n$2');
   }
   
@@ -182,6 +210,12 @@ const preprocessContinuousText = (text: string): string => {
   
   // STEP 8: Handle numbered items stuck to previous text (e.g., "infecção.2. Nome")
   processed = processed.replace(/([.!?])(\d+\.\s+[A-Z])/g, '$1\n\n$2');
+
+  // STEP 9: Break lines where text runs into "Para " at start of sentences
+  processed = processed.replace(/([a-záéíóúâêôãõç\.\)])(\s*Para\s+(?:o|a|os|as)\s+)/g, '$1\n\n$2');
+
+  // STEP 10: Break lines after "recomendada:" or similar patterns followed by text
+  processed = processed.replace(/(recomendad[ao]:|indicad[ao]:|sugerid[ao]:)(\s*)([A-Z0-9])/gi, '$1\n$3');
   
   // Clean up multiple line breaks
   processed = processed.replace(/\n{3,}/g, '\n\n');
