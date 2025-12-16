@@ -13,6 +13,7 @@ import {
   Leaf,
   ExternalLink
 } from "lucide-react";
+import creatorPhoto from "@/assets/creator-photo.jpeg";
 
 export function CreatorSection() {
   return (
@@ -28,8 +29,9 @@ export function CreatorSection() {
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
           <Avatar className="h-20 w-20 border-4 border-primary/20 shadow-lg shrink-0">
             <AvatarImage 
-              src="https://media.licdn.com/dms/image/v2/D4D03AQEfN-KIB-8zYw/profile-displayphoto-shrink_800_800/B4DZWBEVXaHYAc-/0/1741641594633?e=1742428800&v=beta&t=Gq4wFW9ZJ6g7YH8xVQ5xqNzRwEyLpMgKvL8qMzMnOxY" 
+              src={creatorPhoto} 
               alt="Dra. Márcia Salgado"
+              className="object-cover"
             />
             <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-600 text-white text-xl">
               MS
@@ -41,7 +43,7 @@ export function CreatorSection() {
               Dra. Márcia Salgado
             </h3>
             <p className="text-sm text-muted-foreground">
-              Médica Veterinária • CRMV-MG
+              Pesquisadora e Criadora
             </p>
             <div className="flex flex-wrap justify-center sm:justify-start gap-2">
               <Badge variant="secondary" className="text-xs">

@@ -19,6 +19,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ToolSuggestionDialog } from "@/components/ToolSuggestionDialog";
 import { CreatorSection } from "@/components/CreatorSection";
 import { Link } from "react-router-dom";
+import creatorPhoto from "@/assets/creator-photo.jpeg";
 
 interface UserPreferences {
   farm_name: string | null;
@@ -226,15 +227,17 @@ const MeuPerfil = () => {
         <Card className="lg:col-span-1">
           <CardHeader className="text-center pb-4">
             <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-primary/20">
-              {preferences.profile_photo_url ? (
-                <AvatarImage src={preferences.profile_photo_url} alt="Foto de perfil" />
-              ) : null}
+              <AvatarImage 
+                src={creatorPhoto} 
+                alt="Dra. Márcia Salgado"
+                className="object-cover"
+              />
               <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground text-2xl">
-                {userProfile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                MS
               </AvatarFallback>
             </Avatar>
-            <CardTitle className="text-xl">{userProfile?.full_name || "Usuário"}</CardTitle>
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
+            <CardTitle className="text-xl">Dra. Márcia Salgado</CardTitle>
+            <p className="text-sm text-muted-foreground">Pesquisadora e Criadora</p>
             <div className="mt-2">{getPlanBadge()}</div>
           </CardHeader>
           <CardContent className="space-y-4">
