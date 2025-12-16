@@ -99,21 +99,12 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
   );
 }
 
-// Hook para mostrar modal na primeira visita
+// Hook para controlar o modal "Sobre" (abertura apenas por clique explícito)
 export function useFirstVisitModal() {
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    const hasVisited = localStorage.getItem(FIRST_VISIT_KEY);
-    if (!hasVisited) {
-      // Pequeno delay para não interferir com o carregamento
-      const timer = setTimeout(() => {
-        setShowModal(true);
-        localStorage.setItem(FIRST_VISIT_KEY, "true");
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+  // Modal abre SOMENTE quando o usuário clica explicitamente no botão "Sobre"
+  // Não há abertura automática na primeira visita
 
   return { showModal, setShowModal };
 }
