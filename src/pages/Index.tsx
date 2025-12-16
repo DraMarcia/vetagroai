@@ -85,21 +85,21 @@ const Index = () => {
         {/* Hero Content - Centered */}
         <div className="relative flex-1 flex flex-col items-center justify-center text-center px-6 py-8">
           {/* Logo */}
-          <div className="mb-4 md:mb-6 animate-[spin_20s_linear_infinite]">
+          <div className="mb-5 md:mb-6 animate-[spin_20s_linear_infinite]">
             <img 
               src={logo} 
               alt="VetAGro Sustentável AI Logo" 
-              className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 object-contain rounded-full shadow-xl border-4 border-background/30"
+              className="w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 object-contain rounded-full shadow-xl border-4 border-background/30"
             />
           </div>
           
           {/* Title */}
-          <h1 className="mb-3 md:mb-4 text-3xl sm:text-4xl md:text-5xl font-bold text-foreground drop-shadow-lg">
+          <h1 className="mb-3 md:mb-4 text-4xl sm:text-5xl md:text-5xl font-bold text-foreground drop-shadow-lg">
             VetAgro IA
           </h1>
           
           {/* Short Description */}
-          <p className="text-sm sm:text-base md:text-lg text-foreground/90 max-w-sm md:max-w-xl mx-auto mb-6 md:mb-8 drop-shadow-md leading-relaxed">
+          <p className="text-base sm:text-lg md:text-lg text-foreground/90 max-w-md md:max-w-xl mx-auto mb-6 md:mb-8 drop-shadow-md leading-relaxed">
             Uma suíte inteligente para análise ambiental, sustentabilidade pecuária e suporte técnico veterinário. 
             Acesse ferramentas práticas para eficiência, bem-estar animal e decisões baseadas em dados.
           </p>
