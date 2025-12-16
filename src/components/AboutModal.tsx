@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Instagram, Sparkles, Heart, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
+import creatorPhoto from "@/assets/creator-photo.jpeg";
 
 interface AboutModalProps {
   open: boolean;
@@ -31,10 +32,11 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
 
         <div className="flex flex-col items-center text-center space-y-4">
           {/* Creator Photo */}
-          <Avatar className="h-24 w-24 border-4 border-primary/20 shadow-lg">
+          <Avatar className="h-28 w-28 border-4 border-primary/20 shadow-lg">
             <AvatarImage 
-              src="https://media.licdn.com/dms/image/v2/D4D03AQEfN-KIB-8zYw/profile-displayphoto-shrink_800_800/B4DZWBEVXaHYAc-/0/1741641594633?e=1742428800&v=beta&t=Gq4wFW9ZJ6g7YH8xVQ5xqNzRwEyLpMgKvL8qMzMnOxY" 
+              src={creatorPhoto} 
               alt="Dra. Márcia Salgado"
+              className="object-cover"
             />
             <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-600 text-white text-2xl">
               MS
@@ -47,7 +49,7 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
               Dra. Márcia Salgado
             </h3>
             <p className="text-sm text-muted-foreground">
-              Médica Veterinária • CRMV-MG
+              Pesquisadora e Criadora
             </p>
             <p className="text-xs text-muted-foreground">
               Criadora e Desenvolvedora do VetAgro AI
