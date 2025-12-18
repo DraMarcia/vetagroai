@@ -120,7 +120,8 @@ serve(async (req) => {
     const rateLimitResult = checkRateLimit(clientIP, plan);
     
     if (!rateLimitResult.allowed) {
-      console.log(`Rate limit exceeded for IP: ${clientIP}, plan: ${plan}`);
+      // Log sanitizado - sem IP do usuário
+      console.log('Rate limit exceeded for request');
       return new Response(
         JSON.stringify({ 
           error: 'Limite de requisições excedido. Tente novamente mais tarde.',
@@ -1693,7 +1694,7 @@ Forneça identificação botânica completa, análise fitossanitária, toxicidad
       userPrompt = `${context ? `Contexto: ${context}\n\n` : ''}${question}`;
     }
 
-    console.log('Processando consulta veterinária');
+    // Log de processamento removido - desnecessário em produção
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -1731,7 +1732,7 @@ Forneça identificação botânica completa, análise fitossanitária, toxicidad
     const data = await response.json();
     const answer = data.choices?.[0]?.message?.content || "Não foi possível gerar resposta.";
 
-    console.log('Resposta gerada com sucesso');
+    // Log de sucesso removido - desnecessário em produção
 
     // Return in format compatible with both old and new requests
     return new Response(JSON.stringify({ answer, response: answer }), {
