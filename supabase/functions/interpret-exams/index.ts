@@ -90,13 +90,8 @@ serve(async (req) => {
     const body: RequestBody = await req.json();
     const { files, clinicalData, userType, crmv, patient, examType, plan = 'free' } = body;
 
-    console.log("Request received:", { 
-      filesCount: files?.length || 0, 
-      hasClinicData: !!clinicalData,
-      userType,
-      examType,
-      plan
-    });
+    // Log sanitizado - sem dados sensíveis
+    console.log("Request received: processing exam interpretation");
 
     // Validate minimum input
     if ((!files || files.length === 0) && !clinicalData?.trim()) {
@@ -116,7 +111,7 @@ serve(async (req) => {
 
     if (files && files.length > 0) {
       for (const file of files) {
-        console.log(`Processing file: ${file.name}, type: ${file.type}`);
+        // Log removido - continha nome de arquivo do usuário
         
         try {
           // Build content for OCR

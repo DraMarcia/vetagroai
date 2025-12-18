@@ -115,7 +115,7 @@ const ResenhaEquinos = () => {
   const handleGenerate = async () => {
     // Prevent double-clicks
     if (loading) {
-      console.log('Já processando, ignorando clique');
+      // Debug log removido
       return;
     }
 
@@ -144,7 +144,7 @@ const ResenhaEquinos = () => {
 
     setLoading(true);
     setResenha(""); // Clear previous result
-    console.log('Iniciando análise equina...');
+    // Debug log removido
     
     try {
       const { data, error } = await supabase.functions.invoke("analyze-equine", {
@@ -161,7 +161,7 @@ const ResenhaEquinos = () => {
         },
       });
 
-      console.log('Resposta recebida:', { hasData: !!data, hasError: !!error });
+      // Debug log removido
 
       if (error) throw error;
 
@@ -171,7 +171,7 @@ const ResenhaEquinos = () => {
 
       // Check if response is rejection message
       if (data.resenha.includes("exclusiva para avaliação morfológica de equinos")) {
-        console.warn('Modelo rejeitou imagens incorretamente');
+        // Warning log removido
         toast({
           title: "Erro na análise",
           description: "O sistema não conseguiu processar as imagens. Tente novamente.",

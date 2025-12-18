@@ -28,7 +28,8 @@ serve(async (req) => {
       });
     }
 
-    console.log('Analisando equino:', { breed, age, purpose, imageCount: images.length, crmv });
+    // Log sanitizado - sem CRMV ou dados identificáveis
+    console.log('Processando análise equina');
 
     // Prepare image contents
     const imageContents = images.map((img: string) => ({
