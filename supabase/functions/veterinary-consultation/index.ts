@@ -5,14 +5,139 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ===== RATE LIMITING CONFIGURATION =====
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
+// In-memory rate limit store (resets on function cold start)
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+// Rate limit settings per plan tier
+const RATE_LIMITS = {
+  free: { maxRequests: 10, windowMs: 60 * 60 * 1000 },      // 10 requests per hour
+  pro: { maxRequests: 100, windowMs: 60 * 60 * 1000 },      // 100 requests per hour  
+  enterprise: { maxRequests: 1000, windowMs: 60 * 60 * 1000 }, // 1000 requests per hour
+  default: { maxRequests: 5, windowMs: 60 * 60 * 1000 }     // 5 requests per hour for unauthenticated
+};
+
+// Clean up expired entries periodically
+function cleanupExpiredEntries() {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (now > entry.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+}
+
+// Check and update rate limit for a given identifier
+function checkRateLimit(identifier: string, plan: string = 'default'): { allowed: boolean; remaining: number; resetIn: number } {
+  cleanupExpiredEntries();
+  
+  const limits = RATE_LIMITS[plan as keyof typeof RATE_LIMITS] || RATE_LIMITS.default;
+  const now = Date.now();
+  const key = `${plan}:${identifier}`;
+  
+  let entry = rateLimitStore.get(key);
+  
+  // Create new entry if doesn't exist or has expired
+  if (!entry || now > entry.resetTime) {
+    entry = {
+      count: 1,
+      resetTime: now + limits.windowMs
+    };
+    rateLimitStore.set(key, entry);
+    return { 
+      allowed: true, 
+      remaining: limits.maxRequests - 1,
+      resetIn: Math.ceil(limits.windowMs / 1000)
+    };
+  }
+  
+  // Check if limit exceeded
+  if (entry.count >= limits.maxRequests) {
+    const resetIn = Math.ceil((entry.resetTime - now) / 1000);
+    return { 
+      allowed: false, 
+      remaining: 0,
+      resetIn
+    };
+  }
+  
+  // Increment counter
+  entry.count++;
+  rateLimitStore.set(key, entry);
+  
+  return { 
+    allowed: true, 
+    remaining: limits.maxRequests - entry.count,
+    resetIn: Math.ceil((entry.resetTime - now) / 1000)
+  };
+}
+
+// Get client IP from request headers
+function getClientIP(req: Request): string {
+  // Try common headers for client IP (in order of preference)
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    // Take the first IP in the chain (original client)
+    return forwardedFor.split(',')[0].trim();
+  }
+  
+  const realIP = req.headers.get('x-real-ip');
+  if (realIP) {
+    return realIP;
+  }
+  
+  const cfConnectingIP = req.headers.get('cf-connecting-ip');
+  if (cfConnectingIP) {
+    return cfConnectingIP;
+  }
+  
+  // Fallback to a generic identifier
+  return 'unknown-ip';
+}
+// ===== END RATE LIMITING CONFIGURATION =====
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Get client identifier for rate limiting
+    const clientIP = getClientIP(req);
+    
     const requestBody = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    // Determine plan for rate limiting (from request body or default)
+    const plan = requestBody.plan || 'default';
+    
+    // Check rate limit
+    const rateLimitResult = checkRateLimit(clientIP, plan);
+    
+    if (!rateLimitResult.allowed) {
+      console.log(`Rate limit exceeded for IP: ${clientIP}, plan: ${plan}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Limite de requisições excedido. Tente novamente mais tarde.',
+          retryAfter: rateLimitResult.resetIn
+        }), 
+        {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateLimitResult.resetIn),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(rateLimitResult.resetIn)
+          },
+        }
+      );
+    }
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY não configurado');
