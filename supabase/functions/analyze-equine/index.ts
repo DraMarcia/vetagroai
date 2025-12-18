@@ -1,9 +1,51 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// ===== AUTHENTICATION HELPER =====
+interface AuthResult {
+  user: { id: string; email?: string } | null;
+  plan: string;
+  isAdmin: boolean;
+  error: string | null;
+}
+
+async function authenticateRequest(req: Request): Promise<AuthResult> {
+  const authHeader = req.headers.get('Authorization');
+  
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { user: null, plan: 'free', isAdmin: false, error: 'Authentication required' };
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+  
+  if (authError || !user) {
+    return { user: null, plan: 'free', isAdmin: false, error: 'Invalid or expired token' };
+  }
+
+  // Retrieve actual plan from profiles table
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('current_plan, is_admin')
+    .eq('user_id', user.id)
+    .single();
+
+  const actualPlan = profile?.current_plan || 'free';
+  const isAdmin = profile?.is_admin || false;
+
+  return { user, plan: actualPlan, isAdmin, error: null };
+}
+// ===== END AUTHENTICATION HELPER =====
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,6 +53,16 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate user
+    const authResult = await authenticateRequest(req);
+    
+    if (authResult.error) {
+      return new Response(
+        JSON.stringify({ error: authResult.error }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { images, breed, age, purpose, horseName, sex, coat, vetName, crmv } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -28,7 +80,6 @@ serve(async (req) => {
       });
     }
 
-    // Log sanitizado - sem CRMV ou dados identificáveis
     console.log('Processando análise equina');
 
     // Prepare image contents
