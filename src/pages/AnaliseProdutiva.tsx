@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
-
+import DOMPurify from "dompurify";
 const SISTEMAS_PRODUCAO = [
   { value: "recria", label: "Recria" },
   { value: "engorda", label: "Engorda" },
@@ -617,7 +617,13 @@ const AnaliseProdutiva = () => {
                   <div 
                     className="bg-muted/50 p-4 rounded-lg text-sm leading-relaxed [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-amber-700 [&_h2]:dark:text-amber-400 [&_table]:my-4 [&_th]:bg-gray-200 [&_th]:dark:bg-gray-700 [&_td]:align-top [&_strong]:font-semibold"
                     style={{ textAlign: 'justify', textJustify: 'inter-word' }}
-                    dangerouslySetInnerHTML={{ __html: result }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: DOMPurify.sanitize(result, {
+                        ALLOWED_TAGS: ['h2', 'h3', 'h4', 'div', 'p', 'strong', 'em', 'br', 'table', 'tr', 'th', 'td', 'thead', 'tbody', 'ul', 'ol', 'li', 'span', 'b', 'i'],
+                        ALLOWED_ATTR: ['style', 'class'],
+                        ALLOW_DATA_ATTR: false
+                      })
+                    }}
                   />
                 </div>
                 
