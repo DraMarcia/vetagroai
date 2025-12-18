@@ -51,11 +51,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     isLoading: true,
   });
 
-  const fetchSubscription = async (userId: string) => {
+  const fetchSubscription = async () => {
     try {
-      const { data, error } = await supabase.rpc("check_credits", {
-        p_user_id: userId,
-      });
+      // Call RPC without user_id - it now uses auth.uid() directly
+      const { data, error } = await supabase.rpc("check_credits");
 
       if (error) throw error;
 
@@ -79,7 +78,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const refreshSubscription = async () => {
     if (user) {
-      await fetchSubscription(user.id);
+      await fetchSubscription();
     }
   };
 
@@ -87,9 +86,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     if (!user) return false;
 
     try {
-      const { data, error } = await supabase.rpc("use_credit", {
-        p_user_id: user.id,
-      });
+      // Call RPC without user_id - it now uses auth.uid() directly
+      const { data, error } = await supabase.rpc("use_credit");
 
       if (error) throw error;
 
@@ -114,7 +112,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         if (session?.user) {
           setTimeout(() => {
-            fetchSubscription(session.user.id);
+            fetchSubscription();
           }, 0);
         } else {
           setState({
@@ -133,7 +131,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchSubscription(session.user.id);
+        fetchSubscription();
       } else {
         setState((prev) => ({ ...prev, isLoading: false }));
       }

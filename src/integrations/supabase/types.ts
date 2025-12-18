@@ -199,8 +199,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_credits: { Args: { p_user_id: string }; Returns: Json }
-      use_credit: { Args: { p_user_id: string }; Returns: boolean }
+      check_credits: { Args: never; Returns: Json }
+      use_credit: { Args: never; Returns: boolean }
     }
     Enums: {
       professional_registry_type: "crmv" | "crea" | "crbio" | "other"

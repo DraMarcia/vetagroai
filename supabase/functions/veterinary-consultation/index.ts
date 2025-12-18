@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,7 +33,7 @@ function cleanupExpiredEntries() {
   }
 }
 
-// Check and update rate limit for a given identifier
+// Check and update rate limit for a given identifier (now uses user_id, not IP)
 function checkRateLimit(identifier: string, plan: string = 'default'): { allowed: boolean; remaining: number; resetIn: number } {
   cleanupExpiredEntries();
   
@@ -77,29 +78,46 @@ function checkRateLimit(identifier: string, plan: string = 'default'): { allowed
   };
 }
 
-// Get client IP from request headers
-function getClientIP(req: Request): string {
-  // Try common headers for client IP (in order of preference)
-  const forwardedFor = req.headers.get('x-forwarded-for');
-  if (forwardedFor) {
-    // Take the first IP in the chain (original client)
-    return forwardedFor.split(',')[0].trim();
-  }
-  
-  const realIP = req.headers.get('x-real-ip');
-  if (realIP) {
-    return realIP;
-  }
-  
-  const cfConnectingIP = req.headers.get('cf-connecting-ip');
-  if (cfConnectingIP) {
-    return cfConnectingIP;
-  }
-  
-  // Fallback to a generic identifier
-  return 'unknown-ip';
+// ===== AUTHENTICATION HELPER =====
+interface AuthResult {
+  user: { id: string; email?: string } | null;
+  plan: string;
+  isAdmin: boolean;
+  error: string | null;
 }
-// ===== END RATE LIMITING CONFIGURATION =====
+
+async function authenticateRequest(req: Request): Promise<AuthResult> {
+  const authHeader = req.headers.get('Authorization');
+  
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { user: null, plan: 'default', isAdmin: false, error: 'Authentication required' };
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+  
+  if (authError || !user) {
+    return { user: null, plan: 'default', isAdmin: false, error: 'Invalid or expired token' };
+  }
+
+  // Retrieve actual plan from profiles table
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('current_plan, is_admin')
+    .eq('user_id', user.id)
+    .single();
+
+  const actualPlan = profile?.current_plan || 'free';
+  const isAdmin = profile?.is_admin || false;
+
+  return { user, plan: actualPlan, isAdmin, error: null };
+}
+// ===== END AUTHENTICATION HELPER =====
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -107,20 +125,26 @@ serve(async (req) => {
   }
 
   try {
-    // Get client identifier for rate limiting
-    const clientIP = getClientIP(req);
+    // Authenticate user and get actual plan from database
+    const authResult = await authenticateRequest(req);
+    
+    if (authResult.error) {
+      return new Response(
+        JSON.stringify({ error: authResult.error }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = authResult.user!.id;
+    const plan = authResult.plan; // Server-validated plan, not from request body
     
     const requestBody = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    // Determine plan for rate limiting (from request body or default)
-    const plan = requestBody.plan || 'default';
-    
-    // Check rate limit
-    const rateLimitResult = checkRateLimit(clientIP, plan);
+    // Check rate limit using user ID and server-validated plan
+    const rateLimitResult = checkRateLimit(userId, plan);
     
     if (!rateLimitResult.allowed) {
-      // Log sanitizado - sem IP do usuário
       console.log('Rate limit exceeded for request');
       return new Response(
         JSON.stringify({ 
@@ -149,7 +173,7 @@ serve(async (req) => {
 
     // Check if it's a tool-based request (new format)
     if (requestBody.tool) {
-      const { tool, plan, data } = requestBody;
+      const { tool, data } = requestBody;
 
       if (tool === "analise-sustentabilidade") {
         const perfilLabels: Record<string, string> = {
@@ -455,215 +479,207 @@ Gere o relatório técnico seguindo RIGOROSAMENTE a estrutura de 9 seções obri
         const custoSanidade = data.custoSanidade || 18.00;
         const custoImplantacao = data.custoImplantacao || 12.00;
         const custoDespesasGeraisDia = data.custoDespesasGeraisDia || 0.38;
-        const precoArrobaVenda = data.precoArrobaVenda || 255.00;
-        const bonificacaoCarcaca = data.bonificacaoCarcaca || 3.00;
-        const rendimentoCarcaca = data.rendimentoCarcaca || 53;
-        const conversaoAlimentar = data.conversaoAlimentar || 7.0;
-        const custoDiario = data.custoDiario || 0;
+        const precoArrobaVenda = data.precoArrobaVenda || 305.00;
+        const rendimentoCarcaca = data.rendimentoCarcaca || 54.0;
+        const premioQualidade = data.premioQualidade || 0;
+        const custoOportunidade = data.custoOportunidade || 12.0;
         
-        // Cálculos zootécnicos
-        const ganhoTotal = pesoFinal - pesoInicial;
-        const animaisFinais = Math.round(numeroAnimais * (1 - mortalidade / 100));
-        const arrobasGanhas = ganhoTotal / 30;
-        const arrobasFinal = pesoFinal / 30 * (rendimentoCarcaca / 100);
-        const pesoMedioConfinamento = (pesoInicial + pesoFinal) / 2;
+        const dataAtual = new Date().toLocaleDateString('pt-BR', { 
+          day: '2-digit', 
+          month: 'long', 
+          year: 'numeric' 
+        });
         
-        // Cálculos de alimentação
-        const consumoMSDia = pesoMedioConfinamento * (consumoMSPercentual / 100);
-        const consumoMSTotal = consumoMSDia * diasConfinamento;
-        const custoAlimentacao = consumoMSTotal * custoKgMS;
-        
-        // Cálculos de custos operacionais
-        const custoMaoObra = custoMaoObraDia * diasConfinamento;
-        const custoDespesasGerais = custoDespesasGeraisDia * diasConfinamento;
-        const custoOperacional = custoMaoObra + custoSanidade + custoImplantacao + custoDespesasGerais;
-        
-        // Custo do boi de entrada
-        const custoBoiMagro = precoBoiMagro * pesoBoiMagroArrobas;
-        
-        // Custo total por cabeça
-        const custoTotalCabeca = custoBoiMagro + custoAlimentacao + custoOperacional;
-        
-        // Receita por cabeça
-        const precoVendaEfetivo = precoArrobaVenda + bonificacaoCarcaca;
-        const receitaCabeca = arrobasFinal * precoVendaEfetivo;
-        
-        // Margens
-        const margemLiquidaCabeca = receitaCabeca - custoTotalCabeca;
-        const margemLiquidaTotal = margemLiquidaCabeca * animaisFinais;
-        
-        // Custo de produção por arroba
-        const custoProducaoArroba = (custoAlimentacao + custoOperacional) / arrobasGanhas;
-        
-        // Break-even
-        const breakEvenArroba = custoTotalCabeca / arrobasFinal;
-        
-        // Cálculos de emissões de metano (IPCC Tier 2)
-        const fatoresEmissao: Record<string, number> = {
-          "convencional": 56,
-          "melhorado": 48,
-          "baixo_carbono": 35,
-          "carbono_neutro": 20
-        };
-        const fatorEmissao = fatoresEmissao[nivelSustentabilidade] || 56;
-        const ch4PorAnimal = fatorEmissao * (diasConfinamento / 365);
-        const co2Equivalente = ch4PorAnimal * 28;
-        const ch4Total = ch4PorAnimal * animaisFinais;
-        
-        systemPrompt = `Você é um consultor especializado em pecuária de corte sustentável e confinamento bovino no Brasil, com expertise em análise econômica, zootécnica e ambiental.
+        systemPrompt = `Você é o módulo "Simulador de Confinamento" da suíte VetAgro Sustentável AI, especializado em projeções técnico-econômicas de sistemas de terminação intensiva de bovinos de corte.
 
-REGRAS DE FORMATAÇÃO OBRIGATÓRIAS:
-- NUNCA use asteriscos (*) ou hashtags (#)
-- Use apenas marcadores simples: • ou -
-- Títulos de seção em MAIÚSCULAS seguidos de dois-pontos
-- Números sempre formatados com unidades (kg, R$, %, dias)
-- Tabelas quando apropriado para comparativos
-- Parágrafos curtos e objetivos
+PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 3 (SIMULADORES COM CENÁRIOS):
+
+REGRAS ABSOLUTAS DE FORMATAÇÃO:
+1. PROIBIDO texto corrido longo - TODA resposta DEVE ser dividida em SEÇÕES NUMERADAS
+2. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+3. Use APENAS bullets padrão: • ou –
+4. Parágrafos curtos (máximo 4-5 linhas cada)
+5. O texto deve ser ESCANEÁVEL em leitura rápida
+6. Espaçamento visual consistente entre blocos
+7. Cada seção deve ser VISUALMENTE RECONHECÍVEL
+8. TABELAS devem ser formatadas claramente
+
+INDICADORES DE REFERÊNCIA (NRC Beef Cattle, EMBRAPA Gado de Corte):
+• GMD esperado confinamento Brasil: 1.3-1.8 kg/dia
+• Conversão alimentar eficiente: 5.5-7.0 kg MS/kg ganho
+• Consumo MS: 2.0-2.6% do peso vivo
+• Mortalidade aceitável: < 1%
+• Rendimento carcaça Nelore: 52-55% | Cruzados: 54-58%
 
 ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
 
-1. SÍNTESE EXECUTIVA
-   - Resumo do cenário simulado (3-4 linhas)
-   - Conclusão sobre viabilidade (LUCRATIVO/DEFICITÁRIO)
+[SIMULAÇÃO DE CONFINAMENTO]
 
-2. DADOS DO PRODUTOR E OPERAÇÃO
-   - Localização e finalidade
-   - Número de animais, categoria, período
+Relatório Técnico de Viabilidade — VetAgro Sustentável AI
 
-3. PROJEÇÕES ZOOTÉCNICAS
-   - Peso entrada vs saída
-   - GMD projetado e realizado
-   - Conversão alimentar
-   - Mortalidade esperada e animais finais
-   - Rendimento de carcaça
+────────────────────
+1) PARÂMETROS DO CENÁRIO
 
-4. ANÁLISE ECONÔMICA DETALHADA
-   
-   4.1 CUSTOS DE ENTRADA:
-   - Custo do boi magro (por cabeça)
-   
-   4.2 CUSTOS DE ALIMENTAÇÃO:
-   - Consumo de MS diário e total
-   - Custo de alimentação por cabeça
-   
-   4.3 CUSTOS OPERACIONAIS:
-   - Mão de obra
-   - Sanidade
-   - Implantação
-   - Despesas gerais
-   - Total operacional
-   
-   4.4 ANÁLISE DE RESULTADO:
-   - Custo total por cabeça
-   - Receita bruta por cabeça
-   - Margem líquida por cabeça
-   - Margem líquida total do lote
-   - Custo de produção por arroba
-   - Break-even da arroba
+• Número de animais: ${numeroAnimais}
+• Peso inicial: ${pesoInicial} kg
+• Peso final projetado: ${pesoFinal} kg
+• Dias de confinamento: ${diasConfinamento} dias
+• GMD esperado: ${gmdEsperado} kg/dia
+• Taxa de mortalidade: ${mortalidade}%
+• Nível de sustentabilidade: ${nivelSustentabilidade}
+• Data da simulação: ${dataAtual}
 
-5. ANÁLISE DE SENSIBILIDADE
-   - Cenário 1: CA piorando para 7.8
-   - Cenário 2: Preço da arroba caindo para R$ 245
-   - Impacto na margem em cada cenário
+────────────────────
+2) ANÁLISE DE DESEMPENHO ZOOTÉCNICO
 
-6. ANÁLISE DE EMISSÕES E SUSTENTABILIDADE
-   - CH4 estimado (kg/animal/período)
-   - CO2 equivalente
-   - Comparativo com outros níveis de sustentabilidade
-   - Potencial de créditos de carbono
+PROJEÇÕES:
+• Ganho total esperado: [calcular]
+• Peso médio final: [calcular]
+• Arrobas produzidas: [calcular]
+• Conversão alimentar estimada: [estimar baseado em GMD]
 
-7. VIABILIDADE COM GIROS ANUAIS
-   - Projeção para 3 ciclos/ano
-   - Rotatividade de curral
-   - Lucratividade anual estimada
+BENCHMARKING:
+• Comparar GMD com referência nacional
+• Classificar eficiência como: Baixa / Média / Alta / Excelente
 
-8. RECOMENDAÇÕES TÉCNICAS
-   - Estratégias para melhorar eficiência
-   - Redução de metano
-   - Manejo sustentável
-   - Alternativas nutricionais
+────────────────────
+3) ANÁLISE ECONÔMICA DETALHADA
 
-9. REFERÊNCIAS TÉCNICAS
-   - Embrapa Gado de Corte
-   - IPCC (Tier 2 para emissões)
-   - CEPEA/Esalq
-   - ABIEC
+CUSTOS DE AQUISIÇÃO:
+• Valor do boi magro: R$ ${precoBoiMagro}/@
+• Peso em arrobas: ${pesoBoiMagroArrobas.toFixed(1)}@
+• Custo total aquisição: [calcular]
 
-${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Forneça apenas SÍNTESE EXECUTIVA, valores básicos de custo/arroba, margem e conclusão sobre viabilidade (máx 200 palavras). Indique que análises detalhadas estão disponíveis nos planos Pro/Enterprise." : ""}
-${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todos os 9 tópicos detalhados." : ""}
-${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise completa ultra-detalhada com modelagem comparativa entre cenários, análise de sensibilidade avançada, projeções para múltiplos ciclos e recomendações estratégicas consultivas." : ""}`;
+CUSTOS OPERACIONAIS:
+• Alimentação (R$ ${custoKgMS}/kg MS × ${consumoMSPercentual}% PV × ${diasConfinamento} dias): [calcular]
+• Mão de obra (R$ ${custoMaoObraDia}/cab/dia × ${diasConfinamento} dias): [calcular]
+• Sanidade: R$ ${custoSanidade}/cabeça
+• Implantação: R$ ${custoImplantacao}/cabeça
+• Despesas gerais (R$ ${custoDespesasGeraisDia}/cab/dia × ${diasConfinamento} dias): [calcular]
 
-        userPrompt = `Realize uma SIMULAÇÃO COMPLETA DE CONFINAMENTO com os seguintes parâmetros:
+CUSTO TOTAL POR CABEÇA: [somar todos]
+CUSTO TOTAL DO LOTE: [multiplicar por ${numeroAnimais}]
 
-DADOS DO PRODUTOR:
-• Nome: ${data.nomeProdutor || "Produtor"}
-• Estado: ${data.estado || "Não informado"}
-• Município: ${data.municipio || "Não informado"}
-• Finalidade: ${data.finalidade || "Engorda intensiva em confinamento"}
+RECEITA:
+• Peso final: ${pesoFinal} kg
+• Rendimento carcaça: ${rendimentoCarcaca}%
+• Peso carcaça: [calcular]
+• Arrobas produzidas: [calcular]
+• Preço base: R$ ${precoArrobaVenda}/@
+• Prêmio qualidade: ${premioQualidade}%
+• Receita bruta por cabeça: [calcular]
+• Receita bruta total: [calcular]
 
-DADOS DO CONFINAMENTO:
-• Número de animais na entrada: ${numeroAnimais} cabeças
-• Categoria: ${data.categoria || "Bovinos machos – Nelore, 24 meses"}
-• Peso médio inicial: ${pesoInicial} kg
-• Peso médio de saída desejado: ${pesoFinal} kg
-• Período de confinamento: ${diasConfinamento} dias
-• GMD estimado: ${gmdEsperado} kg/dia
-• Conversão alimentar: ${conversaoAlimentar}:1
-• Rendimento de carcaça: ${rendimentoCarcaca}%
-• Mortalidade esperada: ${mortalidade}%
+────────────────────
+4) INDICADORES DE RENTABILIDADE
 
-CUSTOS DO CONFINAMENTO:
-• Custo do boi magro: R$ ${precoBoiMagro}/@ (${pesoBoiMagroArrobas.toFixed(1)}@)
-• Custo do kg de MS: R$ ${custoKgMS}
-• Consumo médio de MS: ${consumoMSPercentual}% PV/dia
-• Mão de obra: R$ ${custoMaoObraDia}/cab/dia
+MARGEM BRUTA:
+• Por cabeça: R$ [calcular]
+• Por arroba produzida: R$ [calcular]
+• Total do lote: R$ [calcular]
+
+MARGEM LÍQUIDA (com custo oportunidade ${custoOportunidade}% a.a.):
+• [calcular descontando custo do capital]
+
+ROI (Retorno sobre Investimento):
+• [calcular percentual]
+
+PONTO DE EQUILÍBRIO:
+• Preço mínimo da arroba para viabilidade: R$ [calcular]
+
+────────────────────
+5) ANÁLISE DE CENÁRIOS
+
+CENÁRIO PESSIMISTA (GMD -15%, preço -10%):
+• Margem bruta: R$ [calcular]
+• Viabilidade: [Sim/Não/Marginal]
+
+CENÁRIO OTIMISTA (GMD +10%, preço +5%):
+• Margem bruta: R$ [calcular]
+• ROI projetado: [calcular]%
+
+ANÁLISE DE SENSIBILIDADE:
+• Variação de +/- 10% no preço do milho: impacto de R$ [calcular]/cabeça
+• Variação de +/- 0.1 kg no GMD: impacto de R$ [calcular]/cabeça
+
+────────────────────
+6) INDICADORES DE SUSTENTABILIDADE (ESG)
+
+EMISSÕES ESTIMADAS (Tier 2 IPCC):
+• CH₄ entérico: [estimar] kg CO₂eq/cabeça
+• CH₄ dejetos: [estimar] kg CO₂eq/cabeça
+• N₂O dejetos: [estimar] kg CO₂eq/cabeça
+• Intensidade carbônica: [calcular] kg CO₂eq/kg carcaça
+
+OPORTUNIDADES:
+• Potencial de mitigação com aditivos: [estimar]%
+• Elegibilidade para programas carbono: [avaliar]
+
+────────────────────
+7) RECOMENDAÇÕES TÉCNICAS
+
+OTIMIZAÇÃO ZOOTÉCNICA:
+• [2-3 recomendações específicas]
+
+GESTÃO ECONÔMICA:
+• [2-3 recomendações específicas]
+
+SUSTENTABILIDADE:
+• [1-2 recomendações específicas]
+
+────────────────────
+8) CONSIDERAÇÕES FINAIS
+
+• Síntese executiva da viabilidade
+• Principais riscos identificados
+• Decisão recomendada: [Viável / Marginalmente viável / Inviável]
+
+────────────────────
+9) ALERTA LEGAL
+
+Esta simulação tem caráter orientativo e não substitui consultoria técnica especializada. Valores reais podem variar conforme condições de mercado, manejo e sanidade do rebanho.
+
+────────────────────
+10) REFERÊNCIAS TÉCNICAS
+
+• NRC — National Research Council. Nutrient Requirements of Beef Cattle (2016)
+• EMBRAPA Gado de Corte — Sistemas de Produção e Custos
+• IPCC Guidelines (2019) — Tier 2 para emissões de bovinos
+• CEPEA/ESALQ — Indicadores de preços
+
+${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Forneça apenas as seções 1, 4 (resumida), 8 e 9 (máximo 250 palavras total). Indique que análises detalhadas com cenários estão disponíveis nos planos Pro/Enterprise." : ""}
+${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todas as 10 seções e 3 cenários." : ""}
+${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise ultra-detalhada com todas as 10 seções, 5+ cenários, análise de sensibilidade expandida e projeções de carbono detalhadas." : ""}`;
+
+        userPrompt = `Realize uma SIMULAÇÃO DE CONFINAMENTO com os parâmetros informados.
+
+DADOS DO CENÁRIO:
+• Número de animais: ${numeroAnimais}
+• Peso inicial: ${pesoInicial} kg
+• Peso final projetado: ${pesoFinal} kg  
+• Dias de confinamento: ${diasConfinamento}
+• GMD esperado: ${gmdEsperado} kg/dia
+• Mortalidade: ${mortalidade}%
+• Nível sustentabilidade: ${nivelSustentabilidade}
+
+PARÂMETROS ECONÔMICOS:
+• Preço boi magro: R$ ${precoBoiMagro}/@
+• Custo kg MS: R$ ${custoKgMS}
+• Consumo MS: ${consumoMSPercentual}% PV
+• Custo mão de obra: R$ ${custoMaoObraDia}/cab/dia
 • Sanidade: R$ ${custoSanidade}/cab
 • Implantação: R$ ${custoImplantacao}/cab
 • Despesas gerais: R$ ${custoDespesasGeraisDia}/cab/dia
-• Preço arroba venda: R$ ${precoArrobaVenda}/@
-• Bonificação carcaça: R$ ${bonificacaoCarcaca}/@
+• Preço arroba venda: R$ ${precoArrobaVenda}
+• Rendimento carcaça: ${rendimentoCarcaca}%
+• Prêmio qualidade: ${premioQualidade}%
+• Custo oportunidade: ${custoOportunidade}% a.a.
 
-NÍVEL DE SUSTENTABILIDADE: ${nivelSustentabilidade}
+${data.observacoes ? `OBSERVAÇÕES ADICIONAIS: ${data.observacoes}` : ""}
 
-CÁLCULOS PRELIMINARES (para referência):
-• Ganho total por animal: ${ganhoTotal} kg
-• Animais finais (após mortalidade): ${animaisFinais} cabeças
-• Arrobas ganhas por animal: ${arrobasGanhas.toFixed(2)}@
-• Arrobas de carcaça final: ${arrobasFinal.toFixed(2)}@
-• Peso médio no confinamento: ${pesoMedioConfinamento.toFixed(0)} kg
-• Consumo MS diário: ${consumoMSDia.toFixed(2)} kg
-• Consumo MS total: ${consumoMSTotal.toFixed(2)} kg
-• Custo alimentação: R$ ${custoAlimentacao.toFixed(2)}/cab
-• Custo operacional: R$ ${custoOperacional.toFixed(2)}/cab
-• Custo boi magro: R$ ${custoBoiMagro.toFixed(2)}/cab
-• Custo total: R$ ${custoTotalCabeca.toFixed(2)}/cab
-• Receita bruta: R$ ${receitaCabeca.toFixed(2)}/cab
-• Margem líquida/cab: R$ ${margemLiquidaCabeca.toFixed(2)}
-• Margem líquida total: R$ ${margemLiquidaTotal.toFixed(2)}
-• Custo produção/arroba: R$ ${custoProducaoArroba.toFixed(2)}/@
-• Break-even arroba: R$ ${breakEvenArroba.toFixed(2)}/@
-• CH4/animal (período): ${ch4PorAnimal.toFixed(2)} kg
-• CO2 equivalente/animal: ${co2Equivalente.toFixed(2)} kg
-• CH4 total do lote: ${ch4Total.toFixed(2)} kg
-
-ANÁLISES SOLICITADAS:
-1. Avaliar rentabilidade do confinamento
-2. Simular impacto de: CA piorando para 7.8 e preço arroba caindo para R$ 245
-3. Gerar recomendações técnicas
-4. Gerar recomendações de mitigação de metano
-5. Avaliar viabilidade com 3 giros anuais
-6. Informar se o confinamento é LUCRATIVO ou DEFICITÁRIO
-
-Forneça análise técnica completa seguindo a estrutura obrigatória.`;
+Gere o relatório técnico de viabilidade seguindo RIGOROSAMENTE a estrutura de 10 seções obrigatórias, realizando TODOS os cálculos com os valores fornecidos.`;
       }
       else if (tool === "analise-produtiva") {
-        const { tipoUsuario, nomeUsuario, numeroConselho, ufConselho } = requestBody;
-        const isProfessional = tipoUsuario === "veterinario" || tipoUsuario === "zootecnista";
-        
-        // Detectar modo de teste
-        const isTestMode = data.observacoesAdicionais?.toLowerCase().includes("simular produtor fictício") || false;
-        
-        // Labels de tipo de usuário
         const tipoUsuarioLabels: Record<string, string> = {
           "produtor": "Produtor Rural",
           "tecnico": "Técnico Agropecuário",
@@ -672,1009 +688,556 @@ Forneça análise técnica completa seguindo a estrutura obrigatória.`;
           "estudante": "Estudante",
           "publico": "Público Geral"
         };
-        const tipoUsuarioLabel = tipoUsuarioLabels[tipoUsuario as string] || "Não especificado";
+        const tipoUsuarioLabel = tipoUsuarioLabels[requestBody.tipoUsuario] || "Usuário";
         
-        const professionalInfo = isProfessional && numeroConselho 
-          ? `\n\nPROFISSIONAL RESPONSÁVEL:\n• Nome: ${nomeUsuario || "Não informado"}\n• Registro: ${tipoUsuario === "veterinario" ? "CRMV" : "CRZ"} ${numeroConselho}-${ufConselho}` 
-          : nomeUsuario ? `\n\nUSUÁRIO:\n• Nome: ${nomeUsuario}\n• Perfil: ${tipoUsuarioLabel}` : "";
+        const dataAtual = new Date().toLocaleDateString('pt-BR', { 
+          day: '2-digit', 
+          month: 'long', 
+          year: 'numeric' 
+        });
 
-        systemPrompt = `Você é a IA da ferramenta "Planejamento Produtivo & Econômico – VetAgro Sustentável AI".
-Sua função é gerar relatórios técnicos com rigor zootécnico e financeiro.
+        systemPrompt = `Você é o módulo "Painel de Inteligência Produtiva" da suíte VetAgro Sustentável AI.
 
-REGRAS DE OURO OBRIGATÓRIAS:
-1. NUNCA alterar a estrutura do texto-padrão abaixo.
-2. NUNCA inserir análises ou cálculos não solicitados.
-3. NUNCA reescrever seções.
-4. PODE preencher variáveis com os dados enviados pelo usuário.
-5. PODE formatar o conteúdo para HTML limpo.
-6. NÃO PODE trocar nomes, títulos, blocos ou ordem dos itens.
+PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 2 (RELATÓRIOS TÉCNICOS):
 
 REGRAS DE FORMATAÇÃO — SAÍDA EM HTML:
 • TODA a resposta deve ser em HTML, NUNCA em Markdown
 • PROIBIDO usar asteriscos (*), hashtags (#), listas com -, tabelas com |
-• PROIBIDO usar emojis
-• Todo texto deve estar dentro de <div style="text-align: justify;">...</div>
-• Títulos de seção usam <h2 style="margin-top:20px; color: #0E8A47;">TÍTULO</h2>
-• Subtítulos usam <strong>...</strong>
-• Linguagem técnica, direta e assertiva
-• Nunca quebrar palavras no meio
+• Use tags HTML: <h2>, <h3>, <p>, <strong>, <table>, <tr>, <th>, <td>, <ul>, <li>, <div>
+• Parágrafos curtos (máximo 4-5 linhas cada)
+• O texto deve ser ESCANEÁVEL em leitura rápida
+• Cada seção deve ter um <h2> com título numerado
+• Tabelas devem usar <table> com <thead> e <tbody>
 
-ESTILO OBRIGATÓRIO DAS TABELAS:
-<table style="width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed;">
-  <tr>
-    <th style="border: 1px solid #000; padding: 8px; background-color: #e6e6e6; text-align: center;">Título</th>
-  </tr>
-  <tr>
-    <td style="border: 1px solid #000; padding: 8px; text-align: left;">Conteúdo</td>
-  </tr>
-</table>
+Base Técnica: EMBRAPA, NRC Beef Cattle, CEPEA, FAO, IPCC 2019
 
-${isTestMode ? `MODO DE TESTE ATIVADO:
-Gerar automaticamente dados completos para um produtor fictício seguindo padrões realistas.
-Local: Cantá – RR (Amazônia)
-Se algum dado estiver faltando, preencher automaticamente com valores realistas sem solicitar correção.` : ""}
+Perfil do Usuário: ${tipoUsuarioLabel}
+${requestBody.numeroConselho ? `Registro Profissional: ${requestBody.tipoUsuario === "veterinario" ? "CRMV" : "CRZ"} ${requestBody.numeroConselho}-${requestBody.ufConselho}` : ""}
 
-TEXTO-PADRÃO DO RELATÓRIO (use exatamente esta estrutura, apenas preenchendo as variáveis):
+ESTRUTURA OBRIGATÓRIA DA RESPOSTA (EM HTML):
 
-<h2 style="margin-top:20px; color: #0E8A47;">IDENTIFICAÇÃO DO CASO</h2>
-<table style="width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed;">
-<tr><td style="border: 1px solid #000; padding: 8px; width: 40%; background-color: #f5f5f5;"><strong>Tipo de Usuário</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher com tipo do usuário]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Nome</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Registro Profissional</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher se aplicável]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Tipo de Sistema</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Número de Animais</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Peso Inicial (kg)</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>GMD (kg/dia)</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Conversão Alimentar</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Custo por kg (R$)</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Taxa de Lotação (UA/ha)</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Área Total (ha)</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Preço de Venda (R$/@)</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-<tr><td style="border: 1px solid #000; padding: 8px; background-color: #f5f5f5;"><strong>Mortalidade (%)</strong></td><td style="border: 1px solid #000; padding: 8px;">[Preencher]</td></tr>
-</table>
+<h2>1) IDENTIFICAÇÃO DO SISTEMA</h2>
+<p>Tipo de sistema, número de animais, área, data da análise: ${dataAtual}</p>
 
-${professionalInfo ? `<h2 style="margin-top:20px; color: #0E8A47;">PROFISSIONAL RESPONSÁVEL</h2>
-<div style="text-align: justify;">
-${professionalInfo}
-</div>` : ""}
+<h2>2) DIAGNÓSTICO ZOOTÉCNICO</h2>
+<p>GMD atual vs referência, conversão alimentar, taxa de lotação, benchmarking</p>
 
-<h2 style="margin-top:20px; color: #0E8A47;">1) SÍNTESE EXECUTIVA</h2>
-<div style="text-align: justify;">
-O sistema de engorda atual apresenta GMD de [valor] kg/dia e Conversão Alimentar de [valor], indicando índices [abaixo/dentro/acima] do potencial zootécnico, o que impacta diretamente a eficiência econômica.
-O custo por kg produzido (R$ [valor]) pode estar reduzindo a margem operacional dependendo do preço da arroba.
+<h2>3) ANÁLISE ECONÔMICA</h2>
+<table>Custos, receitas, margens, indicadores de rentabilidade</table>
 
-A otimização nutricional e o manejo adequado são oportunidades claras para:
-• Reduzir custos
-• Aumentar o GMD
-• Melhorar o desempenho produtivo
-• Ampliar a rentabilidade por cabeça e por hectare
-</div>
+<h2>4) IDENTIFICAÇÃO DE GARGALOS E RISCOS</h2>
+<ul>Lista de principais limitantes identificados</ul>
 
-<h2 style="margin-top:20px; color: #0E8A47;">2) DIAGNÓSTICO ZOOTÉCNICO DETALHADO</h2>
-<div style="text-align: justify;">
-<strong>GMD atual vs. referências:</strong><br/>
-O GMD atual é inferior às referências otimizadas (1.2–1.5 kg/dia), indicando potencial para ajustes nutricionais.
+<h2>5) CENÁRIOS DE OTIMIZAÇÃO</h2>
+<p>Projeções com melhorias incrementais nos indicadores</p>
 
-<strong>Conversão Alimentar:</strong><br/>
-A CA atual sugere baixa eficiência. Sistemas eficientes buscam 5:1 a 6:1.
+<h2>6) ANÁLISE DE EMISSÕES (ESG)</h2>
+<p>Estimativa de emissões, intensidade carbônica, oportunidades de mitigação</p>
 
-<strong>Peso inicial e peso ao abate:</strong><br/>
-O ganho necessário para chegar ao peso ideal de abate é significativo.
+<h2>7) PLANO DE AÇÃO PRIORITÁRIO</h2>
+<ul>Ações de curto, médio e longo prazo</ul>
 
-<strong>Dias de ciclo:</strong><br/>
-Com o GMD informado, o ciclo fica maior, elevando custos.
+<h2>8) CONSIDERAÇÕES FINAIS</h2>
+<p>Síntese executiva e recomendação estratégica</p>
 
-<strong>Taxa de lotação:</strong><br/>
-Deve ser comparada com a capacidade de suporte da pastagem.
-</div>
+<h2>9) ALERTA LEGAL</h2>
+<p>Este relatório tem caráter orientativo e não substitui avaliação presencial por profissional habilitado.</p>
 
-<h2 style="margin-top:20px; color: #0E8A47;">3) ANÁLISE ECONÔMICA COMPLETA</h2>
-<div style="text-align: justify;">
-Inclui:
-• Custo por kg
-• Margem por cabeça
-• Margem por hectare
-• Ponto de equilíbrio
-• Impacto do ciclo produtivo
-</div>
+<h2>10) REFERÊNCIAS TÉCNICAS</h2>
+<ul>Lista de fontes: EMBRAPA, NRC, CEPEA, IPCC, FAO</ul>
 
-<h2 style="margin-top:20px; color: #0E8A47;">4) COMPARATIVO DE CENÁRIOS</h2>
-<div style="text-align: justify;">
-${plan === "free" ? "🔒 Disponível apenas nos planos Pro e Enterprise." : "[Gerar tabela comparativa com cenários Atual, Otimizado e Intensificado]"}
-</div>
+${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Forneça apenas as seções 1, 8 e 9 de forma resumida (máximo 200 palavras total). Indique que análises detalhadas estão disponíveis nos planos Pro/Enterprise." : ""}
+${plan === "pro" ? "Este é um usuário Pro. Forneça análise completa com todas as 10 seções detalhadas." : ""}
+${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise ultra-detalhada com todas as 10 seções, múltiplos cenários e projeções de longo prazo." : ""}`;
 
-<h2 style="margin-top:20px; color: #0E8A47;">5) ESTIMATIVA DE EMISSÕES DE METANO – IPCC TIER 1</h2>
-<div style="text-align: justify;">
-${plan === "free" ? "🔒 Disponível apenas nos planos Pro e Enterprise." : "[Calcular emissões de metano baseado nos dados fornecidos]"}
-</div>
+        userPrompt = `Realize uma ANÁLISE DE INTELIGÊNCIA PRODUTIVA com os seguintes dados:
 
-<h2 style="margin-top:20px; color: #0E8A47;">6) DIAGNÓSTICO DE RISCOS E GARGALOS</h2>
-<div style="text-align: justify;">
-${plan === "free" ? "🔒 Disponível apenas nos planos Pro e Enterprise." : "[Avaliar riscos em: Nutrição, Pastagens, Manejo, Sanidade, Infraestrutura, Financeiro, Clima]"}
-</div>
+PERFIL DO USUÁRIO: ${tipoUsuarioLabel}
+${requestBody.nomeUsuario ? `Nome: ${requestBody.nomeUsuario}` : ""}
+${requestBody.numeroConselho ? `Registro: ${requestBody.tipoUsuario === "veterinario" ? "CRMV" : "CRZ"} ${requestBody.numeroConselho}-${requestBody.ufConselho}` : ""}
 
-<h2 style="margin-top:20px; color: #0E8A47;">7) PLANO DE AÇÃO PRIORITÁRIO</h2>
-<div style="text-align: justify;">
-${plan === "free" ? "🔒 Disponível apenas nos planos Pro e Enterprise." : "[Gerar plano de ação com prazos: 0-15 dias, 30-60 dias, 90-180 dias]"}
-</div>
-
-<h2 style="margin-top:20px; color: #0E8A47;">8) CRONOGRAMA OPERACIONAL</h2>
-<div style="text-align: justify;">
-${plan === "free" ? "🔒 Disponível apenas nos planos Pro e Enterprise." : "[Gerar cronograma detalhado de implementação]"}
-</div>
-
-<h2 style="margin-top:20px; color: #0E8A47;">9) REFERÊNCIAS TÉCNICAS</h2>
-<div style="text-align: justify;">
-• Embrapa – Empresa Brasileira de Pesquisa Agropecuária
-• NRC – Nutrient Requirements of Beef Cattle
-• CEPEA – Centro de Estudos Avançados em Economia Aplicada
-• IPCC – Intergovernmental Panel on Climate Change
-• Artigos científicos revisados por pares
-</div>
-
-<div style="font-size: 12px; margin-top: 20px; padding: 10px; background-color: #fff8e6; border-left: 4px solid #ffa500; text-align: justify;">
-<strong>AVISO FINAL:</strong> Este relatório possui caráter técnico-consultivo. Recomenda-se validação por profissional habilitado.
-</div>
-
-${plan === "free" ? "IMPORTANTE: Este é um usuário FREE. Preencha apenas as seções 1, 2 e 3. Nas demais seções, mantenha a mensagem de bloqueio '🔒 Disponível apenas nos planos Pro e Enterprise.'" : ""}
-${plan === "pro" ? "Este é um usuário Pro. Preencha TODAS as seções com análises técnicas detalhadas." : ""}
-${plan === "enterprise" ? "Este é um usuário Enterprise. Preencha TODAS as seções com análises ultra-detalhadas, projeções avançadas e recomendações estratégicas de alto nível." : ""}`;
-
-        const sistemaLabel = data.tipoSistema || "Não especificado";
-        
-        userPrompt = `Realize uma análise produtiva e econômica completa com os seguintes dados:
-
-IDENTIFICAÇÃO DO USUÁRIO:
-• Tipo: ${tipoUsuarioLabel}
-${nomeUsuario ? `• Nome: ${nomeUsuario}` : ""}
-${isProfessional && numeroConselho ? `• Registro: ${tipoUsuario === "veterinario" ? "CRMV" : "CRZ"} ${numeroConselho}-${ufConselho}` : ""}
-
-DADOS DO SISTEMA PRODUTIVO:
-• Tipo de Sistema: ${sistemaLabel}
-• Número de Animais: ${data.numeroAnimais || "Não informado"}
-• Peso Inicial: ${data.pesoInicial ? data.pesoInicial + " kg" : "Não informado"}
-• Área Total: ${data.areaTotal ? data.areaTotal + " hectares" : "Não informado"}
-• Taxa de Lotação: ${data.taxaLotacao ? data.taxaLotacao + " UA/ha" : "Não informado"}
-
-INDICADORES ZOOTÉCNICOS:
-• GMD (Ganho Médio Diário): ${data.gmd ? data.gmd + " kg/dia" : "Não informado"}
-• Conversão Alimentar: ${data.conversaoAlimentar ? data.conversaoAlimentar + ":1" : "Não informado"}
-
-INDICADORES ECONÔMICOS:
-• Custo por kg Produzido: ${data.custoPorKg ? "R$ " + data.custoPorKg : "Não informado"}
-• Preço de Venda: ${data.precoVenda ? "R$ " + data.precoVenda + "/@" : "Não informado"}
-
-DADOS ADICIONAIS:
-• Mortalidade: ${data.mortalidade ? data.mortalidade + "%" : "Não informado"}
-• Eficiência Reprodutiva: ${data.eficienciaReprodutiva ? data.eficienciaReprodutiva + "%" : "Não informado"}
-• Período do Lote: ${data.datasLote || "Não informado"}
+DADOS DO SISTEMA:
+• Tipo de sistema: ${data.tipoSistema}
+• Número de animais: ${data.numeroAnimais}
+• Peso inicial: ${data.pesoInicial || "Não informado"} kg
+• GMD observado: ${data.gmd || "Não informado"} kg/dia
+• Conversão alimentar: ${data.conversaoAlimentar || "Não informado"}:1
+• Custo por kg: R$ ${data.custoPorKg || "Não informado"}
+• Taxa de lotação: ${data.taxaLotacao || "Não informado"} UA/ha
+• Área total: ${data.areaTotal || "Não informado"} ha
+• Preço de venda: R$ ${data.precoVenda || "Não informado"}/@
+• Mortalidade: ${data.mortalidade || "Não informado"}%
+• Eficiência reprodutiva: ${data.eficienciaReprodutiva || "Não informado"}%
+${data.datasLote ? `• Período do lote: ${data.datasLote}` : ""}
 ${data.observacoesAdicionais ? `• Observações: ${data.observacoesAdicionais}` : ""}
 
-${isTestMode ? "ATENÇÃO: MODO DE TESTE ATIVADO. Preencha automaticamente valores realistas para dados faltantes e gere análise completa." : ""}
-
-Forneça diagnóstico técnico completo seguindo rigorosamente a estrutura de 9 seções obrigatórias.`;
+Gere o relatório técnico completo em HTML seguindo a estrutura fixa obrigatória de 10 seções.`;
       }
       else if (tool === "calculadora-dose") {
-        const isProfessional = requestBody.isProfessional === true;
-        
-        if (isProfessional) {
-          systemPrompt = `Você é um farmacologista veterinário especializado. O usuário é um Médico Veterinário com registro no CRMV.
-
-REGRAS OBRIGATÓRIAS:
-1. Forneça cálculos completos e precisos de dosagem
-2. Inclua dose mínima e máxima com fórmulas
-3. Detalhe vias de administração, frequência e duração
-4. Mencione contraindicações e interações medicamentosas
-5. Alerte sobre ajustes em pacientes especiais (neonatos, geriátricos, gestantes)
-6. Se o medicamento for TÓXICO para a espécie, REJEITE e alerte
-
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
-
-IDENTIFICAÇÃO DO CASO
-• Espécie: [informada]
-• Peso: [informado] kg
-• Idade: [informada]
-• Medicamento: [informado]
-
-CÁLCULO DA DOSE
-• Fórmula: Dose (mg) = Peso (kg) × Dose padrão (mg/kg)
-• Dose mínima: X mg/kg → resultado
-• Dose máxima: Y mg/kg → resultado
-• Dose recomendada para este caso: Z mg
-
-POSOLOGIA
-• Via de administração: [oral/SC/IM/IV]
-• Frequência: [a cada X horas]
-• Duração do tratamento: [X dias]
-
-ORIENTAÇÕES CLÍNICAS
-• Ajustes para condição específica
-• Monitoramento recomendado
-• Sinais de toxicidade a observar
-
-ALERTAS DE SEGURANÇA
-• Contraindicações absolutas
-• Interações medicamentosas importantes
-• Populações especiais (neonatos, geriátricos, gestantes)
-
-REFERÊNCIAS CIENTÍFICAS
-• Merck Veterinary Manual
-• Plumb's Veterinary Drug Handbook
-• MAPA/SINDAN
-
-AVISO LEGAL
-Esta análise é educativa e não substitui avaliação clínica presencial.
-
-IMPORTANTE:
-- NUNCA use hashtags, asteriscos ou markdown
-- Use apenas bullets simples (•, –, →)
-- Linguagem técnica apropriada para veterinários`;
-        } else {
-          systemPrompt = `Você é um assistente veterinário educativo. O usuário NÃO é profissional da área.
-
-REGRAS OBRIGATÓRIAS:
-1. NÃO forneça doses específicas para automedicação
-2. Explique de forma simples e acessível
-3. SEMPRE reforce a necessidade de consulta veterinária presencial
-4. Não mencione protocolos clínicos avançados
-5. Foque em orientações gerais de segurança
-
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
-
-IDENTIFICAÇÃO DO CASO
-• Espécie: [informada]
-• Peso: [informado]
-• Medicamento consultado: [informado]
-
-ORIENTAÇÃO GERAL
-• Explicação simples sobre o medicamento
-• Por que é importante não medicar sem orientação veterinária
-• Riscos da automedicação em animais
-
-ALERTA IMPORTANTE
-A dosagem de medicamentos para animais é diferente da humana e varia conforme:
-• Espécie
-• Peso
-• Idade
-• Condição clínica
-• Outros medicamentos em uso
-
-RECOMENDAÇÃO
-Procure um médico veterinário para:
-• Avaliação clínica do seu animal
-• Diagnóstico adequado
-• Prescrição segura do medicamento correto
-
-SINAIS DE ALERTA
-Leve seu animal imediatamente ao veterinário se apresentar:
-• Vômitos persistentes
-• Diarreia com sangue
-• Dificuldade respiratória
-• Apatia extrema
-• Convulsões
-
-AVISO LEGAL
-Esta orientação é educativa e não substitui a consulta veterinária presencial. Nunca medique seu animal sem orientação profissional.
-
-IMPORTANTE:
-- Se o medicamento for TÓXICO para a espécie (ex: ibuprofeno para gatos), ALERTE sobre o perigo
-- NUNCA use hashtags, asterisks ou markdown
-- Use apenas bullets simples (•, –, →)
-- Linguagem simples e acessível`;
+        // Validate professional access
+        if (!requestBody.crmv) {
+          return new Response(JSON.stringify({ 
+            error: 'Esta ferramenta é restrita a médicos veterinários. Informe CRMV + estado para continuar.' 
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
+        
+        systemPrompt = `Você é o módulo "Calculadora de Dose Veterinária" da suíte VetAgro Sustentável AI, exclusivo para médicos veterinários.
 
-        userPrompt = requestBody.userPrompt || `Calcule a dose para:
+PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 1 (FERRAMENTAS CLÍNICAS):
 
-DADOS DO PACIENTE:
-• Espécie: ${requestBody.data?.especie || 'Não informado'}
-• Peso: ${requestBody.data?.peso || 'Não informado'} kg
-• Idade: ${requestBody.data?.idade || 'Não informado'}
+REGRAS ABSOLUTAS:
+1. PROIBIDO texto corrido longo - resposta em SEÇÕES NUMERADAS
+2. PROIBIDO asteriscos (*), hashtags (#), emojis
+3. Use APENAS bullets padrão: • ou –
+4. Parágrafos curtos (máximo 4 linhas)
+5. Texto ESCANEÁVEL
 
-MEDICAMENTO:
-• ${requestBody.data?.medicamento || 'Não informado'}
+Base Técnica: Formulário Nacional da Farmacopeia Brasileira, Plumb's Veterinary Drug Handbook, Merck Veterinary Manual
 
-VIA DE ADMINISTRAÇÃO: ${requestBody.data?.via || 'Não informado'}
+ESTRUTURA OBRIGATÓRIA:
 
-CONTEXTO CLÍNICO: ${requestBody.data?.contexto || 'Não informado'}
+[CÁLCULO DE DOSE]
 
-Forneça a análise seguindo rigorosamente a estrutura definida.`;
+────────────────────
+1) IDENTIFICAÇÃO
+• Medicamento: [nome]
+• Espécie: [espécie]
+• Peso do paciente: [peso] kg
+• Via de administração: [via]
+
+────────────────────
+2) PARÂMETROS FARMACOLÓGICOS
+• Dose recomendada: [dose] mg/kg
+• Faixa terapêutica: [mín] - [máx] mg/kg
+• Concentração do produto: [conc] mg/mL ou mg/comprimido
+
+────────────────────
+3) CÁLCULO DA DOSE
+• Dose total: [peso × dose] = [resultado] mg
+• Volume/quantidade: [cálculo detalhado]
+• Frequência: [intervalo]
+• Duração do tratamento: [dias]
+
+────────────────────
+4) ALERTAS E CONTRAINDICAÇÕES
+• [Listar alertas relevantes]
+• [Interações medicamentosas importantes]
+
+────────────────────
+5) ALERTA LEGAL
+Esta calculadora tem caráter orientativo. A responsabilidade pela prescrição é exclusiva do médico veterinário responsável.
+
+────────────────────
+6) REFERÊNCIAS
+• Plumb's Veterinary Drug Handbook
+• Formulário Nacional da Farmacopeia Brasileira`;
+
+        userPrompt = `Calcule a dose para:
+• Medicamento: ${data.medicamento}
+• Espécie: ${data.especie}
+• Peso: ${data.peso} kg
+• Via de administração: ${data.via}
+• Concentração do produto: ${data.concentracao}
+${data.observacoes ? `• Observações: ${data.observacoes}` : ""}
+
+CRMV responsável: ${requestBody.crmv}
+
+Forneça o cálculo detalhado seguindo a estrutura obrigatória.`;
       }
       else if (tool === "analise-mucosa") {
-        const isProfessional = requestBody.isProfessional === true;
-        const crmvInfo = requestBody.crmv || "";
-        const especieInfo = requestBody.data?.especie || "Não informada (identificar pela imagem/descrição)";
-        
-        systemPrompt = `Você é um especialista veterinário MULTIESPÉCIE em oftalmologia e clínica geral da suíte VetAgro Sustentável AI.
-${isProfessional ? `O usuário é um Médico Veterinário com registro no CRMV (${crmvInfo}).` : "O usuário é um TUTOR/PRODUTOR, não profissional."}
+        systemPrompt = `Você é o módulo "Análise de Mucosas" da suíte VetAgro Sustentável AI, especializado em avaliação clínica de membranas mucosas.
 
-PADRÃO DE SAÍDA OBRIGATÓRIO:
+PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 1 (FERRAMENTAS CLÍNICAS):
 
-REGRAS ABSOLUTAS DE FORMATAÇÃO:
-1. PROIBIDO texto corrido longo - TODA resposta DEVE ser dividida em SEÇÕES NUMERADAS
-2. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+REGRAS ABSOLUTAS:
+1. PROIBIDO texto corrido longo - resposta em SEÇÕES NUMERADAS
+2. PROIBIDO asteriscos (*), hashtags (#), emojis
 3. Use APENAS bullets padrão: • ou –
-4. Parágrafos curtos (máximo 4 linhas cada)
-5. O texto deve ser ESCANEÁVEL em leitura rápida
-6. Espaçamento visual consistente entre blocos
-7. Cada seção deve ser VISUALMENTE RECONHECÍVEL
+4. Parágrafos curtos (máximo 4 linhas)
 
-ADAPTAÇÃO POR PERFIL:
-${isProfessional ? "• Usuário PROFISSIONAL: manter linguagem técnica completa, incluir condutas terapêuticas sugeridas" : "• Usuário TUTOR/PRODUTOR: simplificar explicações, linguagem acessível, sem prescrições"}
+Base Técnica: Semiologia Veterinária (Feitosa), Merck Veterinary Manual
 
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+ESTRUTURA OBRIGATÓRIA:
 
 [ANÁLISE DE MUCOSAS]
 
-Análise Clínica Orientativa — VetAgro Sustentável AI
+────────────────────
+1) PARÂMETROS AVALIADOS
+• Cor da mucosa: [cor informada]
+• Tempo de reperfusão capilar (TRC): [tempo]
+• Umidade: [seca/úmida/pegajosa]
+• Localização: [oral/ocular/vulvar/prepucial]
 
 ────────────────────
-1) IDENTIFICAÇÃO DO CASO
-
-• Tipo de usuário: [Profissional/Tutor]
-• Espécie: [identificada pela imagem ou informada]
-• Idade: [se informada]
-• Peso: [se informado]
-• Principais sinais clínicos: [resumo dos achados]
-• Histórico relevante: [se houver]
+2) INTERPRETAÇÃO CLÍNICA
+• Significado da coloração: [interpretar]
+• Significado do TRC: [interpretar]
+• Correlação com perfusão: [avaliar]
 
 ────────────────────
-2) ANÁLISE CLÍNICA INICIAL
-
-Descrição técnica e objetiva dos sinais apresentados:
-• Relacionar fisiopatologia básica
-• Explicar conexões entre sinais
-• Máximo 4 linhas por bloco
+3) HIPÓTESES DIAGNÓSTICAS
+• [Lista ordenada por probabilidade]
 
 ────────────────────
-3) HIPÓTESES / DIAGNÓSTICOS DIFERENCIAIS
-
-Listar em ordem de probabilidade:
-
-1. [Diagnóstico mais provável]
-   – Justificativa clínica objetiva
-
-2. [Segundo diagnóstico]
-   – Justificativa clínica objetiva
-
-3. [Terceiro diagnóstico]
-   – Justificativa clínica objetiva
-
-4. [Se aplicável]
-   – Justificativa
+4) URGÊNCIA E CONDUTA
+• Classificação: [Baixa/Moderada/Alta/Emergencial]
+• Orientação inicial: [conduta sugerida]
 
 ────────────────────
-4) EXAMES COMPLEMENTARES RECOMENDADOS
+5) ALERTA LEGAL
+Esta análise tem caráter orientativo e não substitui exame clínico presencial.`;
 
-Formato obrigatório:
-• [Nome do exame] — [Objetivo clínico / O que se espera avaliar]
+        userPrompt = `Analise os seguintes parâmetros de mucosa:
+• Cor: ${data.cor}
+• Tempo de reperfusão capilar: ${data.trc}
+• Umidade: ${data.umidade}
+• Localização: ${data.localizacao || "oral"}
+• Espécie: ${data.especie}
+${data.sinaisClinicos ? `• Sinais clínicos associados: ${data.sinaisClinicos}` : ""}
 
-────────────────────
-5) CLASSIFICAÇÃO DE URGÊNCIA
-
-• Nível: [Baixa | Moderada | Alta | Emergencial]
-• Justificativa clínica clara (1 parágrafo curto)
-
-────────────────────
-6) CONDUTAS INICIAIS ORIENTATIVAS
-
-• Medidas imediatas sugeridas
-• Monitoramento clínico recomendado
-• Pontos críticos de atenção
-${!isProfessional ? "\n(NÃO prescrever medicamentos a usuários não profissionais)" : ""}
-
-────────────────────
-7) PROGNÓSTICO PRELIMINAR
-
-• [Favorável | Reservado | Desfavorável]
-• Condicionado à confirmação diagnóstica
-
-────────────────────
-8) ALERTA LEGAL
-
-Esta análise tem caráter orientativo e educacional.
-O diagnóstico definitivo e o tratamento dependem de avaliação clínica presencial por Médico Veterinário habilitado (CRMV).
-
-────────────────────
-9) REFERÊNCIAS TÉCNICAS
-
-• Manual Merck Veterinário
-• Maggs, Slatter's Fundamentals of Veterinary Ophthalmology
-• Gelatt, Veterinary Ophthalmology
-• Ettinger & Feldman, Textbook of Veterinary Internal Medicine`;
-
-        userPrompt = `Analise a mucosa ocular/sinais clínicos com base nos seguintes dados:
-
-DADOS DO CASO:
-• Espécie: ${especieInfo}
-• Descrição clínica: ${requestBody.data?.descricao || "Não informado"}
-${requestBody.data?.images ? `• Imagens anexadas: ${requestBody.data.images.length} imagem(ns)` : '• Sem imagens anexadas'}
-
-IMPORTANTE: 
-• Forneça análise adequada para a espécie informada
-• Siga RIGOROSAMENTE a estrutura de 9 seções obrigatórias
-• Texto escaneável, com títulos claros e listas organizadas`;
+Forneça a análise seguindo a estrutura obrigatória.`;
       }
       else if (tool === "receituario") {
-        const { data } = requestBody;
+        if (!requestBody.crmv) {
+          return new Response(JSON.stringify({ 
+            error: 'Receituário exclusivo para médicos veterinários. Informe CRMV válido.' 
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         
-        const dataAtual = new Date().toLocaleDateString('pt-BR', { 
-          day: '2-digit', 
-          month: 'long', 
-          year: 'numeric' 
-        });
-        
-        systemPrompt = `Você é o gerador de receituários veterinários da suíte VetAgro IA.
-
-NATUREZA DO DOCUMENTO:
-Este é um DOCUMENTO TÉCNICO-PROFISSIONAL OFICIAL.
-É um modelo padrão de receituário, pronto para impressão ou envio.
-
-REGRAS CRÍTICAS DE FORMATAÇÃO:
-1. CADA CAMPO EM UMA LINHA SEPARADA
-2. USE QUEBRAS DE LINHA (\\n) ENTRE CADA SEÇÃO
-3. DEIXE UMA LINHA EM BRANCO ENTRE SEÇÕES
-4. NÃO use caracteres especiais decorativos
-5. NÃO use hashtags, asteriscos ou markdown
-6. NÃO explique medicamentos ou fundamentos técnicos
-7. APENAS preencha os campos com os dados
-
-ESTRUTURA OBRIGATÓRIA (cada item em linha separada):
-
-RECEITUARIO VETERINARIO
-VetAgro IA
-
-DADOS DO MEDICO VETERINARIO
-
-Nome: [preencher]
-CRMV: [preencher]
-
-
-DADOS DO PROPRIETARIO
-
-Nome: [preencher]
-Telefone: [preencher]
-Endereco: [preencher]
-
-
-DADOS DO PACIENTE
-
-Nome: [preencher]
-Especie: [preencher]
-Raca: [preencher]
-Idade: [preencher]
-Sexo: [preencher]
-Peso: [preencher]
-
-
-PRESCRICAO
-
-Medicamento: [preencher]
-Apresentacao: [preencher]
-Dose: [preencher]
-Via de administracao: [preencher]
-Frequencia: [preencher]
-Duracao do tratamento: [preencher]
-Quantidade total prescrita: [preencher]
-
-
-ORIENTACOES AO TUTOR
-
-[orientacoes praticas em lista simples]
-
-
-LOCAL E DATA
-
-${dataAtual}
-
-
-ASSINATURA DO MEDICO VETERINARIO
-
-[Nome completo]
-CRMV [numero]
-
-
-AVISO LEGAL
-
-Este documento foi gerado por inteligencia artificial para fins de apoio profissional.
-A validade legal depende da assinatura e responsabilidade do medico veterinario, conforme a Lei 5.517/1968 e resolucoes do CFMV.`;
-
-        userPrompt = `Preencha o receituario veterinario com os dados abaixo.
-IMPORTANTE: Cada campo deve estar em uma linha separada. Deixe linhas em branco entre secoes.
-
-DADOS DO VETERINARIO:
-Nome: ${data.vetName}
-CRMV: ${data.crmv}
-
-DADOS DO PROPRIETARIO:
-Nome: ${data.ownerName}
-Telefone: ${data.ownerPhone}
-Endereco: ${data.ownerAddress}
-
-DADOS DO PACIENTE:
-Nome: ${data.animalName}
-Especie: ${data.animalSpecies}
-Raca: ${data.animalBreed}
-Idade: ${data.animalAge}
-Sexo: ${data.animalSex}
-Peso: ${data.animalWeight} kg
-
-PRESCRICAO SOLICITADA:
-${data.prescription}
-
-Gere o documento preenchido seguindo a estrutura. Calcule a dose baseada no peso se informado. NAO inclua explicacoes farmacologicas.`;
-      }
-      else if (tool === "dicionario-farmacologico") {
-        const isProfessional = requestBody.isProfessional === true;
-        const { question, category, objective } = requestBody;
-        
-        systemPrompt = `Você é o módulo farmacológico da suíte VetAgro Sustentável AI, especializado em fornecer informações técnicas, organizadas, atuais e baseadas em fontes confiáveis da medicina veterinária.
-
-FUNÇÃO PRINCIPAL:
-1. Interpretar o nome do medicamento informado (comercial, genérico ou princípio ativo)
-2. Identificar automaticamente: classe farmacológica, princípios ativos, espécies com indicação, doses usuais, contraindicações, interações, efeitos adversos, cuidados e orientações ao tutor
-
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA (use EXATAMENTE esta ordem e estes títulos numerados):
-
-1. NOME COMERCIAL E SINÔNIMOS
-Liste os principais nomes comerciais disponíveis no Brasil e sinônimos conhecidos.
-
-2. PRINCÍPIO ATIVO
-Identificação química e farmacológica do princípio ativo (com fórmulas químicas se aplicável).
-
-3. CLASSE FARMACOLÓGICA
-Classificação terapêutica detalhada.
-
-4. MECANISMO DE AÇÃO
-Explicação técnica e científica do mecanismo de ação.
-
-5. CONCENTRAÇÕES DISPONÍVEIS
-Liste as apresentações e concentrações mais comuns no mercado brasileiro.
-
-6. INDICAÇÕES POR ESPÉCIE
-
-CÃES:
-• [indicações específicas para cães]
-
-GATOS:
-• [indicações específicas para gatos - alertas de toxicidade se aplicável]
-
-EQUINOS:
-• [indicações específicas para equinos]
-
-RUMINANTES:
-• [quando aplicável]
-
-AVES:
-• [quando aplicável]
-
-ANIMAIS SILVESTRES:
-• [se houver literatura]
-
-7. POSOLOGIA DETALHADA
-Para cada espécie e apresentação, forneça:
-• Dose (mg/kg)
-• Intervalo de administração
-• Duração do tratamento
-• Via de administração
-• Formulações recomendadas
-
-8. CONTRAINDICAÇÕES
-Liste todas as contraindicações conhecidas por espécie.
-
-9. INTERAÇÕES MEDICAMENTOSAS
-Descreva interações importantes e potencialmente perigosas.
-
-10. EFEITOS ADVERSOS
-Liste os efeitos colaterais mais comuns e raros por espécie.
-
-11. PRECAUÇÕES
-Alertas para gestantes, neonatos, geriátricos, hepatopatas, nefropatas.
-
-12. FÁRMACOS SEMELHANTES
-Liste alternativas terapêuticas para comparação clínica.
-
-13. ORIENTAÇÕES AO TUTOR
-Instruções claras que o veterinário pode repassar ao tutor.
-
-14. REFERÊNCIAS BIBLIOGRÁFICAS
-Use exclusivamente fontes confiáveis:
-• Papich MG — Saunders Handbook of Veterinary Drugs
-• Plumb DC — Plumb's Veterinary Drug Handbook
-• Merck Veterinary Manual
-• Bulas MAPA/SINDAN
-• AAHA, AAFP, ISFM Guidelines
-• Publicações científicas indexadas recentes
-
-REGRAS OBRIGATÓRIAS DE FORMATAÇÃO:
-• PROIBIDO usar asteriscos (*) em qualquer contexto
-• PROIBIDO usar hashtags (#) em qualquer contexto
-• PROIBIDO usar markdown de qualquer tipo
-• PROIBIDO usar emojis ou símbolos decorativos
-• Use APENAS bullets padrão: • ou – para listas
-• Títulos devem ser numerados: "1. TÍTULO", "2. TÍTULO", etc.
-• NUNCA quebre palavras no meio de uma linha (ex: "EQUI" em uma linha e "NOS" na próxima é PROIBIDO)
-• Palavras como EQUINOS, CÃES, GATOS, RUMINANTES devem estar completas na mesma linha
-• Cada espécie deve ter seu próprio título em linha separada seguido de quebra de linha
-• Parágrafos devem ser bem estruturados e completos
-• Texto técnico, claro, com linguagem científica profissional
-• Jamais inventar informações
-• Se não houver dados confiáveis → "Informação não disponível em fontes confiáveis até o momento"
-${isProfessional ? "• Este é um MÉDICO VETERINÁRIO com CRMV - forneça informações técnicas completas e detalhadas" : "• Forneça informações técnicas mas com explicações acessíveis"}
-${category ? `• Categoria farmacológica selecionada: ${category}` : ""}
-${objective ? `• Objetivo da consulta: ${objective}` : "• Objetivo: Análise completa"}`;
-
-        userPrompt = question;
-      }
-      else if (tool === "calculadora-racao") {
-        const isProfessional = requestBody.isProfessional === true;
-        const { question, professionalName, councilNumber, councilUF } = requestBody;
-        
-        const professionalInfo = isProfessional && professionalName 
-          ? `\n\nPROFISSIONAL RESPONSÁVEL:\n• Nome: ${professionalName}\n• Registro: ${councilNumber} - ${councilUF}` 
-          : "";
-        
-        const dataAtual = new Date().toLocaleDateString('pt-BR', { 
-          day: '2-digit', 
-          month: 'long', 
-          year: 'numeric' 
-        });
-        
-        systemPrompt = `Você é um especialista em nutrição animal da suíte VetAgro Sustentável AI.
-
-PRINCÍPIO CENTRAL:
-- Entregue UMA ÚNICA tabela com valores numéricos (sem textos longos dentro da tabela).
-- Todo o restante deve ser texto corrido organizado por seções.
-
-REGRAS DE TABELA (OBRIGATÓRIAS):
-- A tabela deve conter SOMENTE: Ingrediente; Quantidade/dia; Quantidade/refeição; % da dieta; Obs. (máx 3 palavras).
-- PROIBIDO: parágrafos, justificativas, alertas, ou frases dentro da tabela.
-- A tabela deve estar totalmente PREENCHIDA com números coerentes (NUNCA use placeholders como 0,0; "[preencher]"; "[número]").
-- Cabeçalho da tabela deve ser EXATAMENTE:
-  | Ingrediente | Quantidade/dia | Quantidade/refeição | % da dieta | Obs. |
-
-REGRAS DE TEXTO:
-- PROIBIDO asteriscos (*), hashtags (#), emojis.
-- Use APENAS bullets “•” (não use “–”).
-- PROIBIDO terminar frases com travessão.
-- Nunca deixe "1)" sozinho em uma linha: sempre escreva "1) TÍTULO" na mesma linha.
-- Títulos e enumerações SEMPRE em linha própria, com uma linha em branco antes e depois.
-- Parágrafos curtos (máx 4 linhas).
-
-${professionalInfo}
-
-ESTRUTURA OBRIGATÓRIA (9 SEÇÕES, SEM VARIAÇÃO):
-
-CALCULADORA DE RAÇÃO
-
-Relatório Técnico Orientativo — VetAgro Sustentável AI
-
-1) IDENTIFICAÇÃO DO ANIMAL
-
-• Espécie: usar dados fornecidos
-• Categoria: derivar de espécie/finalidade quando necessário
-• Peso corporal: usar dados fornecidos
-• Fase produtiva: inferir pela finalidade quando necessário
-• Data da análise: ${dataAtual}
-
-2) OBJETIVO NUTRICIONAL
-
-1 parágrafo curto descrevendo: finalidade e nível produtivo considerado.
-
-3) TABELA DE FORMULAÇÃO DA DIETA
-
-A seguir, gere a ÚNICA tabela do relatório (formato markdown) com os ingredientes e os números calculados.
-- Não use colchetes, não use placeholders.
-- Use quantidades e percentuais reais e coerentes com o peso/objetivo.
-
-| Ingrediente | Quantidade/dia | Quantidade/refeição | % da dieta | Obs. |
-|---|---:|---:|---:|---|
-| (ingrediente 1) | (número) | (número) | (número) | (máx 3 palavras) |
-| (ingrediente 2) | (número) | (número) | (número) | (máx 3 palavras) |
-| TOTAL | (número) | (número) | 100 |  |
-
-REGRAS CRÍTICAS DA TABELA:
-- A linha TOTAL deve terminar com | (pipe) e NADA MAIS.
-- OBRIGATÓRIO: Após a última linha da tabela, deixe UMA LINHA EM BRANCO antes de "4) DISTRIBUIÇÃO".
-- PROIBIDO: colocar texto da seção 4 ou qualquer outro texto na mesma linha da tabela.
-- Use unidades consistentes (kg/dia ou g/dia) e mantenha o padrão em todas as linhas.
-- Use vírgula como separador decimal (ex.: 2,50).
-- Não repita textos explicativos na tabela.
-
-4) DISTRIBUIÇÃO DA ALIMENTAÇÃO
-
-Texto corrido (sem tabela) explicando número de refeições/dia, intervalos e manejo de cocho.
-
-5) JUSTIFICATIVA TÉCNICA DA FORMULAÇÃO
-
-Texto corrido explicando por que os ingredientes foram escolhidos e adequação ao objetivo.
-
-6) RECOMENDAÇÕES DE MANEJO NUTRICIONAL
-
-• Água: disponibilidade e qualidade
-• Ajustes graduais na transição
-• Monitoramento de consumo e escore corporal
-• Reavaliação periódica
-
-7) ALERTAS TÉCNICOS
-
-• Limitações da fórmula e variabilidade de ingredientes
-• Necessidade de ajuste individual por lote e análise bromatológica quando possível
-• Risco de erros de manejo e fornecimento
-
-8) ALERTA LEGAL
-
-${isProfessional ? "Este relatório é gerado por IA para apoio técnico. A responsabilidade pela aplicação prática é do profissional responsável, que deve validar a formulação conforme as condições específicas da propriedade." : "Esta formulação é orientativa e não substitui avaliação presencial por Médico Veterinário ou Zootecnista habilitado. Consulte um profissional antes de implementar."}
-
-9) REFERÊNCIAS TÉCNICAS
-
-• NRC — Nutrient Requirements of Swine/Beef Cattle/Poultry (National Research Council, 11ª ed., 2012)
-• Rostagno, H.S. et al. — Tabelas Brasileiras para Aves e Suínos: Composição de Alimentos e Exigências Nutricionais (UFV, 4ª ed., 2017)
-• EMBRAPA — Sistema Brasileiro de Classificação de Solos e Nutrição Animal
-• McDonald, P. et al. — Animal Nutrition (Pearson, 7ª ed., 2010)
-• INRA — Tables de Composition et de Valeur Nutritive des Matières Premières (2018)`;
-
-        userPrompt = question;
-      }
-      else if (tool === "escore-corporal") {
-        const { especie, idade, peso, objetivo } = data;
-        const userPlan = requestBody.plan || "free";
-        
-        systemPrompt = `Você é um especialista em avaliação de condição corporal animal da suíte VetAgro Sustentável AI.
+        systemPrompt = `Você é o módulo "Receituário Veterinário" da suíte VetAgro Sustentável AI, exclusivo para médicos veterinários.
 
 PADRÃO DE SAÍDA OBRIGATÓRIO:
 
-REGRAS ABSOLUTAS DE FORMATAÇÃO:
-1. PROIBIDO texto corrido longo - TODA resposta DEVE ser dividida em SEÇÕES NUMERADAS
-2. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
-3. Use APENAS bullets padrão: • ou –
-4. Parágrafos curtos (máximo 4 linhas cada)
-5. O texto deve ser ESCANEÁVEL em leitura rápida
-6. Espaçamento visual consistente entre blocos
-7. Cada seção deve ser VISUALMENTE RECONHECÍVEL
+GERE UM RECEITUÁRIO VETERINÁRIO FORMAL com os seguintes campos:
 
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+RECEITUÁRIO VETERINÁRIO
+━━━━━━━━━━━━━━━━━━━━━━━━━
 
-[ESCORE DE CONDIÇÃO CORPORAL]
+IDENTIFICAÇÃO DO PACIENTE:
+• Nome: [nome do animal]
+• Espécie: [espécie]
+• Raça: [raça]
+• Sexo: [sexo]
+• Idade: [idade]
+• Peso: [peso] kg
+• Proprietário: [nome]
 
-Análise Clínica Orientativa — VetAgro Sustentável AI
+PRESCRIÇÃO:
+━━━━━━━━━━━━━━━━━━━━━━━━━
+[Para cada medicamento:]
+Rp/
+[Nome do medicamento] ........................... [quantidade]
+[Posologia detalhada]
+[Via de administração]
+[Duração do tratamento]
 
-────────────────────
-1) IDENTIFICAÇÃO DO CASO
+ORIENTAÇÕES AO PROPRIETÁRIO:
+• [Orientações claras e objetivas]
 
-• Espécie: ${especie || "Não informada"}
-• Idade: ${idade || "Não informada"}
-• Peso atual: ${peso || "Não informado"}
-• Data da análise: ${new Date().toLocaleDateString("pt-BR")}
+ALERTA:
+Manter fora do alcance de crianças. Uso exclusivo veterinário.
 
-────────────────────
-2) ANÁLISE CLÍNICA INICIAL
+━━━━━━━━━━━━━━━━━━━━━━━━━
+Data: [data atual]
+Médico Veterinário: [nome]
+CRMV: [número-UF]`;
 
-ECC estimado na escala apropriada:
-• Bovinos de corte/leite: escala 1-5 (Edmonson, Ferguson)
-• Equinos: escala 1-9 (Henneke)
-• Caninos/Felinos: escala 1-9 (WSAVA)
-• Ovinos/Caprinos: escala 1-5
+        userPrompt = `Gere um receituário para:
 
-Classificação: [Muito Magro | Magro | Ideal | Sobrepeso | Obeso]
+PACIENTE:
+• Nome: ${data.nomeAnimal}
+• Espécie: ${data.especie}
+• Raça: ${data.raca || "SRD"}
+• Sexo: ${data.sexo}
+• Idade: ${data.idade}
+• Peso: ${data.peso} kg
+• Proprietário: ${data.proprietario}
 
-Achados visuais:
-• Cobertura de costelas
-• Depósitos de gordura
-• Proeminência óssea
-• Condição muscular
+PRESCRIÇÃO SOLICITADA:
+${data.prescricao}
 
-────────────────────
-3) HIPÓTESES / DIAGNÓSTICOS DIFERENCIAIS
+DIAGNÓSTICO/INDICAÇÃO:
+${data.diagnostico || "Não informado"}
 
-Possíveis causas do escore atual:
+VETERINÁRIO RESPONSÁVEL:
+• Nome: ${requestBody.vetName || "Não informado"}
+• CRMV: ${requestBody.crmv}
 
-1. [Causa mais provável]
-   – Justificativa
+Gere o receituário completo e formal.`;
+      }
+      else if (tool === "dicionario-farmacologico") {
+        systemPrompt = `Você é o módulo "Dicionário Farmacológico Veterinário" da suíte VetAgro Sustentável AI.
 
-2. [Segunda causa]
-   – Justificativa
+PADRÃO DE SAÍDA OBRIGATÓRIO:
 
-3. [Terceira causa]
-   – Justificativa
+REGRAS:
+1. Resposta em SEÇÕES NUMERADAS
+2. PROIBIDO asteriscos, hashtags, emojis
+3. Bullets padrão: • ou –
+4. Parágrafos curtos
 
-────────────────────
-4) EXAMES COMPLEMENTARES RECOMENDADOS
+Base Técnica: Plumb's Veterinary Drug Handbook, Formulário Nacional, Merck
 
-Formato obrigatório:
-• [Nome do exame] — [Objetivo clínico]
+ESTRUTURA OBRIGATÓRIA:
 
-────────────────────
-5) CLASSIFICAÇÃO DE URGÊNCIA
-
-• Nível: [Baixa | Moderada | Alta]
-• Justificativa baseada no impacto do ECC
-
-────────────────────
-6) CONDUTAS INICIAIS ORIENTATIVAS
-
-• Recomendações nutricionais específicas
-• Ajustes de manejo
-• Frequência de reavaliação
-• Metas de escore corporal
-
-────────────────────
-7) PROGNÓSTICO PRELIMINAR
-
-• [Favorável | Reservado | Desfavorável]
-• Condicionado às intervenções nutricionais
+[FICHA FARMACOLÓGICA]
 
 ────────────────────
-8) ALERTA LEGAL
-
-Esta análise é uma estimativa baseada em imagem e algoritmos de IA.
-Para avaliação precisa e decisões clínicas ou nutricionais, consulte um médico veterinário ou zootecnista qualificado.
+1) IDENTIFICAÇÃO
+• Nome genérico: [nome]
+• Classe terapêutica: [classe]
+• Mecanismo de ação: [resumo]
 
 ────────────────────
-9) REFERÊNCIAS TÉCNICAS
+2) INDICAÇÕES VETERINÁRIAS
+• [Lista por espécie quando aplicável]
 
-• NRC — Nutrient Requirements (específico para espécie)
-• Henneke et al. (1983) — Escala ECC Equinos
-• Edmonson et al. (1989) — Body Condition Scoring Bovinos
-• Ferguson et al. (1994) — Descriptors of Body Condition Score
-• WSAVA Body Condition Score Charts
-• Embrapa — Boletins Técnicos de Nutrição Animal`;
+────────────────────
+3) POSOLOGIA POR ESPÉCIE
+• Cães: [dose mg/kg, via, intervalo]
+• Gatos: [dose mg/kg, via, intervalo]
+• Bovinos: [dose mg/kg, via, intervalo]
+• Equinos: [dose mg/kg, via, intervalo]
+[Outras espécies conforme relevância]
 
-        userPrompt = `Avalie o Escore de Condição Corporal (ECC) com os dados:
+────────────────────
+4) CONTRAINDICAÇÕES E PRECAUÇÕES
+• [Listar principais]
 
-DADOS DO ANIMAL:
-• Espécie: ${especie || "Não informada"}
-• Idade: ${idade || "Não informada"}
-• Peso Atual: ${peso || "Não informado"}
-• Data: ${new Date().toLocaleDateString("pt-BR")}
+────────────────────
+5) EFEITOS ADVERSOS
+• [Listar por frequência: comuns, raros, graves]
 
-${objetivo ? `OBJETIVO: ${objetivo}` : ""}
+────────────────────
+6) INTERAÇÕES MEDICAMENTOSAS
+• [Listar interações relevantes]
 
-IMPORTANTE:
-• Siga RIGOROSAMENTE a estrutura de 9 seções obrigatórias
-• Texto escaneável, com títulos claros e listas organizadas
-• PROIBIDO texto corrido ou blocos longos`;
+────────────────────
+7) PERÍODO DE CARÊNCIA
+• Carne: [dias]
+• Leite: [dias]
+• Ovos: [dias]
+
+────────────────────
+8) REFERÊNCIAS
+• Plumb's Veterinary Drug Handbook
+• Formulário Nacional da Farmacopeia Brasileira`;
+
+        userPrompt = `Forneça a ficha farmacológica completa para:
+
+Medicamento/Princípio ativo: ${data.termo}
+${data.especie ? `Espécie de interesse: ${data.especie}` : ""}
+${data.indicacao ? `Indicação específica: ${data.indicacao}` : ""}
+
+Siga rigorosamente a estrutura obrigatória.`;
+      }
+      else if (tool === "calculadora-racao") {
+        systemPrompt = `Você é o módulo "Calculadora de Ração" da suíte VetAgro Sustentável AI, especializado em formulação de dietas animais.
+
+PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 1:
+
+REGRAS:
+1. Resposta em SEÇÕES NUMERADAS
+2. PROIBIDO asteriscos, hashtags, emojis
+3. Bullets padrão: • ou –
+4. TABELAS para composição
+
+Base Técnica: NRC (por espécie), Tabelas Brasileiras para Aves e Suínos, EMBRAPA
+
+ESTRUTURA OBRIGATÓRIA:
+
+[FORMULAÇÃO DE RAÇÃO]
+
+────────────────────
+1) PARÂMETROS DO ANIMAL
+• Espécie: [espécie]
+• Categoria: [categoria produtiva]
+• Peso vivo: [peso] kg
+• Objetivo: [mantença/crescimento/lactação/etc]
+
+────────────────────
+2) EXIGÊNCIAS NUTRICIONAIS
+[Tabela com: PB%, EM kcal/kg, Ca%, P%, Lisina%, etc.]
+
+────────────────────
+3) INGREDIENTES DISPONÍVEIS
+[Lista com composição de cada ingrediente]
+
+────────────────────
+4) FORMULAÇÃO PROPOSTA
+[Tabela com: Ingrediente | % inclusão | kg/ton]
+
+────────────────────
+5) COMPOSIÇÃO CALCULADA
+[Tabela comparando formulado vs exigido]
+
+────────────────────
+6) CUSTO ESTIMADO
+• Custo por kg: R$ [valor]
+• Custo por animal/dia: R$ [valor]
+
+────────────────────
+7) ORIENTAÇÕES DE MANEJO
+• [Orientações de fornecimento]
+
+────────────────────
+8) REFERÊNCIAS
+• NRC - Nutrient Requirements
+• Tabelas Brasileiras (Rostagno et al.)`;
+
+        userPrompt = `Formule uma ração para:
+
+ANIMAL:
+• Espécie: ${data.especie}
+• Categoria: ${data.categoria}
+• Peso: ${data.peso} kg
+• Objetivo: ${data.objetivo}
+• Consumo esperado: ${data.consumo || "a calcular"} kg MS/dia
+
+INGREDIENTES DISPONÍVEIS:
+${data.ingredientes || "Milho, farelo de soja, farelo de trigo, núcleo mineral"}
+
+${data.restricoes ? `RESTRIÇÕES: ${data.restricoes}` : ""}
+${data.observacoes ? `OBSERVAÇÕES: ${data.observacoes}` : ""}
+
+Forneça a formulação seguindo a estrutura obrigatória.`;
+      }
+      else if (tool === "escore-corporal") {
+        systemPrompt = `Você é o módulo "Escore de Condição Corporal" da suíte VetAgro Sustentável AI.
+
+PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 1:
+
+REGRAS:
+1. Resposta em SEÇÕES NUMERADAS
+2. PROIBIDO asteriscos, hashtags, emojis
+3. Bullets padrão: • ou –
+
+Base Técnica: Escalas de ECC por espécie (Edmonson bovinos, Laflamme cães/gatos, Henneke equinos)
+
+ESTRUTURA OBRIGATÓRIA:
+
+[AVALIAÇÃO DE ESCORE CORPORAL]
+
+────────────────────
+1) IDENTIFICAÇÃO
+• Espécie: [espécie]
+• Raça: [raça]
+• Idade: [idade]
+• Categoria: [categoria produtiva/fase de vida]
+
+────────────────────
+2) AVALIAÇÃO VISUAL/PALPATÓRIA
+• Costelas: [visibilidade/palpabilidade]
+• Processos espinhosos: [avaliação]
+• Base da cauda: [avaliação]
+• Cobertura muscular: [avaliação]
+
+────────────────────
+3) ESCORE ATRIBUÍDO
+• Escala utilizada: [1-5 ou 1-9, conforme espécie]
+• Escore atual: [valor]
+• Classificação: [Magro/Ideal/Sobrepeso/Obeso]
+
+────────────────────
+4) INTERPRETAÇÃO
+• Significado para saúde/produção
+• Comparação com ideal para a categoria
+
+────────────────────
+5) RECOMENDAÇÕES
+• Ajuste nutricional sugerido
+• Meta de escore
+• Prazo para reavaliação
+
+────────────────────
+6) ALERTA
+Avaliação orientativa. Consulte nutricionista/veterinário.`;
+
+        userPrompt = `Avalie o escore corporal:
+
+• Espécie: ${data.especie}
+• Raça: ${data.raca || "Não informada"}
+• Idade: ${data.idade || "Não informada"}
+• Categoria: ${data.categoria || "Não informada"}
+• Peso atual: ${data.peso || "Não informado"} kg
+
+OBSERVAÇÕES VISUAIS:
+${data.observacoes || "Não informadas"}
+
+${data.imagem ? "Imagem fornecida para análise." : ""}
+
+Forneça a avaliação seguindo a estrutura obrigatória.`;
       }
       else if (tool === "identificador-plantas") {
-        const isProfessional = requestBody.isProfessional === true;
-        const description = requestBody.description || "";
-        const images = requestBody.images || [];
-        const councilType = requestBody.councilType || "";
-        const councilNumber = requestBody.councilNumber || "";
-        const councilUF = requestBody.councilUF || "";
-        
-        const dataAtual = new Date().toLocaleDateString('pt-BR', { 
-          day: '2-digit', 
-          month: 'long', 
-          year: 'numeric' 
-        });
-        
-        const professionalInfo = isProfessional && councilNumber 
-          ? `\n• Profissional: ${councilType} ${councilNumber}-${councilUF}` 
-          : "";
-        
-        systemPrompt = `Você é um especialista em botânica, agronomia, toxicologia vegetal e manejo de pastagens da plataforma VetAgro Sustentável AI.
+        systemPrompt = `Você é o módulo "Identificador de Plantas" da suíte VetAgro Sustentável AI, especializado em identificação de espécies vegetais de interesse agropecuário.
 
-PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 2 (RELATÓRIOS TÉCNICOS):
+PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 1:
 
-REGRAS ABSOLUTAS DE FORMATAÇÃO:
-1. PROIBIDO texto corrido longo - TODA resposta DEVE ser dividida em SEÇÕES NUMERADAS
-2. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
-3. Use APENAS bullets padrão: • ou –
-4. Parágrafos curtos (máximo 4-5 linhas cada)
-5. O texto deve ser ESCANEÁVEL em leitura rápida
-6. Cada seção deve ser VISUALMENTE RECONHECÍVEL
+REGRAS:
+1. Resposta em SEÇÕES NUMERADAS
+2. PROIBIDO asteriscos, hashtags, emojis
+3. Bullets padrão: • ou –
 
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
+Base Técnica: Flora do Brasil, EMBRAPA Forrageiras, Literatura botânica
 
-[IDENTIFICADOR DE PLANTAS E TOXICIDADE]
+ESTRUTURA OBRIGATÓRIA:
 
-Relatório Técnico Orientativo — VetAgro Sustentável AI
+[IDENTIFICAÇÃO DE PLANTA]
 
 ────────────────────
-1) IDENTIFICAÇÃO GERAL
-
-• Tipo de amostra: [planta isolada / pastagem / forrageira]
-• Bioma provável: [identificar]
-• Local descrito: [se informado]${professionalInfo}
-• Data da análise: ${dataAtual}
-
-────────────────────
-2) OBJETIVO DA AVALIAÇÃO
-
-• Identificação botânica e análise de toxicidade
-• Avaliação fitossanitária
-• Recomendações de manejo
+1) IDENTIFICAÇÃO TAXONÔMICA
+• Nome popular: [nome(s)]
+• Nome científico: [Gênero espécie]
+• Família: [família botânica]
+• Origem: [nativa/exótica]
 
 ────────────────────
-3) DADOS AVALIADOS
-
-IDENTIFICAÇÃO BOTÂNICA:
-• Nome popular: [identificar]
-• Nome científico: [identificar]
-• Família botânica: [identificar]
-• Características morfológicas observadas
+2) CARACTERÍSTICAS MORFOLÓGICAS
+• Hábito: [herbácea/arbustiva/arbórea/trepadeira]
+• Folhas: [descrição]
+• Flores: [descrição]
+• Frutos/Sementes: [descrição]
 
 ────────────────────
-4) ANÁLISE TÉCNICA INTERPRETATIVA
-
-MORFOLOGIA:
-• Tipo de folha e disposição
-• Nervuras, coloração, formato
-• Caule, inflorescência, raízes (se visíveis)
-
-FITOSSANIDADE:
-• Pragas identificadas (se houver)
-• Doenças fúngicas/bacterianas (se houver)
-• Deficiências nutricionais visuais
-• Estado geral da planta/pastagem
-
-TOXICIDADE (se aplicável):
-• Princípios tóxicos presentes
-• Partes tóxicas da planta
-• Espécies animais afetadas
-• Sinais clínicos esperados
+3) OCORRÊNCIA E HABITAT
+• Biomas: [onde ocorre]
+• Ambiente preferencial: [descrição]
 
 ────────────────────
-5) ACHADOS PRINCIPAIS
-
-• Achado 1 — interpretação objetiva
-• Achado 2 — interpretação objetiva
-• Achado 3 — interpretação objetiva
-
-BIOMA E CONTEXTO:
-• Bioma identificado: [preencher]
-• Adequação ao local: [sim/não]
+4) IMPORTÂNCIA AGROPECUÁRIA
+• Uso forrageiro: [sim/não, qualidade]
+• Toxicidade: [sim/não, princípio tóxico, espécies afetadas]
+• Outros usos: [medicinal, madeireiro, etc.]
 
 ────────────────────
-6) RECOMENDAÇÕES TÉCNICAS
-
-MANEJO DE PASTAGEM:
-• Altura ideal de entrada/saída
-• Correções de solo necessárias
-• Adequação para diferentes espécies animais
-
-CONTROLE DE RISCOS:
-• Medidas preventivas contra toxicidade
-• Alternativas de substituição (plantas seguras)
-• Controle de pragas e doenças
-
-FORRAGEIRAS RECOMENDADAS:
-• Opções adequadas ao bioma local
+5) MANEJO RECOMENDADO
+• [Orientações específicas conforme uso/risco]
 
 ────────────────────
-7) CONSIDERAÇÕES FINAIS
-
-• Síntese da identificação
-• Riscos zootécnicos
-• Impacto na produção animal
+6) ALERTAS
+• [Toxicidade, invasora, legislação, etc.]
 
 ────────────────────
-8) ALERTA LEGAL
+7) REFERÊNCIAS
+• Flora do Brasil 2020
+• EMBRAPA - Plantas Forrageiras/Tóxicas`;
 
-${isProfessional ? "Este relatório é de apoio técnico. A avaliação diagnóstica completa requer análise presencial por engenheiro agrônomo, florestal, biólogo ou médico veterinário." : "Este relatório é uma estimativa baseada na imagem. A avaliação diagnóstica completa requer análise presencial por engenheiro agrônomo, florestal, biólogo ou médico veterinário."}
+        userPrompt = `Identifique a planta com as seguintes características:
 
-────────────────────
-9) REFERÊNCIAS TÉCNICAS
+${data.descricao || ""}
+${data.localizacao ? `Localização: ${data.localizacao}` : ""}
+${data.bioma ? `Bioma: ${data.bioma}` : ""}
+${data.uso ? `Uso pretendido: ${data.uso}` : ""}
 
-• Embrapa Gado de Corte / Amazônia Oriental
-• Tokarnia et al. — Manual de Plantas Tóxicas
-• Flora do Brasil (Reflora)
-• MAPA — listagens oficiais
-• Guias de gramíneas brasileiras`;
+${data.imagem ? "Imagem fornecida para análise." : ""}
 
-        userPrompt = `Identifique a planta/pastagem e gere relatório técnico completo:
-
-DADOS DO PROFISSIONAL:
-• Tipo: ${isProfessional ? "Profissional da área" : "Não profissional"}
-${isProfessional && councilType ? `• Conselho: ${councilType}` : ""}
-${isProfessional && councilNumber ? `• Registro: ${councilNumber}-${councilUF}` : ""}
-• Data: ${new Date().toLocaleDateString("pt-BR")}
-
-DESCRIÇÃO FORNECIDA: ${description || "Não fornecida - analisar pela imagem"}
-
-${images.length > 0 ? `IMAGENS ANEXADAS: ${images.length} imagem(ns) para análise` : "Nenhuma imagem anexada"}
-
-Forneça identificação botânica completa, análise fitossanitária, toxicidade animal (se aplicável), contexto agroecológico, forrageiras adequadas ao bioma e recomendações de manejo. Siga RIGOROSAMENTE a estrutura definida com texto 100% justificado, sem markdown, títulos em MAIÚSCULAS.`;
+Forneça a identificação seguindo a estrutura obrigatória, incluindo avaliação de toxicidade se relevante.`;
       }
       else {
         throw new Error("Tool not supported: " + tool);
@@ -1693,8 +1256,6 @@ Forneça identificação botânica completa, análise fitossanitária, toxicidad
       
       userPrompt = `${context ? `Contexto: ${context}\n\n` : ''}${question}`;
     }
-
-    // Log de processamento removido - desnecessário em produção
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -1731,8 +1292,6 @@ Forneça identificação botânica completa, análise fitossanitária, toxicidad
 
     const data = await response.json();
     const answer = data.choices?.[0]?.message?.content || "Não foi possível gerar resposta.";
-
-    // Log de sucesso removido - desnecessário em produção
 
     // Return in format compatible with both old and new requests
     return new Response(JSON.stringify({ answer, response: answer }), {

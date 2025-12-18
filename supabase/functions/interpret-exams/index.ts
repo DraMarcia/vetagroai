@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,47 @@ interface RequestBody {
   examType: string;
   plan?: 'free' | 'pro' | 'enterprise';
 }
+
+// ===== AUTHENTICATION HELPER =====
+interface AuthResult {
+  user: { id: string; email?: string } | null;
+  plan: string;
+  isAdmin: boolean;
+  error: string | null;
+}
+
+async function authenticateRequest(req: Request): Promise<AuthResult> {
+  const authHeader = req.headers.get('Authorization');
+  
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { user: null, plan: 'free', isAdmin: false, error: 'Authentication required' };
+  }
+
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+  
+  if (authError || !user) {
+    return { user: null, plan: 'free', isAdmin: false, error: 'Invalid or expired token' };
+  }
+
+  // Retrieve actual plan from profiles table
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('current_plan, is_admin')
+    .eq('user_id', user.id)
+    .single();
+
+  const actualPlan = profile?.current_plan || 'free';
+  const isAdmin = profile?.is_admin || false;
+
+  return { user, plan: actualPlan, isAdmin, error: null };
+}
+// ===== END AUTHENTICATION HELPER =====
 
 // Extract lab values from text using regex patterns
 function extractLabValues(text: string): { found: boolean; values: string[]; missing: string[] } {
@@ -75,6 +117,18 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate user and get actual plan from database
+    const authResult = await authenticateRequest(req);
+    
+    if (authResult.error) {
+      return new Response(
+        JSON.stringify({ error: authResult.error, code: 'AUTH_ERROR' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const plan = authResult.plan; // Server-validated plan
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY not configured");
@@ -88,9 +142,8 @@ serve(async (req) => {
     }
 
     const body: RequestBody = await req.json();
-    const { files, clinicalData, userType, crmv, patient, examType, plan = 'free' } = body;
+    const { files, clinicalData, userType, crmv, patient, examType } = body;
 
-    // Log sanitizado - sem dados sensíveis
     console.log("Request received: processing exam interpretation");
 
     // Validate minimum input
@@ -111,8 +164,6 @@ serve(async (req) => {
 
     if (files && files.length > 0) {
       for (const file of files) {
-        // Log removido - continha nome de arquivo do usuário
-        
         try {
           // Build content for OCR
           const ocrMessages: any[] = [
@@ -172,18 +223,18 @@ Extraia agora:`
             if (ocrText && !ocrText.includes("DOCUMENTO NÃO RECONHECIDO")) {
               extractedContent += `\n\n--- Dados extraídos de ${file.name} ---\n${ocrText}`;
               ocrSuccess = true;
-              console.log(`OCR success for ${file.name}`);
+              console.log('OCR success');
             } else {
               ocrErrors.push(file.name);
-              console.log(`OCR failed for ${file.name}: document not recognized`);
+              console.log('OCR failed: document not recognized');
             }
           } else {
             const errorText = await ocrResponse.text();
-            console.error(`OCR API error for ${file.name}:`, ocrResponse.status, errorText);
+            console.error('OCR API error:', ocrResponse.status, errorText);
             ocrErrors.push(file.name);
           }
         } catch (ocrError) {
-          console.error(`OCR processing error for ${file.name}:`, ocrError);
+          console.error('OCR processing error:', ocrError);
           ocrErrors.push(file.name);
         }
       }
@@ -203,7 +254,6 @@ Extraia agora:`
     
     // If no lab values found, return guidance
     if (!labValidation.found && !clinicalData?.trim()) {
-      const missingParams = labValidation.missing.join(', ');
       const ocrFailedFiles = ocrErrors.length > 0 ? `\n\nArquivos não lidos: ${ocrErrors.join(', ')}` : '';
       
       return new Response(JSON.stringify({ 
@@ -222,7 +272,7 @@ Insira os valores no campo de texto ou envie uma imagem mais nítida do exame.${
       });
     }
 
-    // Build interpretation prompt based on user type and plan
+    // Build interpretation prompt based on user type and server-validated plan
     const isProfessional = userType === 'profissional';
     const isFreePlan = plan === 'free';
     
