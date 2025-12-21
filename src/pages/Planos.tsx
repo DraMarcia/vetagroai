@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Check, Zap, Sparkles, Building2, ArrowRight } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const MERCADO_PAGO_LINKS = {
   pro: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=71757e967b5049e5bfa5e88c022b357c",
@@ -65,9 +69,20 @@ const plans = [
 
 const Planos = () => {
   const { plan: currentPlan, isLoading } = useSubscription();
+  const navigate = useNavigate();
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  const handleSubscribe = (planId: string) => {
-    if (planId === "pro") {
+  const handleSubscribe = async (planId: string) => {
+    if (planId === "free") {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // User is logged in, redirect to home
+        navigate("/");
+      } else {
+        // User not logged in, show auth dialog
+        setShowAuthDialog(true);
+      }
+    } else if (planId === "pro") {
       window.open(MERCADO_PAGO_LINKS.pro, "_blank");
     } else if (planId === "enterprise") {
       window.open(MERCADO_PAGO_LINKS.enterprise, "_blank");
@@ -155,6 +170,11 @@ const Planos = () => {
           );
         })}
       </div>
+
+      <AuthDialog 
+        open={showAuthDialog} 
+        onOpenChange={setShowAuthDialog} 
+      />
     </div>
   );
 };
