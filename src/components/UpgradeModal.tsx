@@ -2,7 +2,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, Crown, Building2, Zap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -10,48 +9,52 @@ interface UpgradeModalProps {
   reason?: string;
 }
 
+const MERCADO_PAGO_LINKS = {
+  pro: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=71757e967b5049e5bfa5e88c022b357c",
+  enterprise: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=8662444c7a604ea196aca59c150313f1",
+};
+
 const plans = [
   {
-    name: "Pro",
+    id: "pro",
+    name: "Pró",
     price: "R$ 39,90",
     period: "/mês",
     description: "Ideal para profissionais que usam o sistema na rotina técnica",
     icon: Crown,
     color: "from-amber-500 to-orange-600",
     features: [
-      "Uso ilimitado das ferramentas",
-      "Upload de exames (PDF, imagens)",
-      "Relatórios PDF com referências",
-      "Respostas técnicas completas",
-      "Modelagem produtiva sem limites",
-      "Prioridade no processamento",
+      "Uso ilimitado",
+      "Upload de arquivos",
+      "Relatórios completos com referências científicas",
+      "Relatórios em texto estruturado, prontos para copiar e compartilhar",
+      "Histórico completo",
     ],
+    buttonText: "Assinar agora",
   },
   {
-    name: "Enterprise",
+    id: "enterprise",
+    name: "Empresa",
     price: "R$ 129,90",
     period: "/mês",
-    description: "Para clínicas, consultorias e produtores com volume",
+    description: "Para clínicas, consultorias e produtores com equipe",
     icon: Building2,
     color: "from-indigo-500 to-purple-600",
     features: [
-      "Tudo do plano Pro",
-      "Até 5 usuários",
-      "Créditos ilimitados",
-      "Relatórios com sua marca",
-      "Histórico e exportação",
+      "Tudo do plano Pró",
+      "Multiusuário",
+      "Relatórios com branding (logo/nome da empresa)",
       "Suporte prioritário",
-      "Processamento ultra-rápido",
+      "Gestão de equipe",
     ],
+    buttonText: "Assinar plano Empresa",
   },
 ];
 
 export function UpgradeModal({ open, onOpenChange, reason }: UpgradeModalProps) {
-  const navigate = useNavigate();
-
-  const handleViewPlans = () => {
+  const handleSubscribe = (planId: string) => {
+    window.open(MERCADO_PAGO_LINKS[planId as keyof typeof MERCADO_PAGO_LINKS], "_blank");
     onOpenChange(false);
-    navigate("/planos");
   };
 
   return (
@@ -69,7 +72,7 @@ export function UpgradeModal({ open, onOpenChange, reason }: UpgradeModalProps) 
 
         <div className="grid md:grid-cols-2 gap-4 mt-4">
           {plans.map((plan) => (
-            <Card key={plan.name} className="relative overflow-hidden">
+            <Card key={plan.id} className="relative overflow-hidden">
               <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${plan.color}`} />
               <CardHeader className="pb-2">
                 <div className="flex items-center gap-2">
@@ -82,7 +85,7 @@ export function UpgradeModal({ open, onOpenChange, reason }: UpgradeModalProps) 
                 </div>
                 <CardDescription className="text-xs">{plan.description}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <ul className="space-y-2 text-sm">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-center gap-2">
@@ -91,15 +94,15 @@ export function UpgradeModal({ open, onOpenChange, reason }: UpgradeModalProps) 
                     </li>
                   ))}
                 </ul>
+                <Button 
+                  className="w-full" 
+                  onClick={() => handleSubscribe(plan.id)}
+                >
+                  {plan.buttonText}
+                </Button>
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        <div className="flex justify-center mt-4">
-          <Button onClick={handleViewPlans} className="w-full sm:w-auto">
-            Ver todos os planos
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

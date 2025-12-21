@@ -4,71 +4,76 @@ import { Check, Crown, Building2, Sparkles } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Badge } from "@/components/ui/badge";
 
+const MERCADO_PAGO_LINKS = {
+  pro: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=71757e967b5049e5bfa5e88c022b357c",
+  enterprise: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=8662444c7a604ea196aca59c150313f1",
+};
+
 const plans = [
   {
     id: "free",
-    name: "Free",
+    name: "Gratuito",
     price: "R$ 0",
     period: "/mês",
-    description: "Perfeito para começar. Experimente ferramentas básicas e receba orientações gerais.",
+    description: "Perfeito para começar. Experimente as ferramentas básicas do VetAgro AI.",
     icon: Sparkles,
     color: "from-gray-400 to-gray-500",
     features: [
-      "10 créditos diários",
-      "Ferramentas de texto básicas",
-      "Interpretação simplificada para tutores",
-      "Resumo na tela (sem PDF)",
+      "Acesso limitado diário",
+      "Ferramentas básicas",
+      "Acesso ao chatbot assistente",
     ],
-    limitations: [
-      "Sem upload de arquivos",
-      "Sem relatórios PDF",
-      "Sem prioridade de processamento",
-    ],
+    limitations: [],
+    buttonText: "Começar grátis",
   },
   {
     id: "pro",
-    name: "Pro",
+    name: "Pró",
     price: "R$ 39,90",
     period: "/mês",
-    description: "Tudo o que um veterinário ou gestor precisa. Análises profissionais completas.",
+    description: "Ideal para profissionais que usam o sistema na rotina técnica.",
     icon: Crown,
     color: "from-amber-500 to-orange-600",
     popular: true,
     features: [
-      "Uso ilimitado das ferramentas",
-      "Upload de exames (PDF, imagens, RX, USG)",
-      "Relatórios PDF com referências",
-      "Respostas técnicas com diferenciação profissional",
-      "Modelagem produtiva, metano, clima sem limites",
-      "ECC com upload de imagem",
-      "Prioridade moderada no processamento",
+      "Uso ilimitado",
+      "Upload de arquivos",
+      "Geração de relatórios completos com referências científicas",
+      "Relatórios em texto estruturado, prontos para copiar, salvar e compartilhar",
+      "Histórico completo",
     ],
     limitations: [],
+    buttonText: "Assinar agora",
   },
   {
     id: "enterprise",
-    name: "Enterprise",
+    name: "Empresa",
     price: "R$ 129,90",
     period: "/mês",
-    description: "Nível corporativo para consultorias, clínicas e produtores.",
+    description: "Para clínicas, consultorias e produtores com equipe.",
     icon: Building2,
     color: "from-indigo-500 to-purple-600",
     features: [
-      "Tudo do plano Pro",
-      "Até 5 usuários",
-      "Créditos ilimitados",
-      "Relatórios PDF com sua marca/logotipo",
-      "Painel de histórico e exportação (CSV/PDF)",
-      "Suporte prioritário e canal direto",
-      "Acesso antecipado a novas ferramentas",
-      "Processamento ultra-rápido",
+      "Tudo do plano Pró",
+      "Multiusuário",
+      "Relatórios completos com branding (logo/nome da empresa no cabeçalho)",
+      "Relatórios estruturados e profissionais, prontos para copiar e compartilhar",
+      "Suporte prioritário",
+      "Gestão de equipe",
     ],
     limitations: [],
+    buttonText: "Assinar plano Empresa",
   },
 ];
 
 const Planos = () => {
   const { plan: currentPlan, isLoading } = useSubscription();
+
+  const handleSubscribe = (planId: string) => {
+    if (planId === "pro" || planId === "enterprise") {
+      window.open(MERCADO_PAGO_LINKS[planId as keyof typeof MERCADO_PAGO_LINKS], "_blank");
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -123,20 +128,6 @@ const Planos = () => {
                   </ul>
                 </div>
 
-                {plan.limitations.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-3 text-sm uppercase text-muted-foreground">Limitações</h4>
-                    <ul className="space-y-2">
-                      {plan.limitations.map((limitation) => (
-                        <li key={limitation} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <span className="text-red-400">✕</span>
-                          <span>{limitation}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
                 <div className="pt-4">
                   {isCurrentPlan ? (
                     <Badge variant="secondary" className="w-full justify-center py-2">
@@ -147,8 +138,9 @@ const Planos = () => {
                       className="w-full" 
                       variant={plan.popular ? "default" : "outline"}
                       disabled={isLoading}
+                      onClick={() => handleSubscribe(plan.id)}
                     >
-                      {plan.id === "free" ? "Começar Grátis" : `Assinar ${plan.name}`}
+                      {plan.buttonText}
                     </Button>
                   )}
                 </div>
