@@ -49,3 +49,35 @@ export const trackEvent = (
   
   window.gtag('event', eventName, params);
 };
+
+// === CONVERSION EVENTS ===
+
+// Track when user starts signup process
+export const trackSignupStarted = (method: 'email' | 'google'): void => {
+  trackEvent('signup_started', { method });
+};
+
+// Track when signup is completed successfully
+export const trackSignupCompleted = (method: 'email' | 'google'): void => {
+  trackEvent('signup_completed', { method });
+};
+
+// Track successful login
+export const trackLoginSuccess = (method: 'email' | 'google'): void => {
+  trackEvent('login_success', { method });
+};
+
+// Track feature usage (no personal data)
+export const trackFeatureUsed = (featureName: string): void => {
+  trackEvent('feature_used', { feature_name: featureName });
+};
+
+// Track subscription click
+export const trackSubscriptionClick = (planId: string): void => {
+  trackEvent('subscription_click', { plan_id: planId });
+};
+
+// Track subscription success (Mercado Pago return)
+export const trackSubscriptionSuccess = (planId: string): void => {
+  trackEvent('subscription_success', { plan_id: planId });
+};

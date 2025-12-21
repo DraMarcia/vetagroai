@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
+import { trackFeatureUsed } from "@/lib/analytics";
 
 const DiagnosticoDiferencial = () => {
   const { toast } = useToast();
@@ -87,6 +88,9 @@ const DiagnosticoDiferencial = () => {
 
   const handleAnalyze = async () => {
     if (!validateInputs()) return;
+
+    // Track feature usage
+    trackFeatureUsed('diagnostico_diferencial');
 
     setLoading(true);
     try {
