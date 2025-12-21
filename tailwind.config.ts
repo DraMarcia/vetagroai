@@ -80,19 +80,10 @@ export default {
             height: "0",
           },
         },
-        "swing": {
-          "0%, 100%": {
-            transform: "rotate(-5deg)",
-          },
-          "50%": {
-            transform: "rotate(8deg)",
-          },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "swing": "swing 2s ease-in-out infinite",
       },
     },
   },
