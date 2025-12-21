@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { Eye, EyeOff } from "lucide-react";
+import { trackSignupStarted, trackSignupCompleted, trackLoginSuccess } from "@/lib/analytics";
 
 const authSchema = z.object({
   email: z.string().trim().email({ message: "Email inválido" }),
@@ -56,12 +57,18 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           throw error;
         }
 
+        // Track successful login
+        trackLoginSuccess('email');
+
         toast({
           title: "Login realizado!",
           description: "Bem-vindo de volta!",
         });
         onOpenChange(false);
       } else {
+        // Track signup started
+        trackSignupStarted('email');
+
         const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.signUp({
           email: email.trim(),
@@ -77,6 +84,9 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           }
           throw error;
         }
+
+        // Track signup completed
+        trackSignupCompleted('email');
 
         toast({
           title: "Cadastro realizado!",
@@ -98,6 +108,9 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
 
   const handleGoogleAuth = async () => {
     setLoading(true);
+    // Track signup/login started with Google
+    trackSignupStarted('google');
+    
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",

@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check, Crown, Building2, Zap } from "lucide-react";
+import { trackSubscriptionClick } from "@/lib/analytics";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -53,6 +54,8 @@ const plans = [
 
 export function UpgradeModal({ open, onOpenChange, reason }: UpgradeModalProps) {
   const handleSubscribe = (planId: string) => {
+    // Track subscription click
+    trackSubscriptionClick(planId);
     window.open(MERCADO_PAGO_LINKS[planId as keyof typeof MERCADO_PAGO_LINKS], "_blank");
     onOpenChange(false);
   };

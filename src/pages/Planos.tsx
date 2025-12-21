@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { AuthDialog } from "@/components/AuthDialog";
+import { trackSubscriptionClick } from "@/lib/analytics";
 
 const MERCADO_PAGO_LINKS = {
   pro: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=71757e967b5049e5bfa5e88c022b357c",
@@ -73,6 +74,9 @@ const Planos = () => {
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const handleSubscribe = async (planId: string) => {
+    // Track subscription click for all plans
+    trackSubscriptionClick(planId);
+
     if (planId === "free") {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
