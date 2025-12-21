@@ -17,7 +17,6 @@ import logo from "@/assets/logo.jpg";
 import banner from "@/assets/banner.jpg";
 import { AuthDialog } from "@/components/AuthDialog";
 import { AboutModal, useFirstVisitModal } from "@/components/AboutModal";
-import SantaHat from "@/components/SantaHat";
 
 const categories = [
   {
@@ -85,17 +84,13 @@ const Index = () => {
         
         {/* Hero Content - Centered */}
         <div className="relative flex-1 flex flex-col items-center justify-center text-center px-6 py-8">
-          {/* Logo with Santa Hat */}
-          <div className="mb-5 md:mb-6 relative">
-            {/* Santa Hat - positioned at top-left, tilted */}
-            <SantaHat className="absolute -top-8 -left-4 sm:-top-10 sm:-left-5 md:-top-12 md:-left-6 w-24 h-16 sm:w-28 sm:h-20 md:w-32 md:h-24 z-10 -rotate-12 drop-shadow-lg" />
-            <div className="animate-[spin_20s_linear_infinite]">
-              <img 
-                src={logo} 
-                alt="VetAGro Sustentável AI Logo" 
-                className="w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 object-contain rounded-full shadow-xl border-4 border-background/30"
-              />
-            </div>
+          {/* Logo */}
+          <div className="mb-5 md:mb-6 animate-[spin_20s_linear_infinite]">
+            <img 
+              src={logo} 
+              alt="VetAGro Sustentável AI Logo" 
+              className="w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 object-contain rounded-full shadow-xl border-4 border-background/30"
+            />
           </div>
           
           {/* Title */}
