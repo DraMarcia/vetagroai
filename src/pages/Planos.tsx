@@ -59,7 +59,7 @@ const plans = [
       "Tudo do plano Pró",
       "Apoio à gestão, sustentabilidade e tomada de decisão",
     ],
-    buttonText: "Falar com vendas",
+    buttonText: "Assinar plano Empresa",
   },
 ];
 
