@@ -20,7 +20,8 @@ import {
   CreditCard,
   Lightbulb,
   Home,
-  HelpCircle
+  HelpCircle,
+  Shield
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { ToolSuggestionDialog } from "@/components/ToolSuggestionDialog";
@@ -90,6 +91,7 @@ const categories = [
       { title: "Produtos e Serviços", url: "/produtos-servicos", icon: ShoppingBag },
       { title: "Meu Espaço Inteligente", url: "/meu-perfil", icon: User },
       { title: "Blog", url: "/blog", icon: BookOpen },
+      { title: "Política de Privacidade", url: "/politica-de-privacidade", icon: Shield },
     ],
   },
 ];
