@@ -255,6 +255,18 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             </p>
           )}
         </div>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Ao continuar, você concorda com nossa{" "}
+          <a
+            href="/politica-de-privacidade"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            Política de Privacidade
+          </a>
+        </p>
       </DialogContent>
     </Dialog>
   );
