@@ -116,6 +116,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/`,
+          scopes: 'email profile',
         },
       });
 
