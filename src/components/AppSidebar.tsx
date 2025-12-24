@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { 
   Stethoscope, 
   Calculator, 
@@ -21,11 +22,16 @@ import {
   Lightbulb,
   Home,
   HelpCircle,
-  Shield
+  Shield,
+  LogOut
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { ToolSuggestionDialog } from "@/components/ToolSuggestionDialog";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 import {
   Sidebar,
@@ -98,6 +104,37 @@ const categories = [
 
 export function AppSidebar() {
   const { open } = useSidebar();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast.success("Sessão encerrada com sucesso");
+      navigate("/");
+    } catch (error: any) {
+      toast.error("Erro ao sair: " + error.message);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <Sidebar className={open ? "w-64" : "w-16"} collapsible="icon">
@@ -144,7 +181,19 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 space-y-2">
+        {user && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full gap-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {open && (isLoggingOut ? "Saindo..." : "Sair")}
+          </Button>
+        )}
         <ToolSuggestionDialog
           trigger={
             <Button variant="outline" size="sm" className="w-full gap-2 text-xs">
