@@ -1,10 +1,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// Allowed origins for CORS (production + development)
+const allowedOrigins = [
+  'https://vetagro.ai',
+  'https://www.vetagro.ai',
+  'https://vetagro-sustentavel.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('origin') || '';
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 // ===== AUTHENTICATION HELPER =====
 interface AuthResult {
@@ -36,14 +50,13 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
   // Retrieve actual plan from profiles table
   const { data: profile } = await supabaseClient
     .from('profiles')
-    .select('current_plan, is_admin')
+    .select('current_plan')
     .eq('user_id', user.id)
     .single();
 
   const actualPlan = profile?.current_plan || 'free';
-  const isAdmin = profile?.is_admin || false;
 
-  return { user, plan: actualPlan, isAdmin, error: null };
+  return { user, plan: actualPlan, isAdmin: false, error: null };
 }
 // ===== END AUTHENTICATION HELPER =====
 
@@ -98,6 +111,8 @@ DICAS DE PROMPTS:
 Responda de forma amigável, clara e objetiva. Use emojis moderadamente para tornar a conversa mais agradável. Sempre em português brasileiro.`;
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -165,6 +180,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Chatbot error:", error);
+    const corsHeaders = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
