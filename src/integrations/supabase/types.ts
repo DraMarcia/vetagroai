@@ -22,7 +22,6 @@ export type Database = {
           daily_credits: number | null
           full_name: string | null
           id: string
-          is_admin: boolean | null
           is_professional: boolean | null
           plan_expires_at: string | null
           professional_registry_number: string | null
@@ -39,7 +38,6 @@ export type Database = {
           daily_credits?: number | null
           full_name?: string | null
           id?: string
-          is_admin?: boolean | null
           is_professional?: boolean | null
           plan_expires_at?: string | null
           professional_registry_number?: string | null
@@ -56,7 +54,6 @@ export type Database = {
           daily_credits?: number | null
           full_name?: string | null
           id?: string
-          is_admin?: boolean | null
           is_professional?: boolean | null
           plan_expires_at?: string | null
           professional_registry_number?: string | null
@@ -164,6 +161,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_tool_history: {
         Row: {
           created_at: string
@@ -200,9 +218,17 @@ export type Database = {
     }
     Functions: {
       check_credits: { Args: never; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       use_credit: { Args: never; Returns: boolean }
     }
     Enums: {
+      app_role: "admin" | "moderator" | "user"
       professional_registry_type: "crmv" | "crea" | "crbio" | "other"
       subscription_plan: "free" | "pro" | "enterprise"
     }
@@ -332,6 +358,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "moderator", "user"],
       professional_registry_type: ["crmv", "crea", "crbio", "other"],
       subscription_plan: ["free", "pro", "enterprise"],
     },
