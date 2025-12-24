@@ -287,33 +287,37 @@ CONTEXTO CLÍNICO: ${clinicalContext || "Não informado"}
 
 Forneça a análise seguindo rigorosamente a estrutura definida.`;
 
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/veterinary-consultation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({
+      // Use supabase.functions.invoke() which automatically includes the user's session token
+      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
+        body: {
           tool: "calculadora-dose",
-          systemPrompt,
-          userPrompt,
+          data: {
+            medicamento: isManipulated ? `Manipulado: ${medicationInfo}` : medication,
+            especie: species,
+            peso: weight,
+            via: route || "Não especificada",
+            concentracao: "Consultar bula",
+            observacoes: clinicalContext || ""
+          },
+          crmv: isProfessional === "sim" ? `${crmv}/${uf.toUpperCase()}` : undefined,
           isProfessional: isProfessional === "sim",
-          plan: "pro" // TODO: Get from user context
-        }),
+        },
       });
 
-      if (!response.ok) {
-        if (response.status === 429) {
+      if (error) {
+        if (error.message?.includes("429") || error.message?.includes("rate")) {
           throw new Error("Limite de requisições atingido. Aguarde alguns minutos e tente novamente.");
         }
-        if (response.status === 402) {
+        if (error.message?.includes("402") || error.message?.includes("credit")) {
           throw new Error("Créditos insuficientes. Faça upgrade do seu plano.");
         }
-        throw new Error("Erro ao processar a consulta.");
+        if (error.message?.includes("401") || error.message?.includes("auth")) {
+          throw new Error("Faça login para usar esta ferramenta.");
+        }
+        throw new Error(error.message || "Erro ao processar a consulta.");
       }
 
-      const data = await response.json();
-      const cleanedResult = cleanTextForDisplay(data.answer || data.response || "");
+      const cleanedResult = cleanTextForDisplay(data?.answer || data?.response || "");
       
       setResult(cleanedResult);
       toast({
