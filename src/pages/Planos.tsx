@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Zap, Sparkles, Building2, ArrowRight } from "lucide-react";
+import { Check, Zap, Sparkles, Building2, ArrowRight, Lightbulb, Brain, BarChart3, Leaf } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { AuthDialog } from "@/components/AuthDialog";
 import { trackSubscriptionClick } from "@/lib/analytics";
+
+const MERCADO_PAGO_CREDITS_LINK = "https://mpago.la/12xcSRW";
 
 const MERCADO_PAGO_LINKS = {
   pro: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=71757e967b5049e5bfa5e88c022b357c",
@@ -174,6 +176,114 @@ const Planos = () => {
           );
         })}
       </div>
+
+      {/* Credits Block */}
+      <Card className="mt-12 border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardHeader className="text-center pb-4">
+          <div className="flex justify-center mb-4">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+              <Lightbulb className="h-7 w-7 text-primary" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl">
+            Créditos Avulsos – Use Inteligência Artificial no seu ritmo
+          </CardTitle>
+          <CardDescription className="text-base max-w-2xl mx-auto mt-2">
+            Nem sempre você precisa de um plano mensal. Com os Créditos Avulsos, você pode utilizar as ferramentas de Inteligência Artificial do aplicativo conforme sua necessidade real, de forma flexível e sem compromisso.
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          <p className="text-center text-muted-foreground">
+            Cada análise realizada — como simulações produtivas, avaliações climáticas, cálculos ambientais ou apoio técnico veterinário — consome créditos de acordo com a complexidade da ferramenta.
+          </p>
+
+          {/* Icons Row */}
+          <div className="flex justify-center gap-6 py-4">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Brain className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-xs text-muted-foreground">IA Avançada</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-xs text-muted-foreground">Análises</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Leaf className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-xs text-muted-foreground">Sustentabilidade</span>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {/* Ideal para */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-foreground">Ideal para:</h4>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Testar novas funcionalidades</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Realizar análises pontuais</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Complementar os créditos diários gratuitos</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* O que você recebe */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-foreground">O que você recebe:</h4>
+              <ul className="space-y-2">
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>40 créditos de uso</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Acesso imediato às ferramentas avançadas</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Sem renovação automática</span>
+                </li>
+                <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <span>Use quando quiser, até consumir tudo</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Price and CTA */}
+          <div className="text-center pt-6 border-t border-border mt-6">
+            <div className="mb-4">
+              <span className="text-3xl font-bold text-foreground">R$ 19,90</span>
+              <span className="text-muted-foreground ml-2">(pagamento único)</span>
+            </div>
+            <Button 
+              size="lg"
+              className="group"
+              onClick={() => {
+                trackSubscriptionClick("credits");
+                window.open(MERCADO_PAGO_CREDITS_LINK, "_blank");
+              }}
+            >
+              Comprar Créditos Avulsos
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <AuthDialog 
         open={showAuthDialog} 
