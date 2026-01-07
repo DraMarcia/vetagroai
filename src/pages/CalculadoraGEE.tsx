@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend } from "recharts";
+import { ToolExplanatoryBlock } from "@/components/ToolExplanatoryBlock";
 
 // MÓDULO 2 — LIMITES BIOLÓGICOS (IPCC 2019 Refinement)
 const BIOLOGICAL_LIMITS = {
@@ -856,6 +857,21 @@ Documento gerado pela suíte VetAgro Sustentável AI
             <p className="text-muted-foreground">Cálculo de emissões de CH₄ e N₂O de sistemas pecuários utilizando metodologia IPCC Tier 2</p>
           </div>
         </div>
+
+        <ToolExplanatoryBlock
+          description="Ferramenta especializada para quantificação de emissões de gases de efeito estufa (CH₄ e N₂O) em sistemas pecuários, seguindo metodologia IPCC Tier 2 com parâmetros ajustados para condições brasileiras."
+          whatItDoes="Calcula emissões de metano entérico e de dejetos, óxido nitroso direto e indireto, convertendo para CO₂ equivalente com GWP-100."
+          forWhom="Produtores rurais, consultores ambientais, pesquisadores e profissionais que precisam de inventários de GEE precisos."
+          whenToUse="Para inventários ambientais, certificações de pegada de carbono, projetos de crédito de carbono e planejamento de mitigação."
+          whatYouGet="Relatório completo com balanço de emissões, gráficos por categoria, análise por IA e simulações de estratégias de mitigação."
+          features={[
+            { icon: Cloud, label: "IPCC Tier 2" },
+            { icon: Flame, label: "CH₄ e N₂O" },
+            { icon: TrendingDown, label: "Simulação de Mitigação" },
+            { icon: BarChart3, label: "Gráficos Interativos" },
+          ]}
+          variant="emerald"
+        />
 
         {/* Badges de gases */}
         <div className="flex flex-wrap gap-2 mb-4">

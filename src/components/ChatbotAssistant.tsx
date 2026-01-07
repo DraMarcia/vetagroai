@@ -5,31 +5,12 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, Send, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import chatbotLogo from "@/assets/chatbot-logo.jpeg";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
-
-// Paw print SVG component
-const PawPrint = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 0 100 100"
-    className={className}
-    fill="currentColor"
-  >
-    {/* Main pad */}
-    <ellipse cx="50" cy="65" rx="22" ry="18" />
-    {/* Top left toe */}
-    <ellipse cx="25" cy="35" rx="10" ry="12" />
-    {/* Top right toe */}
-    <ellipse cx="75" cy="35" rx="10" ry="12" />
-    {/* Middle left toe */}
-    <ellipse cx="32" cy="48" rx="9" ry="11" />
-    {/* Middle right toe */}
-    <ellipse cx="68" cy="48" rx="9" ry="11" />
-  </svg>
-);
 
 export function ChatbotAssistant() {
   const [isOpen, setIsOpen] = useState(false);
@@ -91,15 +72,15 @@ export function ChatbotAssistant() {
 
   return (
     <>
-      {/* Floating Paw Button */}
+      {/* Floating Logo Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center ${
+        className={`fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center overflow-hidden ${
           isOpen ? "hidden" : ""
         }`}
         aria-label="Abrir assistente"
       >
-        <PawPrint className="w-10 h-10" />
+        <img src={chatbotLogo} alt="Assistente VetAgro" className="w-full h-full object-cover" />
       </button>
 
       {/* Chat Window */}
@@ -108,7 +89,7 @@ export function ChatbotAssistant() {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-t-lg">
             <div className="flex items-center gap-2">
-              <PawPrint className="w-6 h-6" />
+              <img src={chatbotLogo} alt="VetAgro" className="w-6 h-6 rounded-full" />
               <span className="font-semibold">Assistente VetAgro</span>
             </div>
             <Button
