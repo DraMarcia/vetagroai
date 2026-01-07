@@ -141,7 +141,7 @@ Liste as fontes técnicas utilizadas (NRC, Henneke, Edmonson, Ferguson, Embrapa)
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Escore de Condição Corporal (ECC)</h1>
-            <p className="text-muted-foreground">Avaliação visual com IA e recomendações nutricionais</p>
+            <p className="text-muted-foreground">Estimativa do ECC a partir de imagem com recomendações nutricionais</p>
           </div>
         </div>
       </div>

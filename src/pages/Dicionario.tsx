@@ -188,8 +188,8 @@ REGRAS OBRIGATÓRIAS:
             <BookOpen className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dicionário Veterinário</h1>
-            <p className="text-muted-foreground">Consulta técnica rápida de termos, fármacos e conceitos</p>
+            <h1 className="text-3xl font-bold text-foreground">Dicionário Farmacológico Veterinário</h1>
+            <p className="text-muted-foreground">Consulta técnica rápida de termos, fármacos e conceitos clínicos</p>
           </div>
         </div>
 
@@ -409,8 +409,8 @@ REGRAS OBRIGATÓRIAS:
               {/* Action Buttons */}
               <ResponseActionButtons
                 content={result}
-                title={`Dicionário Veterinário — ${medication}`}
-                toolName="Dicionário Veterinário"
+                title={`Dicionário Farmacológico Veterinário — ${medication}`}
+                toolName="Dicionário Farmacológico Veterinário"
                 className="mt-6 pt-4 border-t"
               />
             </CardContent>

@@ -457,7 +457,7 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              Interpretação de Exames
+              Interpretação de Exames Laboratoriais e de Imagem
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
               Hemograma, bioquímica, imagem, PDFs de laudos e outros exames veterinários

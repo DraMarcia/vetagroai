@@ -853,7 +853,7 @@ Documento gerado pela suíte VetAgro Sustentável AI
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Calculadora Integrada de Emissões de GEE</h1>
-            <p className="text-muted-foreground">Metodologia IPCC Tier 2 — Cálculos científicos com limites fisiológicos</p>
+            <p className="text-muted-foreground">Cálculo de emissões de CH₄ e N₂O de sistemas pecuários utilizando metodologia IPCC Tier 2</p>
           </div>
         </div>
 

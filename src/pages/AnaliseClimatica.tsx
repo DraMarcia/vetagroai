@@ -225,7 +225,7 @@ ${scenario}`,
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Análise Climática Inteligente</h1>
-            <p className="text-muted-foreground">Planejamento estratégico baseado em riscos climáticos regionais</p>
+            <p className="text-muted-foreground">Análise estratégica de riscos climáticos regionais com recomendações de adaptação</p>
           </div>
         </div>
 

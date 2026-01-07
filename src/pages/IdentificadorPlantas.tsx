@@ -220,8 +220,8 @@ REGRAS OBRIGATÓRIAS:
             <Leaf className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Identificador de Plantas</h1>
-            <p className="text-muted-foreground">Identificação botânica, toxicidade animal e manejo de pastagens</p>
+            <h1 className="text-3xl font-bold text-foreground">Identificador de Plantas (Toxicologia Vegetal)</h1>
+            <p className="text-muted-foreground">Identificação botânica com foco em toxicidade animal e manejo de pastagens</p>
           </div>
         </div>
 
