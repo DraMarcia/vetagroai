@@ -464,6 +464,31 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
             </p>
           </div>
         </div>
+
+        {/* Bloco Explicativo Padronizado */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+          <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed mb-4">
+            Ferramenta de interpretação de exames laboratoriais e de imagem veterinários. Analisa arquivos (PDF, imagens) ou dados digitados, correlaciona achados com o contexto clínico e gera relatório interpretativo completo.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que faz</p>
+              <p className="text-xs text-muted-foreground">Interpreta exames correlacionando valores com contexto clínico do paciente</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Para quem é</p>
+              <p className="text-xs text-muted-foreground">Médicos Veterinários, laboratórios veterinários e tutores</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Quando usar</p>
+              <p className="text-xs text-muted-foreground">Ao receber resultados de exames que necessitam de interpretação clínica</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que você recebe</p>
+              <p className="text-xs text-muted-foreground">Valores alterados, interpretação clínica, correlação diagnóstica e recomendações</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 max-w-3xl">
