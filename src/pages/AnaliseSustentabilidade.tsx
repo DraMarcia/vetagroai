@@ -282,7 +282,7 @@ O produtor deve sair da análise pensando: "Eu já faço muita coisa certa — e
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Análise de Sustentabilidade</h1>
-            <p className="text-muted-foreground">Valorização, incentivos e estratégia para sua propriedade</p>
+            <p className="text-muted-foreground">Avaliação do nível de maturidade sustentável da propriedade rural</p>
           </div>
         </div>
         

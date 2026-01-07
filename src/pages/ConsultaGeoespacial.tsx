@@ -187,7 +187,7 @@ const ConsultaGeoespacial = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-foreground">Consulta Geoespacial Sustentável</h1>
-              <p className="text-muted-foreground">Análise técnica de biomas, regiões e práticas sustentáveis</p>
+              <p className="text-muted-foreground">Análise técnica de biomas e práticas sustentáveis com dados geoespaciais</p>
             </div>
           </div>
 

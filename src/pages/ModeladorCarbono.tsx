@@ -302,7 +302,7 @@ Para maximizar seu potencial de créditos de carbono:
       <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
         <Leaf className="h-10 w-10 text-white" />
       </div>
-      <h1 className="text-3xl font-bold text-foreground">Modelador de Carbono VetAgro IA</h1>
+      <h1 className="text-3xl font-bold text-foreground">Modelador de Carbono e Créditos Ambientais</h1>
       <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
         Descubra onde sua fazenda emite, onde captura e quanto pode ganhar reduzindo emissões ou gerando créditos de carbono.
       </p>

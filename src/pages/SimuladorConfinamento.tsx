@@ -269,7 +269,7 @@ const SimuladorConfinamento = () => {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground">Simulador de Confinamento Sustentável</h1>
-              <p className="text-muted-foreground">Ferramenta de inteligência para decisão estratégica em confinamento</p>
+              <p className="text-muted-foreground">Projeção de viabilidade econômica, zootécnica e ambiental de operações de confinamento</p>
             </div>
           </div>
 

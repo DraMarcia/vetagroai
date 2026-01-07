@@ -173,7 +173,7 @@ const AnaliseMucosa = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Analisador de Mucosa Ocular e Sinais Clínicos</h1>
-            <p className="text-muted-foreground">Envie uma foto da mucosa ocular para análise de suporte</p>
+            <p className="text-muted-foreground">Análise de mucosa ocular e dados clínicos para identificação de alterações</p>
           </div>
         </div>
       </div>
@@ -372,7 +372,7 @@ const AnaliseMucosa = () => {
                 <ResponseActionButtons
                   content={result}
                   title="Análise de Mucosa Ocular"
-                  toolName="analise-mucosa"
+                  toolName="Analisador de Mucosa Ocular e Sinais Clínicos"
                 />
               </div>
             </CardContent>
