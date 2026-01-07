@@ -173,7 +173,32 @@ const AnaliseMucosa = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Analisador de Mucosa Ocular e Sinais Clínicos</h1>
-            <p className="text-muted-foreground">Análise de mucosa ocular e dados clínicos para identificação de alterações</p>
+            <p className="text-muted-foreground">Análise de mucosa ocular e dados clínicos para identificação de alterações sistêmicas</p>
+          </div>
+        </div>
+
+        {/* Bloco Explicativo Padronizado */}
+        <div className="bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/20 rounded-lg p-4 mb-6">
+          <p className="text-sm text-foreground leading-relaxed mb-4">
+            Ferramenta multiespécie para análise de imagens da mucosa ocular e dados clínicos. Identifica alterações de coloração e aspecto indicativas de condições sistêmicas ou locais, com diagnósticos diferenciais e recomendações.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que faz</p>
+              <p className="text-xs text-muted-foreground">Analisa imagens e dados clínicos para identificar alterações na mucosa ocular</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Para quem é</p>
+              <p className="text-xs text-muted-foreground">Médicos Veterinários, estudantes de veterinária e tutores de animais</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Quando usar</p>
+              <p className="text-xs text-muted-foreground">Ao observar alterações na mucosa ocular ou sinais clínicos sistêmicos</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que você recebe</p>
+              <p className="text-xs text-muted-foreground">Avaliação da mucosa, correlações clínicas, diagnósticos diferenciais e recomendações</p>
+            </div>
           </div>
         </div>
       </div>

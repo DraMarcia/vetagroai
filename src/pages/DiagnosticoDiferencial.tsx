@@ -259,7 +259,32 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Diagnóstico Diferencial Inteligente</h1>
-            <p className="text-muted-foreground">Gere hipóteses diagnósticas com base em sinais clínicos</p>
+            <p className="text-muted-foreground">Gere hipóteses diagnósticas hierarquizadas com base em sinais clínicos</p>
+          </div>
+        </div>
+
+        {/* Bloco Explicativo Padronizado */}
+        <div className="bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/20 rounded-lg p-4 mb-6">
+          <p className="text-sm text-foreground leading-relaxed mb-4">
+            Ferramenta de apoio clínico que analisa sinais e sintomas informados para gerar hipóteses diagnósticas ordenadas por probabilidade, com recomendações de exames complementares e classificação de urgência.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que faz</p>
+              <p className="text-xs text-muted-foreground">Gera lista de diagnósticos diferenciais hierarquizados por probabilidade clínica</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Para quem é</p>
+              <p className="text-xs text-muted-foreground">Médicos Veterinários, estudantes e tutores de animais</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Quando usar</p>
+              <p className="text-xs text-muted-foreground">Ao identificar sinais clínicos que necessitam de investigação diagnóstica</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que você recebe</p>
+              <p className="text-xs text-muted-foreground">Hipóteses diagnósticas, exames recomendados, classificação de urgência e condutas</p>
+            </div>
           </div>
         </div>
       </div>

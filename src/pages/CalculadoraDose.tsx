@@ -351,7 +351,32 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Calculadora de Dose Veterinária</h1>
-            <p className="text-muted-foreground">Cálculo seguro de doses com validação profissional</p>
+            <p className="text-muted-foreground">Cálculo seguro de doses com validação profissional e alertas de toxicidade</p>
+          </div>
+        </div>
+
+        {/* Bloco Explicativo Padronizado */}
+        <div className="bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/20 rounded-lg p-4 mb-6">
+          <p className="text-sm text-foreground leading-relaxed mb-4">
+            Ferramenta de cálculo de doses veterinárias com validação de toxicidade por espécie. Profissionais recebem cálculos completos com fórmulas; tutores recebem orientação educativa para buscar atendimento.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que faz</p>
+              <p className="text-xs text-muted-foreground">Calcula doses seguras de medicamentos veterinários com validação de toxicidade</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Para quem é</p>
+              <p className="text-xs text-muted-foreground">Médicos Veterinários, farmacêuticos veterinários e estudantes</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Quando usar</p>
+              <p className="text-xs text-muted-foreground">Ao prescrever ou calcular doses de medicamentos para animais</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que você recebe</p>
+              <p className="text-xs text-muted-foreground">Dose calculada (mg, mL), fórmula, alertas de toxicidade e contraindicações</p>
+            </div>
           </div>
         </div>
       </div>

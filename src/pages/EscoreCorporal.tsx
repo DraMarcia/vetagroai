@@ -144,6 +144,31 @@ Liste as fontes técnicas utilizadas (NRC, Henneke, Edmonson, Ferguson, Embrapa)
             <p className="text-muted-foreground">Estimativa do ECC a partir de imagem com recomendações nutricionais</p>
           </div>
         </div>
+
+        {/* Bloco Explicativo Padronizado */}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+          <p className="text-sm text-green-800 dark:text-green-200 leading-relaxed mb-4">
+            Ferramenta de avaliação do escore de condição corporal a partir de foto lateral do animal. Estima o ECC com classificação, análise visual fundamentada e recomendações nutricionais personalizadas.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que faz</p>
+              <p className="text-xs text-muted-foreground">Estima o ECC do animal a partir de imagem com análise visual fundamentada</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Para quem é</p>
+              <p className="text-xs text-muted-foreground">Médicos Veterinários, Zootecnistas e produtores rurais</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Quando usar</p>
+              <p className="text-xs text-muted-foreground">Para avaliar condição nutricional e ajustar manejo alimentar</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que você recebe</p>
+              <p className="text-xs text-muted-foreground">ECC estimado, interpretação clínica, recomendações nutricionais e frequência de reavaliação</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 max-w-3xl">

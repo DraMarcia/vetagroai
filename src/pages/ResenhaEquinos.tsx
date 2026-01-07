@@ -243,8 +243,33 @@ const ResenhaEquinos = () => {
               Resenha Técnica de Equinos
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
-              Ferramenta exclusiva para médicos veterinários
+              Ferramenta exclusiva para médicos veterinários — documento técnico oficial
             </p>
+          </div>
+        </div>
+
+        {/* Bloco Explicativo Padronizado */}
+        <div className="bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/20 rounded-lg p-4 mb-6">
+          <p className="text-sm text-foreground leading-relaxed mb-4">
+            Ferramenta para geração de resenhas técnicas detalhadas de equinos a partir de imagens. Produz documento oficial com descrição morfológica completa, identificação de particularidades e marcas, pronto para uso em registro, transferência ou exposição.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que faz</p>
+              <p className="text-xs text-muted-foreground">Gera resenha técnica completa a partir de imagens do equino</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Para quem é</p>
+              <p className="text-xs text-muted-foreground">Médicos Veterinários especializados em equinos (CRMV obrigatório)</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Quando usar</p>
+              <p className="text-xs text-muted-foreground">Para registro, transferência, exposição ou documentação oficial de equinos</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que você recebe</p>
+              <p className="text-xs text-muted-foreground">Documento técnico com descrição morfológica, particularidades e sinais identificadores</p>
+            </div>
           </div>
         </div>
       </div>

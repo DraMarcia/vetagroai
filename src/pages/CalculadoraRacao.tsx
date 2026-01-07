@@ -249,8 +249,33 @@ ANIMAL:
               Calculadora de Ração Inteligente
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
-              Formule rações balanceadas conforme espécie e objetivo produtivo
+              Formule rações balanceadas conforme espécie, categoria e objetivo produtivo
             </p>
+          </div>
+        </div>
+
+        {/* Bloco Explicativo Padronizado */}
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
+          <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed mb-4">
+            Ferramenta de formulação de rações balanceadas para diferentes espécies e objetivos produtivos. Calcula percentuais de inclusão, composição nutricional e orientações de fornecimento com base em ingredientes disponíveis.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que faz</p>
+              <p className="text-xs text-muted-foreground">Formula rações balanceadas com tabela de inclusão e composição nutricional</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Para quem é</p>
+              <p className="text-xs text-muted-foreground">Médicos Veterinários, Zootecnistas e produtores rurais</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">Quando usar</p>
+              <p className="text-xs text-muted-foreground">Ao formular dietas para crescimento, engorda, lactação ou manutenção</p>
+            </div>
+            <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+              <p className="font-medium text-sm text-foreground mb-1">O que você recebe</p>
+              <p className="text-xs text-muted-foreground">Tabela de formulação, composição nutricional e orientações de fornecimento</p>
+            </div>
           </div>
         </div>
       </div>

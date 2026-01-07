@@ -2,6 +2,34 @@
 
 **Plataforma de Apoio Inteligente para o Setor Agropecuário e Medicina Veterinária**
 
+**Última atualização:** Janeiro de 2025
+
+---
+
+## Nomenclatura Oficial das Ferramentas
+
+Todas as ferramentas seguem nomenclatura técnica padronizada para SEO e clareza:
+
+| Categoria | Nome Oficial |
+|-----------|--------------|
+| Medicina Veterinária | Diagnóstico Diferencial Inteligente |
+| Medicina Veterinária | Interpretação de Exames Laboratoriais e de Imagem |
+| Medicina Veterinária | Calculadora de Dose Veterinária |
+| Medicina Veterinária | Analisador de Mucosa Ocular e Sinais Clínicos |
+| Medicina Veterinária | Resenha Técnica de Equinos |
+| Medicina Veterinária | Receituário Veterinário |
+| Medicina Veterinária | Dicionário Farmacológico Veterinário |
+| Zootecnia e Nutrição | Calculadora de Ração Inteligente |
+| Zootecnia e Nutrição | Painel de Inteligência Produtiva |
+| Zootecnia e Nutrição | Escore de Condição Corporal (ECC) |
+| Agronomia e Sustentabilidade | Identificador de Plantas (Toxicologia Vegetal) |
+| Agronomia e Sustentabilidade | Calculadora Integrada de Emissões de GEE |
+| Agronomia e Sustentabilidade | Consulta Geoespacial Sustentável |
+| Agronomia e Sustentabilidade | Análise de Sustentabilidade |
+| Agronomia e Sustentabilidade | Análise Climática Inteligente |
+| Modelagem Avançada | Simulador de Confinamento Sustentável |
+| Modelagem Avançada | Modelador de Carbono e Créditos Ambientais |
+
 ---
 
 ## Sobre o VetAgro AI
