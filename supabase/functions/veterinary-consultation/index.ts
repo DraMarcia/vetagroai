@@ -790,10 +790,13 @@ ${data.observacoesAdicionais ? `• Observações: ${data.observacoesAdicionais}
 Gere o relatório técnico completo em HTML seguindo a estrutura fixa obrigatória de 10 seções.`;
       }
       else if (tool === "calculadora-dose") {
-        // Validate professional access
-        if (!requestBody.crmv) {
+        // Validate professional access with format check (3-6 digits + hyphen + 2-letter state code)
+        const crmv = requestBody.crmv?.toString().trim();
+        const crmvRegex = /^\d{3,6}-[A-Z]{2}$/i;
+        
+        if (!crmv || !crmvRegex.test(crmv)) {
           return new Response(JSON.stringify({ 
-            error: 'Esta ferramenta é restrita a médicos veterinários. Informe CRMV + estado para continuar.' 
+            error: 'Esta ferramenta é restrita a médicos veterinários. Informe CRMV válido no formato XXXXX-UF.' 
           }), {
             status: 403,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -917,9 +920,13 @@ ${data.sinaisClinicos ? `• Sinais clínicos associados: ${data.sinaisClinicos}
 Forneça a análise seguindo a estrutura obrigatória.`;
       }
       else if (tool === "receituario") {
-        if (!requestBody.crmv) {
+        // Validate professional access with format check (3-6 digits + hyphen + 2-letter state code)
+        const crmv = requestBody.crmv?.toString().trim();
+        const crmvRegex = /^\d{3,6}-[A-Z]{2}$/i;
+        
+        if (!crmv || !crmvRegex.test(crmv)) {
           return new Response(JSON.stringify({ 
-            error: 'Receituário exclusivo para médicos veterinários. Informe CRMV válido.' 
+            error: 'Receituário exclusivo para médicos veterinários. Informe CRMV válido no formato XXXXX-UF.' 
           }), {
             status: 403,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

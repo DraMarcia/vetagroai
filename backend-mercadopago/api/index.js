@@ -5,24 +5,49 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 app.use(express.json());
 
-// CORS headers for security
-const corsHeaders = {
-  'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+// Allowed origins for CORS - no wildcard fallback
+const ALLOWED_ORIGINS = [
+  'https://vetagro.ai',
+  'https://www.vetagro.ai',
+  'https://vetagro-sustentavel.lovable.app',
+  'http://localhost:5173',
+  'http://localhost:8080',
+];
+
+// Generate CORS headers based on request origin
+const getCorsHeaders = (req) => {
+  const origin = req.headers.origin || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) 
+    ? origin 
+    : ALLOWED_ORIGINS[0];
+    
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true'
+  };
 };
 
 // CORS preflight handler
 app.options('*', (req, res) => {
-  res.set(corsHeaders);
+  res.set(getCorsHeaders(req));
   res.status(204).send();
 });
 
-// Apply CORS headers to all responses
+// Apply CORS headers and origin validation to all responses
 app.use((req, res, next) => {
+  const corsHeaders = getCorsHeaders(req);
   Object.entries(corsHeaders).forEach(([key, value]) => {
     res.set(key, value);
   });
+  
+  // Reject requests from non-allowed origins (except OPTIONS)
+  const origin = req.headers.origin;
+  if (req.method !== 'OPTIONS' && origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
+  
   next();
 });
 
@@ -66,7 +91,6 @@ const verifySupabaseToken = async (authHeader) => {
     const supabaseKey = process.env.SUPABASE_ANON_KEY;
     
     if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing Supabase configuration');
       return { error: 'Server configuration error', user: null };
     }
 
@@ -78,14 +102,12 @@ const verifySupabaseToken = async (authHeader) => {
     });
 
     if (!response.ok) {
-      console.warn('Token verification failed:', response.status);
       return { error: 'Invalid or expired token', user: null };
     }
 
     const user = await response.json();
     return { error: null, user };
   } catch (err) {
-    console.error('Token verification error:', err.message);
     return { error: 'Authentication failed', user: null };
   }
 };
@@ -98,14 +120,12 @@ app.get('/', (req, res) => {
 // Criar assinatura recorrente (protected endpoint)
 app.post('/criar-assinatura', subscriptionLimiter, async (req, res) => {
   const requestId = Date.now().toString(36) + Math.random().toString(36).substr(2);
-  const clientIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
   
   try {
     // Step 1: Verify authentication
     const { error: authError, user } = await verifySupabaseToken(req.headers.authorization);
     
     if (authError || !user) {
-      console.warn(`[${requestId}] Auth failed from IP ${clientIp}: ${authError}`);
       return res.status(401).json({ error: 'Authentication required. Please log in.' });
     }
 
@@ -113,7 +133,6 @@ app.post('/criar-assinatura', subscriptionLimiter, async (req, res) => {
 
     // Step 2: Validate email format
     if (!validateEmail(email)) {
-      console.warn(`[${requestId}] Invalid email format from user ${user.id}`);
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
@@ -121,11 +140,8 @@ app.post('/criar-assinatura', subscriptionLimiter, async (req, res) => {
 
     // Step 3: Verify email ownership - user can only subscribe with their own email
     if (user.email?.toLowerCase() !== sanitizedEmail) {
-      console.warn(`[${requestId}] Email mismatch: user ${user.id} (${user.email}) tried to use ${sanitizedEmail}`);
       return res.status(403).json({ error: 'You can only create a subscription for your own email address' });
     }
-
-    console.log(`[${requestId}] Creating subscription for user ${user.id} (${sanitizedEmail}) from IP ${clientIp}`);
 
     // Step 4: Create subscription with Mercado Pago
     const subscription = await preApproval.create({
@@ -143,15 +159,12 @@ app.post('/criar-assinatura', subscriptionLimiter, async (req, res) => {
       }
     });
 
-    console.log(`[${requestId}] Subscription created successfully: ${subscription.id}`);
-
     res.json({
       success: true,
       init_point: subscription.init_point,
       id: subscription.id
     });
   } catch (error) {
-    console.error(`[${requestId}] Subscription creation error:`, error.message);
     res.status(500).json({
       error: 'Failed to create subscription. Please try again later.'
     });
