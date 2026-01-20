@@ -73,14 +73,13 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
   // Retrieve actual plan from profiles table
   const { data: profile } = await supabaseClient
     .from('profiles')
-    .select('current_plan, is_admin')
+    .select('current_plan')
     .eq('user_id', user.id)
     .single();
 
   const actualPlan = profile?.current_plan || 'free';
-  const isAdmin = profile?.is_admin || false;
 
-  return { user, plan: actualPlan, isAdmin, error: null };
+  return { user, plan: actualPlan, isAdmin: false, error: null };
 }
 // ===== END AUTHENTICATION HELPER =====
 

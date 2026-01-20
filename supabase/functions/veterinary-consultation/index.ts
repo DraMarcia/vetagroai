@@ -124,12 +124,20 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
   // Retrieve actual plan from profiles table
   const { data: profile } = await supabaseClient
     .from('profiles')
-    .select('current_plan, is_admin')
+    .select('current_plan')
     .eq('user_id', user.id)
     .single();
 
+  // Check admin role from user_roles table
+  const { data: adminRole } = await supabaseClient
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('role', 'admin')
+    .maybeSingle();
+
   const actualPlan = profile?.current_plan || 'free';
-  const isAdmin = profile?.is_admin || false;
+  const isAdmin = !!adminRole;
 
   return { user, plan: actualPlan, isAdmin, error: null };
 }
