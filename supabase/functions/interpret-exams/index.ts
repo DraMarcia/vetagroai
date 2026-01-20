@@ -6,6 +6,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const allowedOrigins = [
   'https://vetagro.ai',
   'https://www.vetagro.ai',
+  'https://vetagroai.lovable.app',
+  'https://id-preview--3dd84b8e-5245-406b-9a7f-df349f142adc.lovable.app',
   'https://vetagro-sustentavel.lovable.app',
   'http://localhost:5173',
   'http://localhost:8080',
