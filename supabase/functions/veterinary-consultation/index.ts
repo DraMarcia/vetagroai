@@ -7,6 +7,7 @@ const allowedOrigins = [
   'https://www.vetagro.ai',
   'https://vetagroai.lovable.app',
   'https://id-preview--3dd84b8e-5245-406b-9a7f-df349f142adc.lovable.app',
+  'https://app.vetagroai.com.br',
   'https://vetagro-sustentavel.lovable.app',
   'http://localhost:5173',
   'http://localhost:8080',
@@ -17,6 +18,7 @@ function getCorsHeaders(req: Request) {
   const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Credentials': 'true',
   };
@@ -198,8 +200,13 @@ serve(async (req) => {
     let userPrompt = "";
 
     // Check if it's a tool-based request (new format)
-    if (requestBody.tool) {
-      const { tool, data } = requestBody;
+    if (requestBody?.tool) {
+      const tool = requestBody.tool;
+      // Defensive normalization:
+      // - some frontends send { tool, data: {...} }
+      // - others send { tool, question, ... } (no "data")
+      // Always guarantee an object for downstream handlers.
+      const data = (requestBody.data && typeof requestBody.data === 'object') ? requestBody.data : requestBody;
 
       if (tool === "analise-sustentabilidade") {
         const perfilLabels: Record<string, string> = {
@@ -1062,11 +1069,15 @@ ESTRUTURA OBRIGATÓRIA:
 • Plumb's Veterinary Drug Handbook
 • Formulário Nacional da Farmacopeia Brasileira`;
 
-        userPrompt = `Forneça a ficha farmacológica completa para:
+        // Prefer the already-constructed prompt coming from the frontend (backward compatible)
+        // This avoids schema coupling (ex.: data.termo vs data.medicamento) and prevents runtime errors.
+        const questionText = typeof requestBody.question === 'string' ? requestBody.question.trim() : '';
 
-Medicamento/Princípio ativo: ${data.medicamento || data.termo || "Não especificado"}
-${data.categoria ? `Categoria farmacológica: ${data.categoria}` : ""}
-${data.objetivo ? `Objetivo da consulta: ${data.objetivo}` : ""}
+        userPrompt = questionText || `Forneça a ficha farmacológica completa para:
+
+Medicamento/Princípio ativo: ${data?.medicamento || data?.termo || "Não especificado"}
+${data?.categoria ? `Categoria farmacológica: ${data.categoria}` : ""}
+${data?.objetivo ? `Objetivo da consulta: ${data.objetivo}` : ""}
 
 Siga rigorosamente a estrutura obrigatória.`;
       }
