@@ -1064,9 +1064,9 @@ ESTRUTURA OBRIGATÓRIA:
 
         userPrompt = `Forneça a ficha farmacológica completa para:
 
-Medicamento/Princípio ativo: ${data.termo}
-${data.especie ? `Espécie de interesse: ${data.especie}` : ""}
-${data.indicacao ? `Indicação específica: ${data.indicacao}` : ""}
+Medicamento/Princípio ativo: ${data.medicamento || data.termo || "Não especificado"}
+${data.categoria ? `Categoria farmacológica: ${data.categoria}` : ""}
+${data.objetivo ? `Objetivo da consulta: ${data.objetivo}` : ""}
 
 Siga rigorosamente a estrutura obrigatória.`;
       }
