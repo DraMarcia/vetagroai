@@ -7,6 +7,7 @@ const allowedOrigins = [
   'https://www.vetagro.ai',
   'https://vetagroai.lovable.app',
   'https://id-preview--3dd84b8e-5245-406b-9a7f-df349f142adc.lovable.app',
+  'https://app.vetagroai.com.br',
   'https://vetagro-sustentavel.lovable.app',
   'http://localhost:5173',
   'http://localhost:8080',
@@ -17,6 +18,7 @@ function getCorsHeaders(req: Request) {
   const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Credentials': 'true',
   };
