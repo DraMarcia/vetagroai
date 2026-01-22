@@ -8,9 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calculator, Loader2, Plus, X, AlertTriangle } from "lucide-react";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
+import { invokeEdgeFunction } from "@/lib/edgeInvoke";
 
 interface ActiveIngredient {
   name: string;
@@ -288,36 +288,35 @@ CONTEXTO CLÍNICO: ${clinicalContext || "Não informado"}
 Forneça a análise seguindo rigorosamente a estrutura definida.`;
 
       // Use supabase.functions.invoke() which automatically includes the user's session token
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "calculadora-dose",
-          data: {
-            medicamento: isManipulated ? `Manipulado: ${medicationInfo}` : medication,
-            especie: species,
-            peso: weight,
-            via: route || "Não especificada",
-            concentracao: "Consultar bula",
-            observacoes: clinicalContext || ""
-          },
-          crmv: isProfessional === "sim" ? `${crmv}/${uf.toUpperCase()}` : undefined,
-          isProfessional: isProfessional === "sim",
+      const res = await invokeEdgeFunction<any>("veterinary-consultation", {
+        tool: "calculadora-dose",
+        data: {
+          medicamento: isManipulated ? `Manipulado: ${medicationInfo}` : medication,
+          especie: species,
+          peso: weight,
+          via: route || "Não especificada",
+          concentracao: "Consultar bula",
+          observacoes: clinicalContext || ""
         },
+        crmv: isProfessional === "sim" ? `${crmv}/${uf.toUpperCase()}` : undefined,
+        isProfessional: isProfessional === "sim",
       });
 
-      if (error) {
-        if (error.message?.includes("429") || error.message?.includes("rate")) {
+      if (!res.ok) {
+        const msg = (res.error as any)?.message || "Erro ao processar a consulta.";
+        if (msg?.includes("429") || msg?.includes("rate")) {
           throw new Error("Limite de requisições atingido. Aguarde alguns minutos e tente novamente.");
         }
-        if (error.message?.includes("402") || error.message?.includes("credit")) {
+        if (msg?.includes("402") || msg?.includes("credit")) {
           throw new Error("Créditos insuficientes. Faça upgrade do seu plano.");
         }
-        if (error.message?.includes("401") || error.message?.includes("auth")) {
+        if (msg?.includes("401") || msg?.includes("auth")) {
           throw new Error("Faça login para usar esta ferramenta.");
         }
-        throw new Error(error.message || "Erro ao processar a consulta.");
+        throw new Error(msg);
       }
 
-      const cleanedResult = cleanTextForDisplay(data?.answer || data?.response || "");
+      const cleanedResult = cleanTextForDisplay(res.data?.answer || res.data?.response || "");
       
       setResult(cleanedResult);
       toast({

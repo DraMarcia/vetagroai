@@ -8,10 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, Loader2, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
+import { invokeEdgeFunction } from "@/lib/edgeInvoke";
 
 const AnaliseMucosa = () => {
   const { toast } = useToast();
@@ -112,21 +112,20 @@ const AnaliseMucosa = () => {
     setResult("");
 
     try {
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "analise-mucosa",
-          isProfessional: isProfessional === "sim",
-          crmv: isProfessional === "sim" ? `${crmv}-${uf}` : null,
-          data: {
-            especie: especie || "Não identificada (analisar pela imagem)",
-            descricao: animalData,
-            images: images.length > 0 ? images : null,
-          },
+      const res = await invokeEdgeFunction<any>("veterinary-consultation", {
+        tool: "analise-mucosa",
+        isProfessional: isProfessional === "sim",
+        crmv: isProfessional === "sim" ? `${crmv}-${uf}` : null,
+        data: {
+          especie: especie || "Não identificada (analisar pela imagem)",
+          descricao: animalData,
+          images: images.length > 0 ? images : null,
         },
       });
 
-      if (error) {
-        if (error.message?.includes("429")) {
+      if (!res.ok) {
+        const msg = (res.error as any)?.message || "Erro ao processar.";
+        if (msg?.includes("429")) {
           toast({
             title: "Limite de requisições",
             description: "Aguarde alguns instantes e tente novamente.",
@@ -134,7 +133,7 @@ const AnaliseMucosa = () => {
           });
           return;
         }
-        if (error.message?.includes("402")) {
+        if (msg?.includes("402")) {
           toast({
             title: "Créditos insuficientes",
             description: "Faça upgrade do seu plano para continuar.",
@@ -142,10 +141,10 @@ const AnaliseMucosa = () => {
           });
           return;
         }
-        throw error;
+        throw new Error(msg);
       }
 
-      const cleanedResult = cleanTextForDisplay(data.answer || data.response);
+      const cleanedResult = cleanTextForDisplay(res.data?.answer || res.data?.response);
       setResult(cleanedResult);
 
       toast({

@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Stethoscope, Loader2, AlertCircle, AlertTriangle } from "lucide-react";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { trackFeatureUsed } from "@/lib/analytics";
+import { invokeEdgeFunction } from "@/lib/edgeInvoke";
 
 const DiagnosticoDiferencial = () => {
   const { toast } = useToast();
@@ -203,17 +203,15 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
 • Nelson & Couto — Medicina Interna de Pequenos Animais
 • Literatura científica reconhecida`;
 
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          question: prompt,
-          isProfessional: isProfessional === "sim",
-          context: "Diagnóstico diferencial veterinário",
-        },
+      const res = await invokeEdgeFunction<{ answer: string }>("veterinary-consultation", {
+        question: prompt,
+        isProfessional: isProfessional === "sim",
+        context: "Diagnóstico diferencial veterinário",
       });
 
-      if (error) throw error;
+      if (!res.ok) throw res.error;
 
-      const cleanedResult = cleanTextForDisplay(data.answer);
+      const cleanedResult = cleanTextForDisplay(res.data?.answer);
       setResult(cleanedResult);
       
       toast({
