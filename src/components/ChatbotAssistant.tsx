@@ -4,8 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, Send, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import chatbotLogo from "@/assets/chatbot-logo.jpeg";
+import { invokeEdgeFunction } from "@/lib/edgeInvoke";
 
 interface Message {
   role: "user" | "assistant";
@@ -39,15 +39,15 @@ export function ChatbotAssistant() {
     setIsLoading(true);
 
     try {
-      const response = await supabase.functions.invoke("chatbot-assistant", {
-        body: { message: userMessage, history: messages },
+      const res = await invokeEdgeFunction<{ response: string }>("chatbot-assistant", {
+        message: userMessage,
+        history: messages,
       });
-
-      if (response.error) throw response.error;
+      if (!res.ok) throw res.error;
 
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: response.data.response },
+        { role: "assistant", content: res.data?.response ?? "" },
       ]);
     } catch (error) {
       console.error("Chatbot error:", error);

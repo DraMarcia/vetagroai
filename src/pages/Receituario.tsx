@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileText, Loader2, Shield, Stethoscope, ClipboardList, AlertTriangle } from "lucide-react";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { UFS, useCrmvValidation, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
+import { invokeEdgeFunction } from "@/lib/edgeInvoke";
 
 // Simple cleaning for prescription - preserve line breaks
 const cleanPrescriptionText = (text: string): string => {
@@ -98,34 +98,32 @@ const Receituario = () => {
     setResult("");
 
     try {
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "receituario",
-          isProfessional: true,
-          data: {
-            vetName,
-            crmv: `${crmv}-${uf}`,
-            ownerName: ownerName || "Não informado",
-            ownerPhone: ownerPhone || "Não informado",
-            ownerAddress: ownerAddress || "Não informado",
-            animalName,
-            animalSpecies,
-            animalBreed: animalBreed || "SRD",
-            animalAge: animalAge || "Não informado",
-            animalSex: animalSex || "Não informado",
-            animalWeight: animalWeight || "Não informado",
-            prescription
-          }
+      const res = await invokeEdgeFunction<{ answer: string }>("veterinary-consultation", {
+        tool: "receituario",
+        isProfessional: true,
+        data: {
+          vetName,
+          crmv: `${crmv}-${uf}`,
+          ownerName: ownerName || "Não informado",
+          ownerPhone: ownerPhone || "Não informado",
+          ownerAddress: ownerAddress || "Não informado",
+          animalName,
+          animalSpecies,
+          animalBreed: animalBreed || "SRD",
+          animalAge: animalAge || "Não informado",
+          animalSex: animalSex || "Não informado",
+          animalWeight: animalWeight || "Não informado",
+          prescription,
         },
       });
 
-      if (error) throw error;
+      if (!res.ok) throw res.error;
 
-      if (!data?.answer) {
+      if (!res.data?.answer) {
         throw new Error("Resposta vazia do servidor");
       }
 
-      const cleanedResult = cleanPrescriptionText(data.answer);
+      const cleanedResult = cleanPrescriptionText(res.data.answer);
       setResult(cleanedResult);
       
       toast({

@@ -7,11 +7,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Loader2, User, Stethoscope, Search, BookMarked, FlaskConical, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useCrmvValidation, UFS } from "@/hooks/useCrmvValidation";
 import { cleanTextForDisplay } from "@/lib/textUtils";
+import { invokeEdgeFunction } from "@/lib/edgeInvoke";
 
 // Pharmacological categories
 const PHARMACOLOGICAL_CATEGORIES = [
@@ -147,18 +147,18 @@ REGRAS OBRIGATÓRIAS:
 – Jamais inventar informações — se não houver dados confiáveis, informar claramente
 – Resposta estruturada e organizada, fácil de consultar rapidamente`;
 
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          question: prompt,
-          isProfessional: isProfessional,
-          context: "Dicionário Veterinário",
-          tool: "dicionario-farmacologico"
-        },
+      const res = await invokeEdgeFunction<{ answer: string }>("veterinary-consultation", {
+        question: prompt,
+        isProfessional: isProfessional,
+        context: "Dicionário Veterinário",
+        tool: "dicionario-farmacologico",
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        throw ("error" in res ? res.error : new Error("Falha ao chamar a função."));
+      }
 
-      const cleanedResult = cleanTextForDisplay(data.answer)
+      const cleanedResult = cleanTextForDisplay(res.data.answer)
         // Correção pontual: evita quebra indevida no meio da palavra "EQUINOS"
         .replace(/EQUI\s*\n\s*NOS/gi, "EQUINOS");
 
@@ -171,7 +171,7 @@ REGRAS OBRIGATÓRIAS:
       console.error("Erro:", error);
       toast({
         title: "Erro ao consultar",
-        description: error.message || "Tente novamente mais tarde.",
+        description: error?.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });
     } finally {
