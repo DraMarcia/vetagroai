@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateAndSanitizeInput, validateMessageHistory } from "../_shared/inputValidation.ts";
 
 // Allowed origins for CORS (production + development)
 const allowedOrigins = [
@@ -133,20 +134,35 @@ serve(async (req) => {
       );
     }
 
-    const { message, history } = await req.json();
+    const requestBody = await req.json();
+    const { message, history } = requestBody;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Validate and sanitize user message
+    const messageValidation = validateAndSanitizeInput(message, 'mensagem', 5000);
+    if (!messageValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: messageValidation.error || 'Mensagem inválida' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Log warnings for monitoring (don't block)
+    if (messageValidation.warnings.length > 0) {
+      console.warn('[INPUT_VALIDATION]', messageValidation.warnings.join(', '));
+    }
+
+    // Validate and sanitize message history
+    const sanitizedHistory = validateMessageHistory(history || [], 10, 5000);
+
     const messages = [
       { role: "system", content: SYSTEM_PROMPT },
-      ...history.slice(-10).map((msg: { role: string; content: string }) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      { role: "user", content: message },
+      ...sanitizedHistory,
+      { role: "user", content: messageValidation.sanitized },
     ];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

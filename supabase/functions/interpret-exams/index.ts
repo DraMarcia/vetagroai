@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeClinicalData, MAX_INPUT_LENGTH } from "../_shared/inputValidation.ts";
 
 // Allowed origins for CORS (production + development)
 const allowedOrigins = [
@@ -166,8 +167,22 @@ serve(async (req) => {
 
     console.log("Request received: processing exam interpretation");
 
+    // Sanitize clinical data input
+    const sanitizedClinicalData = sanitizeClinicalData(clinicalData);
+    
+    // Validate input length
+    if (sanitizedClinicalData.length > MAX_INPUT_LENGTH) {
+      return new Response(JSON.stringify({ 
+        error: `Dados clínicos excedem o limite de ${MAX_INPUT_LENGTH} caracteres.`,
+        code: "INPUT_TOO_LONG"
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Validate minimum input
-    if ((!files || files.length === 0) && !clinicalData?.trim()) {
+    if ((!files || files.length === 0) && !sanitizedClinicalData) {
       return new Response(JSON.stringify({ 
         error: "Nenhum arquivo ou dado clínico fornecido. Por favor, envie um PDF/imagem do exame ou insira os valores manualmente.",
         code: "NO_INPUT"
@@ -265,15 +280,15 @@ Extraia agora:`
     if (extractedContent) {
       combinedData += extractedContent;
     }
-    if (clinicalData?.trim()) {
-      combinedData += `\n\n--- Dados clínicos informados pelo usuário ---\n${clinicalData}`;
+    if (sanitizedClinicalData) {
+      combinedData += `\n\n--- Dados clínicos informados pelo usuário ---\n${sanitizedClinicalData}`;
     }
 
     // Validate lab values
     const labValidation = extractLabValues(combinedData);
     
     // If no lab values found, return guidance
-    if (!labValidation.found && !clinicalData?.trim()) {
+    if (!labValidation.found && !sanitizedClinicalData) {
       const ocrFailedFiles = ocrErrors.length > 0 ? `\n\nArquivos não lidos: ${ocrErrors.join(', ')}` : '';
       
       return new Response(JSON.stringify({ 
