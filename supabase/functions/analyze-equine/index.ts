@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateAndSanitizeInput, sanitizeClinicalData } from "../_shared/inputValidation.ts";
 
 // Allowed origins for CORS (production + development)
 const allowedOrigins = [
@@ -83,15 +84,28 @@ serve(async (req) => {
       );
     }
 
-    const { images, breed, age, purpose, horseName, sex, coat, vetName, crmv } = await req.json();
+    const requestBody = await req.json();
+    const { images, breed, age, purpose, horseName, sex, coat, vetName, crmv } = requestBody;
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY não configurado');
     }
 
+    // Validate and sanitize text inputs
+    const sanitizedBreed = sanitizeClinicalData(breed);
+    const sanitizedAge = sanitizeClinicalData(age);
+    const sanitizedPurpose = sanitizeClinicalData(purpose);
+    const sanitizedHorseName = sanitizeClinicalData(horseName);
+    const sanitizedSex = sanitizeClinicalData(sex);
+    const sanitizedCoat = sanitizeClinicalData(coat);
+    const sanitizedVetName = sanitizeClinicalData(vetName);
+    
+    // Validate CRMV format
+    const crmvValidation = validateAndSanitizeInput(crmv, 'CRMV', 20);
+
     // CRMV validation - mandatory for this tool
-    if (!crmv) {
+    if (!crmvValidation.valid || !crmvValidation.sanitized) {
       return new Response(JSON.stringify({ 
         error: 'Esta ferramenta é restrita a médicos veterinários. Informe CRMV + estado para continuar.' 
       }), {
@@ -169,18 +183,18 @@ REGRAS DE LINGUAGEM:
 - Usar apenas bullets (•) para listas
 - Texto deve parecer laudo técnico concluído`;
 
-    // Build user prompt with all available data
+    // Build user prompt with all available data (using sanitized inputs)
     let userPromptText = `Gere uma RESENHA TÉCNICA OFICIAL para este equino conforme a estrutura especificada.
 
 DADOS INFORMADOS:`;
-    if (horseName) userPromptText += `\n• Nome do animal: ${horseName}`;
-    userPromptText += `\n• Raça: ${breed}`;
-    userPromptText += `\n• Idade: ${age}`;
-    if (sex) userPromptText += `\n• Sexo: ${sex}`;
-    if (coat) userPromptText += `\n• Pelagem informada: ${coat}`;
-    userPromptText += `\n• Finalidade: ${purpose}`;
-    if (vetName) userPromptText += `\n• Veterinário responsável: ${vetName}`;
-    userPromptText += `\n• CRMV: ${crmv}`;
+    if (sanitizedHorseName) userPromptText += `\n• Nome do animal: ${sanitizedHorseName}`;
+    userPromptText += `\n• Raça: ${sanitizedBreed || 'Não informada'}`;
+    userPromptText += `\n• Idade: ${sanitizedAge || 'Não informada'}`;
+    if (sanitizedSex) userPromptText += `\n• Sexo: ${sanitizedSex}`;
+    if (sanitizedCoat) userPromptText += `\n• Pelagem informada: ${sanitizedCoat}`;
+    userPromptText += `\n• Finalidade: ${sanitizedPurpose || 'Não informada'}`;
+    if (sanitizedVetName) userPromptText += `\n• Veterinário responsável: ${sanitizedVetName}`;
+    userPromptText += `\n• CRMV: ${crmvValidation.sanitized}`;
     
     userPromptText += `\n\nAnalise as ${images.length} imagens fornecidas e gere a resenha técnica completa no formato especificado. Use linguagem técnica veterinária e terminologia anatômica oficial.`;
 

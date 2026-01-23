@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateAndSanitizeInput, sanitizeClinicalData, MAX_INPUT_LENGTH } from "../_shared/inputValidation.ts";
 
 // Allowed origins for CORS (production + development)
 const allowedOrigins = [
@@ -200,9 +201,16 @@ serve(async (req) => {
     let systemPrompt = "";
     let userPrompt = "";
 
+    // Helper to sanitize user inputs before passing to AI
+    function sanitizeField(value: unknown, maxLen: number = 2000): string {
+      if (value === null || value === undefined) return '';
+      if (typeof value !== 'string') return String(value).substring(0, maxLen);
+      return sanitizeClinicalData(value).substring(0, maxLen);
+    }
+
     // Check if it's a tool-based request (new format)
     if (requestBody?.tool) {
-      const tool = requestBody.tool;
+      const tool = sanitizeField(requestBody.tool, 100);
       // Defensive normalization:
       // - some frontends send { tool, data: {...} }
       // - others send { tool, question, ... } (no "data")
@@ -347,13 +355,13 @@ ${plan === "enterprise" ? "Este é um usuário Enterprise. Forneça análise ult
         userPrompt = `Realize uma ANÁLISE DE SUSTENTABILIDADE com os seguintes dados:
 
 PERFIL DO USUÁRIO: ${perfilLabel}
-TIPO DE PRODUÇÃO: ${requestBody.tipoProducao || "Não informado"}
-LOCALIZAÇÃO: ${requestBody.localizacao || "Não informado"}
-ESCALA PRODUTIVA: ${requestBody.escalaProdutiva || "Não informado"}
-OBJETIVO PRINCIPAL: ${requestBody.objetivoPrincipal || "Diagnóstico geral de sustentabilidade"}
+TIPO DE PRODUÇÃO: ${sanitizeField(requestBody.tipoProducao) || "Não informado"}
+LOCALIZAÇÃO: ${sanitizeField(requestBody.localizacao) || "Não informado"}
+ESCALA PRODUTIVA: ${sanitizeField(requestBody.escalaProdutiva) || "Não informado"}
+OBJETIVO PRINCIPAL: ${sanitizeField(requestBody.objetivoPrincipal) || "Diagnóstico geral de sustentabilidade"}
 
 PRÁTICAS ATUAIS E CONTEXTO:
-${requestBody.praticasAtuais || requestBody.question || "Não informado"}
+${sanitizeField(requestBody.praticasAtuais || requestBody.question, 5000) || "Não informado"}
 
 Gere o relatório técnico completo seguindo a estrutura fixa obrigatória de 9 seções, adaptando a profundidade técnica e linguagem ao perfil do usuário.`;
       }
@@ -1292,6 +1300,17 @@ Forneça a identificação seguindo a estrutura obrigatória, incluindo avaliaç
     else {
       const { question, isProfessional, context } = requestBody;
       
+      // Validate and sanitize legacy inputs
+      const questionValidation = validateAndSanitizeInput(question, 'pergunta', 5000);
+      if (!questionValidation.valid) {
+        return new Response(JSON.stringify({ error: questionValidation.error || 'Pergunta inválida' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      const sanitizedContext = sanitizeField(context, 2000);
+      
       systemPrompt = isProfessional
         ? `Você é um assistente veterinário especializado. Forneça respostas técnicas e detalhadas para profissionais da área veterinária. 
         Use terminologia técnica apropriada e cite bases científicas quando relevante.`
@@ -1299,7 +1318,7 @@ Forneça a identificação seguindo a estrutura obrigatória, incluindo avaliaç
         Use linguagem simples e didática. IMPORTANTE: Ao final de cada resposta, sempre inclua o aviso:
         "⚠️ Esta é uma orientação educacional. Recomendamos fortemente consultar um médico veterinário para diagnóstico e tratamento adequados."`;
       
-      userPrompt = `${context ? `Contexto: ${context}\n\n` : ''}${question}`;
+      userPrompt = `${sanitizedContext ? `Contexto: ${sanitizedContext}\n\n` : ''}${questionValidation.sanitized}`;
     }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
