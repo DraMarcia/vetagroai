@@ -12,6 +12,7 @@ import { cleanTextForDisplay } from "@/lib/textUtils";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { fileToCompressedDataUrl } from "@/lib/imageDataUrl";
 
 const AnaliseMucosa = () => {
   const { toast } = useToast();
@@ -24,6 +25,11 @@ const AnaliseMucosa = () => {
   const [images, setImages] = useState<string[]>([]);
   const [result, setResult] = useState("");
 
+  const MAX_IMAGES = 5;
+  // Keep payload comfortably under typical serverless body limits.
+  const MAX_IMAGE_BYTES = 1_500_000; // ~1.5MB per image after compression
+  const MAX_TOTAL_BYTES = 5_000_000; // ~5MB total for all images
+
   const ufs = [
     "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
     "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
@@ -35,24 +41,59 @@ const AnaliseMucosa = () => {
     if (!files) return;
 
     const newImages: string[] = [];
+    let added = 0;
+    let skipped = 0;
+    let oversize = 0;
+    let totalBytes = images.reduce((sum, s) => {
+      const idx = s.indexOf("base64,");
+      if (idx === -1) return sum;
+      const b64 = s.slice(idx + 7);
+      return sum + Math.floor((b64.length * 3) / 4);
+    }, 0);
     
-    for (let i = 0; i < files.length && images.length + newImages.length < 5; i++) {
+    for (let i = 0; i < files.length && images.length + newImages.length < MAX_IMAGES; i++) {
       const file = files[i];
-      const reader = new FileReader();
-      
-      await new Promise<void>((resolve) => {
-        reader.onloadend = () => {
-          newImages.push(reader.result as string);
-          resolve();
-        };
-        reader.readAsDataURL(file);
-      });
+      try {
+        const { dataUrl, approxBytes } = await fileToCompressedDataUrl(file, {
+          maxDimension: 1600,
+          quality: 0.85,
+          mimeType: "image/jpeg",
+        });
+
+        if (approxBytes > MAX_IMAGE_BYTES || totalBytes + approxBytes > MAX_TOTAL_BYTES) {
+          oversize++;
+          continue;
+        }
+
+        newImages.push(dataUrl);
+        totalBytes += approxBytes;
+        added++;
+      } catch {
+        skipped++;
+      }
     }
 
     setImages([...images, ...newImages]);
+
+    // reset input so re-uploading same file triggers onChange
+    e.target.value = "";
+
+    if (added === 0) {
+      toast({
+        title: "Não foi possível adicionar a imagem",
+        description: oversize
+          ? "A imagem ficou muito grande para envio. Tente uma foto mais leve/recortada."
+          : "Tente novamente com outra imagem.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
       title: "Imagem(ns) carregada(s)",
-      description: `${newImages.length} imagem(ns) adicionada(s). Total: ${images.length + newImages.length}/5`,
+      description: `${added} imagem(ns) adicionada(s). Total: ${images.length + newImages.length}/${MAX_IMAGES}`
+        + (oversize ? ` • ${oversize} muito grande(s) e ignorada(s)` : "")
+        + (skipped ? ` • ${skipped} com falha ao processar` : ""),
     });
   };
 
@@ -302,16 +343,16 @@ const AnaliseMucosa = () => {
                 onChange={handleImageUpload}
                 className="flex-1"
                 multiple
-                disabled={images.length >= 5}
+                disabled={images.length >= MAX_IMAGES}
               />
               <Upload className="h-5 w-5 text-muted-foreground" />
             </div>
 
             {images.length > 0 && (
               <div className="space-y-2">
-                <p className="text-sm font-medium text-primary">
-                  {images.length} de 5 imagens carregadas ✓
-                </p>
+                  <p className="text-sm font-medium text-primary">
+                    {images.length} de {MAX_IMAGES} imagens carregadas ✓
+                  </p>
                 <div className="flex flex-wrap gap-2">
                   {images.map((img, index) => (
                     <div key={index} className="relative group">
