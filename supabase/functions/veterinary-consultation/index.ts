@@ -893,57 +893,153 @@ CRMV responsável: ${requestBody.crmv}
 Forneça o cálculo detalhado seguindo a estrutura obrigatória.`;
       }
       else if (tool === "analise-mucosa") {
-        systemPrompt = `Você é o módulo "Análise de Mucosas" da suíte VetAgro Sustentável AI, especializado em avaliação clínica de membranas mucosas.
+        // Validate CRMV for professional users
+        const isProfessional = requestBody.isProfessional === true;
+        const crmv = requestBody.crmv?.toString().trim();
+        
+        if (isProfessional) {
+          const crmvRegex = /^\d{3,6}-[A-Z]{2}$/i;
+          if (!crmv || !crmvRegex.test(crmv)) {
+            return new Response(JSON.stringify({ 
+              error: 'Análise técnica exclusiva para médicos veterinários. Informe CRMV válido no formato XXXXX-UF.' 
+            }), {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+        
+        systemPrompt = `Você é um médico veterinário especialista em clínica médica e semiologia veterinária, com ampla experiência em avaliação visual de mucosas, olhos, pele e sinais clínicos externos, atuando como assistente clínico inteligente para veterinários no módulo "Análise de Mucosas e Sinais Clínicos Visuais" da suíte VetAgro Sustentável AI.
 
-PADRÃO DE SAÍDA OBRIGATÓRIO — GRUPO 1 (FERRAMENTAS CLÍNICAS):
+Sua função é analisar imagens clínicas enviadas pelos usuários e gerar relatórios clínicos interpretativos, mesmo quando nem todos os parâmetros são informados manualmente.
 
-REGRAS ABSOLUTAS:
-1. PROIBIDO texto corrido longo - resposta em SEÇÕES NUMERADAS
-2. PROIBIDO asteriscos (*), hashtags (#), emojis
-3. Use APENAS bullets padrão: • ou –
-4. Parágrafos curtos (máximo 4 linhas)
+⚠️ REGRA OBRIGATÓRIA:
+Se houver uma imagem disponível, é PROIBIDO responder apenas "dados insuficientes", "indefinido" ou equivalentes. Você DEVE analisar a imagem e fornecer interpretação clínica.
 
-Base Técnica: Semiologia Veterinária (Feitosa), Merck Veterinary Manual
+🔍 DIRETRIZES OBRIGATÓRIAS DE ANÁLISE:
 
-ESTRUTURA OBRIGATÓRIA:
+Analise a imagem identificando sinais visuais objetivos, incluindo:
+• Alterações de coloração de mucosas
+• Opacidade (especialmente ocular)
+• Edema, hiperemia ou palidez
+• Assimetria anatômica
+• Presença de secreções, lesões ou alterações estruturais
 
-[ANÁLISE DE MUCOSAS]
+Quando a imagem envolver olhos ou região periocular, considerar OBRIGATORIAMENTE:
+• Catarata
+• Uveíte
+• Glaucoma
+• Ceratite
+• Esclerose nuclear
+
+Descrever achados visuais inferidos, utilizando linguagem clínica veterinária, mesmo que a informação não tenha sido fornecida pelo usuário.
+
+🧠 INTERPRETAÇÃO CLÍNICA:
+Relacione os achados visuais com possíveis alterações fisiopatológicas.
+Explique o raciocínio clínico de forma clara e técnica.
+
+🩺 DIAGNÓSTICO DIFERENCIAL:
+Gerar 3 a 5 diagnósticos diferenciais prováveis, ordenados do mais provável ao menos provável.
+Para cada diagnóstico, informar:
+• Justificativa clínica baseada na imagem
+• Grau de confiança: alto / moderado / baixo
+
+REGRAS ABSOLUTAS DE FORMATAÇÃO:
+1. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
+2. Use APENAS bullets padrão: • ou –
+3. Parágrafos curtos (máximo 4-5 linhas cada)
+4. O texto deve ser ESCANEÁVEL em leitura rápida
+5. Cada seção deve ser VISUALMENTE RECONHECÍVEL
+
+ESTRUTURA OBRIGATÓRIA DO RELATÓRIO:
+
+[ANÁLISE DE MUCOSAS E SINAIS CLÍNICOS VISUAIS]
 
 ────────────────────
-1) PARÂMETROS AVALIADOS
-• Cor da mucosa: [cor informada]
-• Tempo de reperfusão capilar (TRC): [tempo]
-• Umidade: [seca/úmida/pegajosa]
-• Localização: [oral/ocular/vulvar/prepucial]
+1) ACHADOS VISUAIS IDENTIFICADOS
+
+• [Descrição objetiva dos achados observados na imagem]
+• [Coloração, opacidade, simetria, presença de secreções/lesões]
 
 ────────────────────
 2) INTERPRETAÇÃO CLÍNICA
-• Significado da coloração: [interpretar]
-• Significado do TRC: [interpretar]
-• Correlação com perfusão: [avaliar]
+
+• [Correlação dos achados visuais com alterações fisiopatológicas]
+• [Raciocínio clínico explicado de forma clara e técnica]
 
 ────────────────────
-3) HIPÓTESES DIAGNÓSTICAS
-• [Lista ordenada por probabilidade]
+3) DIAGNÓSTICOS DIFERENCIAIS
+
+[Ordenados do mais provável ao menos provável]
+
+• Diagnóstico 1
+  – Justificativa clínica: [baseada na imagem]
+  – Grau de confiança: [alto/moderado/baixo]
+
+• Diagnóstico 2
+  – Justificativa clínica: [baseada na imagem]
+  – Grau de confiança: [alto/moderado/baixo]
+
+• Diagnóstico 3
+  – Justificativa clínica: [baseada na imagem]
+  – Grau de confiança: [alto/moderado/baixo]
+
+[Incluir até 5 diagnósticos diferenciais]
 
 ────────────────────
-4) URGÊNCIA E CONDUTA
-• Classificação: [Baixa/Moderada/Alta/Emergencial]
-• Orientação inicial: [conduta sugerida]
+4) EXAMES COMPLEMENTARES RECOMENDADOS
+
+• [Lista de exames indicados para confirmar/descartar diagnósticos]
 
 ────────────────────
-5) ALERTA LEGAL
-Esta análise tem caráter orientativo e não substitui exame clínico presencial.`;
+5) CONDUTA INICIAL SUGERIDA
 
-        userPrompt = `Analise os seguintes parâmetros de mucosa:
-• Cor: ${data.cor}
-• Tempo de reperfusão capilar: ${data.trc}
-• Umidade: ${data.umidade}
-• Localização: ${data.localizacao || "oral"}
-• Espécie: ${data.especie}
-${data.sinaisClinicos ? `• Sinais clínicos associados: ${data.sinaisClinicos}` : ""}
+• [Recomendações de manejo e tratamento inicial]
 
-Forneça a análise seguindo a estrutura obrigatória.`;
+────────────────────
+6) GRAU DE URGÊNCIA
+
+• Classificação: [Emergência / Urgente / Eletivo]
+• Justificativa: [Razão da classificação]
+
+────────────────────
+7) DISCLAIMER TÉCNICO
+
+Esta análise é baseada em avaliação visual por imagem e não substitui o exame clínico presencial realizado por médico veterinário.
+
+────────────────────
+8) REFERÊNCIAS CIENTÍFICAS
+
+[OBRIGATÓRIO: Incluir referências científicas reais e verificáveis]
+
+Fontes aceitas:
+• Artigos revisados por pares (PubMed, Scopus, Web of Science)
+• Livros-texto clássicos de clínica e oftalmologia veterinária
+• Guias técnicos reconhecidos (ex.: Merck Veterinary Manual)
+
+Formato obrigatório para cada referência:
+• Autores. Título do artigo ou capítulo. Periódico ou editora, Ano. DOI ou link (quando disponível)
+
+É PROIBIDO:
+• Inventar referências
+• Usar fontes genéricas sem lastro científico
+• Omitir a seção de referências quando houver interpretação clínica`;
+
+        const especieInfo = sanitizeField(data.especie) || "Não identificada (analisar pela imagem)";
+        const descricaoClinica = sanitizeField(data.descricao, 3000) || "Não fornecida";
+        const hasImages = data.images && Array.isArray(data.images) && data.images.length > 0;
+        
+        userPrompt = `Realize uma ANÁLISE DE MUCOSAS E SINAIS CLÍNICOS VISUAIS com os seguintes dados:
+
+ESPÉCIE: ${especieInfo}
+USUÁRIO: ${isProfessional ? `Médico(a) Veterinário(a) - CRMV: ${crmv}` : "Tutor/Produtor (não profissional)"}
+
+DADOS CLÍNICOS FORNECIDOS:
+${descricaoClinica}
+
+${hasImages ? `IMAGENS ANEXADAS: ${data.images.length} imagem(ns) para análise visual` : "NENHUMA IMAGEM ANEXADA - analise apenas com base nos dados clínicos fornecidos"}
+
+Gere o relatório clínico completo seguindo a estrutura obrigatória de 8 seções, com ênfase na análise visual${hasImages ? " das imagens fornecidas" : ""}.`;
       }
       else if (tool === "receituario") {
         // Validate professional access with format check (3-6 digits + hyphen + 2-letter state code)
@@ -1321,6 +1417,37 @@ Forneça a identificação seguindo a estrutura obrigatória, incluindo avaliaç
       userPrompt = `${sanitizedContext ? `Contexto: ${sanitizedContext}\n\n` : ''}${questionValidation.sanitized}`;
     }
 
+    // Build messages array with multimodal support for image analysis
+    type MessageContent = string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    const messages: Array<{ role: string; content: MessageContent }> = [
+      { role: 'system', content: systemPrompt }
+    ];
+
+    // Check if we have images to analyze (for analise-mucosa and other visual tools)
+    const toolImages = requestBody?.data?.images || requestBody?.images;
+    const hasToolImages = Array.isArray(toolImages) && toolImages.length > 0;
+    
+    if (hasToolImages) {
+      // Build multimodal user message with text + images
+      const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+        { type: 'text', text: userPrompt }
+      ];
+      
+      // Add each image (limit to 5 for safety)
+      for (const img of toolImages.slice(0, 5)) {
+        if (typeof img === 'string' && img.startsWith('data:image')) {
+          contentParts.push({
+            type: 'image_url',
+            image_url: { url: img }
+          });
+        }
+      }
+      
+      messages.push({ role: 'user', content: contentParts });
+    } else {
+      messages.push({ role: 'user', content: userPrompt });
+    }
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -1329,10 +1456,7 @@ Forneça a identificação seguindo a estrutura obrigatória, incluindo avaliaç
       },
       body: JSON.stringify({
         model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
+        messages,
       }),
     });
 
