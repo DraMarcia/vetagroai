@@ -21,8 +21,26 @@ function getCorsHeaders(req: Request) {
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    // IMPORTANT: include custom headers used by the web client (desktop browsers are strict on preflight)
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id, x-client-platform',
     'Access-Control-Allow-Credentials': 'true',
+  };
+}
+
+function getRequestId(req: Request) {
+  return req.headers.get('x-request-id') || (globalThis.crypto?.randomUUID?.() ?? `req_${Date.now()}`);
+}
+
+function summarizeDataUrl(dataUrl: string) {
+  // data:image/jpeg;base64,AAAA...
+  const mime = (dataUrl.match(/^data:([^;]+);base64,/i)?.[1] || 'unknown').toLowerCase();
+  const b64 = dataUrl.split('base64,')[1] || '';
+  return {
+    mime,
+    base64Chars: b64.length,
+    // ~3/4 ratio for base64 -> bytes, minus padding; this is good enough for logs.
+    approxBytes: Math.floor((b64.length * 3) / 4),
+    prefix: b64.slice(0, 24),
   };
 }
 
@@ -149,6 +167,7 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
+  const requestId = getRequestId(req);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -169,6 +188,31 @@ serve(async (req) => {
     const plan = authResult.plan; // Server-validated plan, not from request body
     
     const requestBody = await req.json();
+    // Minimal, safe request logging for auditing/debugging (avoid logging full base64)
+    try {
+      const tool = requestBody?.tool;
+      const isProfessional = Boolean(requestBody?.isProfessional);
+      const imgArr = requestBody?.data?.images || requestBody?.images;
+      const imgList = Array.isArray(imgArr) ? imgArr : [];
+      const imgSummaries = imgList
+        .slice(0, 5)
+        .filter((x: unknown): x is string => typeof x === 'string' && x.startsWith('data:image'))
+        .map(summarizeDataUrl);
+
+      console.info('[veterinary-consultation] request', {
+        requestId,
+        origin: req.headers.get('origin') || null,
+        platform: req.headers.get('x-client-platform') || null,
+        tool,
+        isProfessional,
+        hasImages: imgList.length > 0,
+        imagesCount: imgList.length,
+        images: imgSummaries,
+        descricaoChars: typeof requestBody?.data?.descricao === 'string' ? requestBody.data.descricao.length : 0,
+      });
+    } catch (e) {
+      console.warn('[veterinary-consultation] request log failed', { requestId, error: e instanceof Error ? e.message : String(e) });
+    }
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     // Check rate limit using user ID and server-validated plan
@@ -1448,6 +1492,24 @@ Forneça a identificação seguindo a estrutura obrigatória, incluindo avaliaç
       messages.push({ role: 'user', content: userPrompt });
     }
 
+    // Log outbound payload summary to AI gateway (no PII/base64)
+    console.info('[veterinary-consultation] ai payload', {
+      requestId,
+      model: 'google/gemini-2.5-flash',
+      messagesCount: messages.length,
+      hasMultimodal: hasToolImages,
+      imagesSent: hasToolImages
+        ? (messages[messages.length - 1]?.content as any[])?.filter((p) => p?.type === 'image_url')?.length ?? 0
+        : 0,
+      userPromptChars: userPrompt?.length ?? 0,
+      systemPromptChars: systemPrompt?.length ?? 0,
+    });
+
+    // Add a hard timeout to avoid "hang" scenarios that surface as generic fetch failures in the browser.
+    const controller = new AbortController();
+    const timeoutMs = 55_000;
+    const timeout = setTimeout(() => controller.abort('timeout'), timeoutMs);
+
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -1458,7 +1520,10 @@ Forneça a identificação seguindo a estrutura obrigatória, incluindo avaliaç
         model: 'google/gemini-2.5-flash',
         messages,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -1474,8 +1539,23 @@ Forneça a identificação seguindo a estrutura obrigatória, incluindo avaliaç
         });
       }
       const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`Erro na API: ${response.status}`);
+      console.error('[veterinary-consultation] AI gateway error', {
+        requestId,
+        status: response.status,
+        bodyPreview: errorText.slice(0, 1500),
+      });
+      // Propagate non-2xx explicitly to the client (so it's not masked as generic fetch failure)
+      return new Response(
+        JSON.stringify({
+          error: `Erro na API: ${response.status}`,
+          requestId,
+          details: errorText.slice(0, 1500),
+        }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const data = await response.json();
@@ -1486,7 +1566,7 @@ Forneça a identificação seguindo a estrutura obrigatória, incluindo avaliaç
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Erro ao processar consulta:', error);
+    console.error('[veterinary-consultation] handler error', { requestId, error });
     const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
