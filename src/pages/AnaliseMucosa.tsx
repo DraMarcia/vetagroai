@@ -13,6 +13,8 @@ import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { invokeEdgeFunction } from "@/lib/edgeInvoke";
 import { fileToCompressedDataUrl } from "@/lib/imageDataUrl";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const AnaliseMucosa = () => {
   const { toast } = useToast();
@@ -24,6 +26,7 @@ const AnaliseMucosa = () => {
   const [animalData, setAnimalData] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [result, setResult] = useState("");
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const MAX_IMAGES = 5;
   // Keep payload comfortably under typical serverless body limits.
@@ -133,6 +136,18 @@ const AnaliseMucosa = () => {
         description: "Por favor, informe se você é um profissional da área.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Esta ferramenta exige sessão autenticada (evita enviar token anon e receber 401)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({
+        title: "Faça login para continuar",
+        description: "Entre ou crie uma conta para realizar análises e usar seus créditos.",
+        variant: "destructive",
+      });
+      setShowAuthDialog(true);
       return;
     }
 
@@ -443,9 +458,11 @@ const AnaliseMucosa = () => {
             </CardContent>
           </Card>
         )}
-      </div>
-    </div>
-  );
+       </div>
+
+       <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
+     </div>
+   );
 };
 
 export default AnaliseMucosa;
