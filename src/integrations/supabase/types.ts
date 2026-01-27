@@ -238,7 +238,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      tool_suggestions_admin_view: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string | null
+          status: string | null
+          suggestion: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string | null
+          status?: string | null
+          suggestion?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string | null
+          status?: string | null
+          suggestion?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_credits: { Args: never; Returns: Json }
