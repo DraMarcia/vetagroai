@@ -265,6 +265,16 @@ export type Database = {
     }
     Functions: {
       check_credits: { Args: never; Returns: Json }
+      get_admin_tool_suggestions: {
+        Args: never
+        Returns: {
+          category: string
+          created_at: string
+          id: string
+          status: string
+          suggestion: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
