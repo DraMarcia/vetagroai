@@ -49,7 +49,7 @@ export function AboutModal({ open, onOpenChange }: AboutModalProps) {
               Dra. Márcia Salgado
             </h3>
             <p className="text-sm text-muted-foreground">
-              Pesquisadora e Criadora
+              Pesquisadora
             </p>
             <p className="text-xs text-muted-foreground">
               Criadora e Desenvolvedora do VetAgro AI
