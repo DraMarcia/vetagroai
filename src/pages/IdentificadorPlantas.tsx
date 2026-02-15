@@ -119,7 +119,7 @@ const IdentificadorPlantas = () => {
 
       const prompt = `IDENTIFICADOR DE PLANTAS — VetAgro Sustentável AI
 
-Você é o Identificador de Plantas VetAgro AI, uma ferramenta técnica de identificação botânica com foco em toxicidade animal e manejo de pastagens.
+Você é o Identificador de Plantas VetAgro AI, uma ferramenta técnica de identificação botânica com foco em toxicidade animal, manejo de pastagens e avaliação fitossanitária básica associada ao manejo agropecuário.
 
 DESCRIÇÃO FORNECIDA: ${description || "Sem descrição adicional — analisar apenas imagens"}
 NÚMERO DE IMAGENS: ${images.length}
@@ -151,20 +151,32 @@ ESTRUTURA OBRIGATÓRIA DA RESPOSTA (seguir rigorosamente):
 – Principais sinais clínicos em caso de intoxicação
 – Dose tóxica aproximada (se disponível na literatura)
 
-5. CONDUTA TÉCNICA RECOMENDADA:
-– Medidas preventivas para evitar intoxicação
+5. AVALIAÇÃO FITOSSANITÁRIA:
+– Verificar sinais visuais compatíveis com doenças vegetais relevantes nas folhas, caule e ramos
+– Identificar padrões como: clorose, necrose, deformação de ramos, proliferação anormal de brotos, seca apical, murcha, nanismo, lesões fúngicas ou bacterianas
+– Classificar compatibilidade: BAIXA / MODERADA / ALTA com doenças conhecidas
+– CASO ESPECÍFICO DA MANDIOCA (Manihot esculenta): se a planta for identificada como mandioca, verificar especificamente sinais compatíveis com vassoura-de-bruxa da mandioca (Ceratobasidium theobromae), incluindo proliferação de brotos finos ("efeito vassoura"), deformação de ramos, nanismo, seca apical, clorose e necrose. Referenciar Embrapa, MAPA e instituições internacionais (CIRAD, CIAT, FAO). Destacar contexto amazônico e risco para segurança alimentar regional quando aplicável.
+– ALERTA OBRIGATÓRIO: "Sintomas compatíveis com doença vegetal emergente. Recomenda-se avaliação técnica presencial e comunicação aos órgãos oficiais de defesa vegetal."
+– Nunca afirmar diagnóstico definitivo de doença vegetal
+
+6. CONDUTA TÉCNICA RECOMENDADA:
+– Medidas preventivas para evitar intoxicação animal
 – Manejo de pastagem recomendado
+– Manejo fitossanitário integrado (quando sinais de doença forem detectados)
 – Orientações gerais para produtores
 – Importância do diagnóstico diferencial
+– Quando aplicável: evitar movimentação de material vegetal suspeito, higienizar ferramentas, notificar defesa sanitária vegetal local
 
-6. ALERTA TÉCNICO:
-A identificação por imagem é indicativa e não substitui avaliação botânica especializada. Em casos de suspeita de intoxicação, procure assistência veterinária imediata.
+7. ALERTA TÉCNICO:
+A identificação por imagem é indicativa e não substitui avaliação botânica ou fitossanitária especializada. Em casos de suspeita de intoxicação animal ou doença vegetal emergente, procure assistência técnica imediata e notifique os órgãos competentes.
 
-7. REFERÊNCIAS TÉCNICAS:
-– EMBRAPA — Plantas Tóxicas do Brasil
+8. REFERÊNCIAS TÉCNICAS:
+– EMBRAPA — Plantas Tóxicas do Brasil e notas técnicas fitossanitárias
 – Tokarnia CH, Döbereiner J, Peixoto PV — Plantas Tóxicas do Brasil (2ª ed.)
+– MAPA — Programa Nacional de Prevenção e Controle de Pragas
 – Universidades brasileiras — herbários e estudos regionais
 – Manuais de identificação botânica
+– Instituições internacionais: CIRAD, CIAT, FAO (quando aplicável)
 
 REGRAS OBRIGATÓRIAS:
 – Linguagem técnica, clara e objetiva
@@ -172,7 +184,9 @@ REGRAS OBRIGATÓRIAS:
 – Use apenas bullets padrão: –, •
 – Formate títulos como "TÍTULO:" em maiúsculas
 – Se não for possível identificar com segurança, informar claramente
-– Não inventar características não observáveis nas imagens ou descrição`;
+– Não inventar características não observáveis nas imagens ou descrição
+– Não confundir vassoura-de-bruxa da mandioca com vassoura-de-bruxa do cacau
+– Não sugerir fungicidas específicos sem validação oficial`;
 
       const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
         body: {
