@@ -78,6 +78,7 @@ const categories = [
       { title: "Consulta Geoespacial Sustentável", url: "/consulta-geoespacial", icon: MapPin },
       { title: "Análise de Sustentabilidade", url: "/analise-sustentabilidade", icon: Leaf },
       { title: "Análise Climática Inteligente", url: "/analise-climatica", icon: Cloud },
+      { title: "Diagnóstico Fitossanitário da Mandioca", url: "/diagnostico-mandioca", icon: Leaf },
     ],
   },
   {
