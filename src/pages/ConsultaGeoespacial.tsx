@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MapPin, Sparkles, Loader2, FileText, Crown, Info } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { UpgradeModal } from "@/components/UpgradeModal";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
@@ -152,26 +152,27 @@ const ConsultaGeoespacial = () => {
     setResposta("");
 
     try {
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "consulta-geoespacial",
-          plan,
-          data: {
-            perfilUsuario,
-            bioma,
-            municipio,
-            tipoProducao,
-            objetivo,
-            informacoes
-          }
+      const res = await resilientInvoke("veterinary-consultation", {
+        tool: "consulta-geoespacial",
+        plan,
+        data: {
+          perfilUsuario,
+          bioma,
+          municipio,
+          tipoProducao,
+          objetivo,
+          informacoes
         }
       });
 
-      if (error) throw error;
-      setResposta(data.response);
+      if (!res.ok) {
+        toast.error(res.friendlyError || "Tente novamente.");
+        return;
+      }
+      setResposta(extractAnswer(res.data));
     } catch (error) {
       console.error("Erro na consulta:", error);
-      toast.error("Erro ao processar consulta. Tente novamente.");
+      toast.error("Ocorreu um problema temporário. Tente novamente.");
     } finally {
       setIsLoading(false);
     }

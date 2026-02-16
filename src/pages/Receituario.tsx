@@ -117,10 +117,22 @@ const Receituario = () => {
         },
       });
 
-      if (!res.ok) throw res.error;
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       if (!res.data?.answer) {
-        throw new Error("Resposta vazia do servidor");
+        toast({
+          title: "Resposta vazia",
+          description: "O servidor não retornou dados. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const cleanedResult = cleanPrescriptionText(res.data.answer);
@@ -133,8 +145,8 @@ const Receituario = () => {
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao gerar receituário",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {

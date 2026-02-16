@@ -209,7 +209,14 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
         context: "Diagnóstico diferencial veterinário",
       });
 
-      if (!res.ok) throw res.error;
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       const cleanedResult = cleanTextForDisplay(res.data?.answer);
       setResult(cleanedResult);
@@ -221,8 +228,8 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao analisar",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {

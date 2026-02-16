@@ -132,16 +132,12 @@ const DiagnosticoMandioca = () => {
       });
 
       if (!res.ok) {
-        const msg = (res.error as any)?.message || "Erro ao processar.";
-        if (msg?.includes("429")) {
-          toast({ title: "Limite de requisições", description: "Aguarde alguns instantes e tente novamente.", variant: "destructive" });
-          return;
-        }
-        if (msg?.includes("402")) {
-          toast({ title: "Créditos insuficientes", description: "Faça upgrade do seu plano para continuar.", variant: "destructive" });
-          return;
-        }
-        throw new Error(msg);
+        toast({
+          title: "Atenção",
+          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const cleanedResult = cleanTextForDisplay(res.data?.answer || res.data?.response);
@@ -150,7 +146,7 @@ const DiagnosticoMandioca = () => {
       toast({ title: "Diagnóstico concluído!", description: "A análise fitossanitária foi gerada com sucesso." });
     } catch (error: any) {
       console.error("Erro:", error);
-      toast({ title: "Erro ao analisar", description: error.message || "Tente novamente mais tarde.", variant: "destructive" });
+      toast({ title: "Atenção", description: "Ocorreu um problema temporário. Por favor, tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }

@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Leaf, Loader2, Upload, X, ImageIcon, User, AlertTriangle, MapPin, Microscope } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { fileToCompressedDataUrl } from "@/lib/imageDataUrl";
 import { UFS } from "@/hooks/useCrmvValidation";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
@@ -188,26 +189,49 @@ REGRAS OBRIGATÓRIAS:
 – Não confundir vassoura-de-bruxa da mandioca com vassoura-de-bruxa do cacau
 – Não sugerir fungicidas específicos sem validação oficial`;
 
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "identificador-plantas",
-          question: prompt,
-          images: images,
-          description: description || "Sem descrição adicional",
-          isProfessional: isProfessional === "sim",
-          councilType: isProfessional === "sim" ? councilType : undefined,
-          councilNumber: isProfessional === "sim" ? councilNumber : undefined,
-          councilUF: isProfessional === "sim" ? councilUF : undefined,
-        },
-      });
-
-      if (error) throw error;
-
-      if (!data?.answer) {
-        throw new Error("Resposta vazia do servidor. Tente novamente.");
+      // Compress images before sending
+      let compressedImages: string[] = [];
+      if (images.length > 0) {
+        try {
+          for (const img of images) {
+            compressedImages.push(img); // already data URLs from upload
+          }
+        } catch {
+          compressedImages = [];
+        }
       }
 
-      const cleanedResult = cleanTextForDisplay(data.answer);
+      const res = await resilientInvoke("veterinary-consultation", {
+        tool: "identificador-plantas",
+        question: prompt,
+        images: compressedImages.length > 0 ? compressedImages : undefined,
+        description: description || "Sem descrição adicional",
+        isProfessional: isProfessional === "sim",
+        councilType: isProfessional === "sim" ? councilType : undefined,
+        councilNumber: isProfessional === "sim" ? councilNumber : undefined,
+        councilUF: isProfessional === "sim" ? councilUF : undefined,
+      }, { hasImages: images.length > 0 });
+
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: res.friendlyError || "Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const answer = extractAnswer(res.data);
+      if (!answer) {
+        toast({
+          title: "Resposta vazia",
+          description: "O servidor não retornou dados. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const cleanedResult = cleanTextForDisplay(answer);
       setResult(cleanedResult);
       toast({
         title: "Identificação concluída",
@@ -216,8 +240,8 @@ REGRAS OBRIGATÓRIAS:
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao identificar",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {

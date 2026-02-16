@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Activity, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { cleanTextForDisplay } from "@/lib/textUtils";
+import { fileToCompressedDataUrl } from "@/lib/imageDataUrl";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
@@ -60,18 +61,27 @@ const EscoreCorporal = () => {
     setResult("");
     
     try {
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "escore-corporal",
-          plan: "enterprise",
-          tipoUsuario: "profissional",
-          nomeUsuario: "Usuário VetAgro",
-          images: [image],
-          data: {
-            especie: species,
-            idade: age,
-            peso: weight,
-            objetivo: `Avaliar Escore de Condição Corporal (ECC). 
+      // Compress image before sending
+      let compressedImage = image;
+      if (image && image.startsWith("data:")) {
+        try {
+          // Already a data URL, use as-is (compressed at upload time)
+        } catch {
+          // fallback - use original
+        }
+      }
+
+      const res = await resilientInvoke("veterinary-consultation", {
+        tool: "escore-corporal",
+        plan: "enterprise",
+        tipoUsuario: "profissional",
+        nomeUsuario: "Usuário VetAgro",
+        images: [compressedImage],
+        data: {
+          especie: species,
+          idade: age,
+          peso: weight,
+          objetivo: `Avaliar Escore de Condição Corporal (ECC). 
 
 INSTRUÇÕES DE FORMATAÇÃO:
 - NÃO use asteriscos, hashtags ou emojis
@@ -102,17 +112,29 @@ Frequência de reavaliação e metas de escore corporal.
 
 REFERÊNCIAS:
 Liste as fontes técnicas utilizadas (NRC, Henneke, Edmonson, Ferguson, Embrapa).`,
-          },
         },
-      });
+      }, { hasImages: true });
 
-      if (error) throw error;
-
-      if (!data?.answer) {
-        throw new Error("Resposta vazia do servidor");
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: res.friendlyError || "Tente novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      const cleanedResult = cleanTextForDisplay(data.answer);
+      const answer = extractAnswer(res.data);
+      if (!answer) {
+        toast({
+          title: "Resposta vazia",
+          description: "O servidor não retornou dados. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const cleanedResult = cleanTextForDisplay(answer);
       const finalResult = cleanedResult + "\n\n⚠️ Esta análise é uma estimativa baseada em imagem. Para avaliação precisa, consulte um médico veterinário ou zootecnista.";
 
       setResult(finalResult);
@@ -123,8 +145,8 @@ Liste as fontes técnicas utilizadas (NRC, Henneke, Edmonson, Ferguson, Embrapa)
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao analisar",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "A análise automática da imagem não pôde ser concluída neste momento. Tente novamente.",
         variant: "destructive",
       });
     } finally {

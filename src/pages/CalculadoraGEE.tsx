@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend } from "recharts";
 import { ToolExplanatoryBlock } from "@/components/ToolExplanatoryBlock";
@@ -554,16 +554,22 @@ ${commonInstructions}`;
 
       const prompt = generatePrompt(result);
 
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          question: prompt,
-          isProfessional: userLevel !== "produtor",
-          context: "Calculadora de Emissões de GEE - Metodologia IPCC Tier 2",
-        },
+      const res = await resilientInvoke("veterinary-consultation", {
+        question: prompt,
+        isProfessional: userLevel !== "produtor",
+        context: "Calculadora de Emissões de GEE - Metodologia IPCC Tier 2",
       });
 
-      if (error) throw error;
-      setAiAnalysis(data.answer || "");
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: res.friendlyError || "Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setAiAnalysis(extractAnswer(res.data));
 
       toast({
         title: "Cálculo concluído",
@@ -572,8 +578,8 @@ ${commonInstructions}`;
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao calcular",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -681,16 +687,22 @@ REFERÊNCIAS OBRIGATÓRIAS:
 - EMBRAPA - Carne Carbono Neutro
 - ABC+ / MAPA`;
 
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          question: prompt,
-          isProfessional: true,
-          context: "Simulação de mitigação de GEE - Créditos de Carbono",
-        },
+      const res = await resilientInvoke("veterinary-consultation", {
+        question: prompt,
+        isProfessional: true,
+        context: "Simulação de mitigação de GEE - Créditos de Carbono",
       });
 
-      if (error) throw error;
-      setMitigationResult(data.answer || "");
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: res.friendlyError || "Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setMitigationResult(extractAnswer(res.data));
 
       toast({
         title: "Simulação concluída",
@@ -699,8 +711,8 @@ REFERÊNCIAS OBRIGATÓRIAS:
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro na simulação",
-        description: error.message || "Tente novamente.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Tente novamente.",
         variant: "destructive",
       });
     } finally {

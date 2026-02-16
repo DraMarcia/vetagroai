@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CloudRain, Loader2, HelpCircle, Sun, Thermometer, Droplets, Wind, Calendar, AlertTriangle, ExternalLink, MapPin, Lightbulb, Target, FileText, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
@@ -47,9 +47,8 @@ const AnaliseClimatica = () => {
         year: 'numeric' 
       });
 
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          question: `Você é um especialista em climatologia aplicada ao agronegócio brasileiro, com foco especial na região Norte (Amazônia e Roraima).
+      const res = await resilientInvoke("veterinary-consultation", {
+        question: `Você é um especialista em climatologia aplicada ao agronegócio brasileiro, com foco especial na região Norte (Amazônia e Roraima).
 
 INSTRUÇÕES DE FORMATAÇÃO OBRIGATÓRIAS:
 - NUNCA use hashtags (#), asteriscos (*), ou símbolos markdown
@@ -78,25 +77,16 @@ Resumo claro e direto dos principais riscos e impactos para a região analisada.
 • Regime de chuvas: [descrever padrão de precipitação]
 • Temperatura média: [faixa de temperatura]
 • Eventos extremos relevantes: [listar principais]
-• Contexto regional: [especificidades da região]
+• Sazonalidade: [período seco vs chuvoso]
+• Particularidades da região: [fatores locais relevantes]
 
 ────────────────────────────────────────
 
-3. PRINCIPAIS RISCOS CLIMÁTICOS IDENTIFICADOS
+3. IMPACTOS NA ATIVIDADE AGROPECUÁRIA
 
-• Risco 1 — descrição e probabilidade
-• Risco 2 — descrição e probabilidade
-• Risco 3 — descrição e probabilidade
-• [adicionar outros se aplicável]
+RISCO: [BAIXO/MODERADO/ALTO/CRÍTICO]
 
-NÍVEL DE RISCO GERAL:
-• RISCO: [BAIXO | MODERADO | ALTO | CRÍTICO]
-
-────────────────────────────────────────
-
-4. IMPACTOS POTENCIAIS NA ATIVIDADE PRODUTIVA
-
-Análise direta dos efeitos sobre:
+Para cada item, explicar o impacto prático:
 • Produção animal: [impactos específicos]
 • Forragem e pastagem: [impactos específicos]
 • Manejo e operações: [impactos específicos]
@@ -158,17 +148,24 @@ Esta análise tem caráter orientativo e não substitui o acompanhamento técnic
 
 CENÁRIO A ANALISAR:
 ${scenario}`,
-          isProfessional: true,
-          context: "Análise climática para planejamento rural estratégico",
-        },
+        isProfessional: true,
+        context: "Análise climática para planejamento rural estratégico",
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: res.friendlyError || "Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      setResult(data.answer);
+      const answer = extractAnswer(res.data);
+      setResult(answer);
 
       // Extract risk level
-      const riskMatch = data.answer.match(/RISCO:\s*(BAIXO|MODERADO|ALTO|CRÍTICO)/i);
+      const riskMatch = answer.match(/RISCO:\s*(BAIXO|MODERADO|ALTO|CRÍTICO)/i);
       if (riskMatch) {
         setRiskLevel(riskMatch[1].toUpperCase());
       }
@@ -180,8 +177,8 @@ ${scenario}`,
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao analisar",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Leaf, Loader2, HelpCircle, TreePine, Droplets, Recycle, Award, TrendingUp, Lightbulb, CheckCircle2, Sprout, DollarSign, FileCheck, Target, MapPin, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
@@ -101,16 +101,15 @@ const AnaliseSustentabilidade = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "analise-sustentabilidade",
-          perfilUsuario,
-          tipoProducao: tipoProducaoOptions.find(t => t.value === tipoProducao)?.label || tipoProducao,
-          localizacao,
-          escalaProdutiva: escalaOptions.find(e => e.value === escalaProdutiva)?.label || escalaProdutiva,
-          objetivoPrincipal: objetivoOptions.find(o => o.value === objetivoPrincipal)?.label || objetivoPrincipal,
-          praticasAtuais,
-          question: `ANÁLISE ESTRATÉGICA DE SUSTENTABILIDADE — VetAgro Sustentável AI
+      const res = await resilientInvoke("veterinary-consultation", {
+        tool: "analise-sustentabilidade",
+        perfilUsuario,
+        tipoProducao: tipoProducaoOptions.find(t => t.value === tipoProducao)?.label || tipoProducao,
+        localizacao,
+        escalaProdutiva: escalaOptions.find(e => e.value === escalaProdutiva)?.label || escalaProdutiva,
+        objetivoPrincipal: objetivoOptions.find(o => o.value === objetivoPrincipal)?.label || objetivoPrincipal,
+        praticasAtuais,
+        question: `ANÁLISE ESTRATÉGICA DE SUSTENTABILIDADE — VetAgro Sustentável AI
 
 DADOS DA PROPRIEDADE:
 • Perfil do Usuário: ${perfilOptions.find(p => p.value === perfilUsuario)?.label}
@@ -138,23 +137,17 @@ ESTRUTURA OBRIGATÓRIA DA RESPOSTA (8 SEÇÕES):
 1. SÍNTESE EXECUTIVA DE SUSTENTABILIDADE
 Resumo direto do nível de sustentabilidade da propriedade e seu potencial de valorização. Comece reconhecendo os pontos positivos.
 
-2. PRÁTICAS SUSTENTÁVEIS JÁ EXISTENTES NA PROPRIEDADE
-Liste e VALORIZE ações que o produtor já faz, mesmo que ele não reconheça como sustentabilidade:
-• Manutenção de reserva legal
-• Proteção de APPs e nascentes
-• Ausência de queimadas
-• Manejo racional de pastagens
-• Bem-estar animal
-• Uso eficiente da água
-• Outras práticas identificadas
-ENFATIZE: "Essas práticas já geram valor ambiental e podem ser reconhecidas."
+2. DIAGNÓSTICO DE MATURIDADE SUSTENTÁVEL
+Classifique em três dimensões com nota (Baixa / Média / Alta):
+• Dimensão Ambiental: [Baixa/Média/Alta]
+• Dimensão Produtiva: [Baixa/Média/Alta]
+• Dimensão de Gestão: [Baixa/Média/Alta]
+PONTUAÇÃO DE MATURIDADE: [XX]%
 
-3. OPORTUNIDADES DE MELHORIA AO ALCANCE DO PRODUTOR
-Apresente ações SIMPLES, REALISTAS e de BAIXO CUSTO:
-• Ajustes de manejo
-• Organização de registros ambientais
-• Pequenas melhorias de infraestrutura
-• Planejamento forrageiro
+3. OPORTUNIDADES PRÁTICAS DE MELHORIA
+Sugestões realistas e acessíveis:
+• Práticas de manejo imediatas
+• Ajustes de baixo custo
 • Monitoramento básico ambiental
 Seja prático — não liste coisas inatingíveis.
 
@@ -188,8 +181,7 @@ Checklist simples e prático:
 "Esta análise tem caráter orientativo e não substitui avaliações técnicas, auditorias ou validações oficiais."
 
 8. REFERÊNCIAS INSTITUCIONAIS
-Liste APENAS fontes oficiais:
-• MAPA — Ministério da Agricultura, Pecuária e Abastecimento
+• MAPA — Ministério da Agricultura, Pecuária e Abastecimento / Plano ABC+
 • EMBRAPA — Empresa Brasileira de Pesquisa Agropecuária
 • MMA — Ministério do Meio Ambiente
 • Banco do Brasil / BNDES — Linhas de crédito sustentável
@@ -205,27 +197,34 @@ REGRAS DE FORMATAÇÃO:
 
 OBJETIVO FINAL:
 O produtor deve sair da análise pensando: "Eu já faço muita coisa certa — e posso ganhar mais com isso."`,
-          isProfessional: perfilUsuario === "tecnico" || perfilUsuario === "pesquisador",
-          context: "Análise estratégica de sustentabilidade rural",
-        },
+        isProfessional: perfilUsuario === "tecnico" || perfilUsuario === "pesquisador",
+        context: "Análise estratégica de sustentabilidade rural",
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: res.friendlyError || "Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      setResult(data.answer);
+      const answer = extractAnswer(res.data);
+      setResult(answer);
 
       // Extract sustainability score
-      const scoreMatch = data.answer.match(/PONTUAÇÃO[:\s]*(\d+)%/i) || 
-                        data.answer.match(/MATURIDADE[:\s]*(\d+)%/i) ||
-                        data.answer.match(/(\d+)%\s*de\s*maturidade/i);
+      const scoreMatch = answer.match(/PONTUAÇÃO[:\s]*(\d+)%/i) || 
+                        answer.match(/MATURIDADE[:\s]*(\d+)%/i) ||
+                        answer.match(/(\d+)%\s*de\s*maturidade/i);
       if (scoreMatch) {
         setSustainabilityScore(parseInt(scoreMatch[1]));
       }
 
       // Extract maturity levels
-      const ambientalMatch = data.answer.match(/Dimensão Ambiental[:\s]*(Baixa|Média|Alta)/i);
-      const produtivaMatch = data.answer.match(/Dimensão Produtiva[:\s]*(Baixa|Média|Alta)/i);
-      const gestaoMatch = data.answer.match(/Dimensão de Gestão[:\s]*(Baixa|Média|Alta)/i);
+      const ambientalMatch = answer.match(/Dimensão Ambiental[:\s]*(Baixa|Média|Alta)/i);
+      const produtivaMatch = answer.match(/Dimensão Produtiva[:\s]*(Baixa|Média|Alta)/i);
+      const gestaoMatch = answer.match(/Dimensão de Gestão[:\s]*(Baixa|Média|Alta)/i);
       
       if (ambientalMatch) setMaturidadeAmbiental(ambientalMatch[1]);
       if (produtivaMatch) setMaturidadeProdutiva(produtivaMatch[1]);
@@ -238,8 +237,8 @@ O produtor deve sair da análise pensando: "Eu já faço muita coisa certa — e
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao analisar",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {

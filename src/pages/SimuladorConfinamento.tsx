@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Warehouse, Sparkles, Loader2, FileText, Crown, Info, TrendingUp, DollarSign, Leaf } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { UpgradeModal } from "@/components/UpgradeModal";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Slider } from "@/components/ui/slider";
@@ -213,46 +213,48 @@ const SimuladorConfinamento = () => {
     toast.info("Processando simulação completa...");
 
     try {
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "simulador-confinamento",
-          plan,
-          data: {
-            nomeProdutor,
-            estado,
-            municipio,
-            finalidade,
-            numeroAnimais: parseInt(numeroAnimais) || 1,
-            categoria,
-            pesoInicial: parseFloat(pesoInicial),
-            pesoFinal: parseFloat(pesoFinal),
-            diasConfinamento: parseInt(diasConfinamento),
-            gmdEsperado: parseFloat(gmdEsperado),
-            mortalidade: parseFloat(mortalidade),
-            nivelSustentabilidade,
-            conversaoAlimentar: parseFloat(conversaoAlimentar) || 7.0,
-            rendimentoCarcaca: parseFloat(rendimentoCarcaca) || 53,
-            precoBoiMagro: parseFloat(precoBoiMagro) || 260,
-            custoKgMS: parseFloat(custoKgMS) || 2.05,
-            consumoMSPercentual: parseFloat(consumoMSPercentual) || 2.4,
-            custoMaoObraDia: parseFloat(custoMaoObraDia) || 0.42,
-            custoSanidade: parseFloat(custoSanidade) || 18,
-            custoImplantacao: parseFloat(custoImplantacao) || 12,
-            custoDespesasGeraisDia: parseFloat(custoDespesasGeraisDia) || 0.38,
-            precoArrobaVenda: parseFloat(precoArrobaVenda) || 255,
-            bonificacaoCarcaca: parseFloat(bonificacaoCarcaca) || 3
-          }
+      const res = await resilientInvoke("veterinary-consultation", {
+        tool: "simulador-confinamento",
+        plan,
+        data: {
+          nomeProdutor,
+          estado,
+          municipio,
+          finalidade,
+          numeroAnimais: parseInt(numeroAnimais) || 1,
+          categoria,
+          pesoInicial: parseFloat(pesoInicial),
+          pesoFinal: parseFloat(pesoFinal),
+          diasConfinamento: parseInt(diasConfinamento),
+          gmdEsperado: parseFloat(gmdEsperado),
+          mortalidade: parseFloat(mortalidade),
+          nivelSustentabilidade,
+          conversaoAlimentar: parseFloat(conversaoAlimentar) || 7.0,
+          rendimentoCarcaca: parseFloat(rendimentoCarcaca) || 53,
+          precoBoiMagro: parseFloat(precoBoiMagro) || 260,
+          custoKgMS: parseFloat(custoKgMS) || 2.05,
+          consumoMSPercentual: parseFloat(consumoMSPercentual) || 2.4,
+          custoMaoObraDia: parseFloat(custoMaoObraDia) || 0.42,
+          custoSanidade: parseFloat(custoSanidade) || 18,
+          custoImplantacao: parseFloat(custoImplantacao) || 12,
+          custoDespesasGeraisDia: parseFloat(custoDespesasGeraisDia) || 0.38,
+          precoArrobaVenda: parseFloat(precoArrobaVenda) || 255,
+          bonificacaoCarcaca: parseFloat(bonificacaoCarcaca) || 3
         }
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        toast.error(res.friendlyError || "Tente novamente.");
+        return;
+      }
       
-      const cleanedResponse = cleanTextForDisplay(data.response);
+      const answer = extractAnswer(res.data);
+      const cleanedResponse = cleanTextForDisplay(answer);
       setResposta(cleanedResponse);
       toast.success("Simulação concluída!");
     } catch (error) {
       console.error("Erro na simulação:", error);
-      toast.error("Erro ao processar simulação. Tente novamente.");
+      toast.error("Ocorreu um problema temporário. Tente novamente.");
     } finally {
       setIsLoading(false);
     }

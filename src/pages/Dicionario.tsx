@@ -155,7 +155,12 @@ REGRAS OBRIGATÓRIAS:
       });
 
       if (!res.ok) {
-        throw ("error" in res ? res.error : new Error("Falha ao chamar a função."));
+        toast({
+          title: "Atenção",
+          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const cleanedResult = cleanTextForDisplay(res.data.answer)
@@ -170,8 +175,8 @@ REGRAS OBRIGATÓRIAS:
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao consultar",
-        description: error?.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {
