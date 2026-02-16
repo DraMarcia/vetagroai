@@ -180,24 +180,12 @@ const AnaliseMucosa = () => {
       });
 
       if (!res.ok) {
-        const msg = (res.error as any)?.message || "Erro ao processar.";
-        if (msg?.includes("429")) {
-          toast({
-            title: "Limite de requisições",
-            description: "Aguarde alguns instantes e tente novamente.",
-            variant: "destructive",
-          });
-          return;
-        }
-        if (msg?.includes("402")) {
-          toast({
-            title: "Créditos insuficientes",
-            description: "Faça upgrade do seu plano para continuar.",
-            variant: "destructive",
-          });
-          return;
-        }
-        throw new Error(msg);
+        toast({
+          title: "Atenção",
+          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const cleanedResult = cleanTextForDisplay(res.data?.answer || res.data?.response);
@@ -210,8 +198,8 @@ const AnaliseMucosa = () => {
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao analisar",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "A análise automática da imagem não pôde ser concluída neste momento. O relatório foi gerado com base nas informações fornecidas.",
         variant: "destructive",
       });
     } finally {

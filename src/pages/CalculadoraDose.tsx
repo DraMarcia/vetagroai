@@ -303,17 +303,12 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
       });
 
       if (!res.ok) {
-        const msg = (res.error as any)?.message || "Erro ao processar a consulta.";
-        if (msg?.includes("429") || msg?.includes("rate")) {
-          throw new Error("Limite de requisições atingido. Aguarde alguns minutos e tente novamente.");
-        }
-        if (msg?.includes("402") || msg?.includes("credit")) {
-          throw new Error("Créditos insuficientes. Faça upgrade do seu plano.");
-        }
-        if (msg?.includes("401") || msg?.includes("auth")) {
-          throw new Error("Faça login para usar esta ferramenta.");
-        }
-        throw new Error(msg);
+        toast({
+          title: "Atenção",
+          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const cleanedResult = cleanTextForDisplay(res.data?.answer || res.data?.response || "");
@@ -326,8 +321,8 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao calcular",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {

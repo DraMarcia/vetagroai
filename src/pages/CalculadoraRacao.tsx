@@ -13,10 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calculator, Loader2 } from "lucide-react";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { UFS } from "@/hooks/useCrmvValidation";
 const CalculadoraRacao = () => {
@@ -109,10 +110,9 @@ const CalculadoraRacao = () => {
         ? `\n\nPROFISSIONAL RESPONSÁVEL:\n• Nome: ${professionalName}\n• Registro: ${councilType} ${councilNumber} - ${professionalUF}`
         : "";
 
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "calculadora-racao",
-          question: `DADOS PARA FORMULAÇÃO:
+      const res = await resilientInvoke("veterinary-consultation", {
+        tool: "calculadora-racao",
+        question: `DADOS PARA FORMULAÇÃO:
 ${professionalInfo}
 
 ANIMAL:
@@ -122,15 +122,23 @@ ANIMAL:
 • Idade: ${age || "Não informada"}
 • Número de animais: ${animalCount || "1"}
 • Ingredientes disponíveis: ${ingredients || "Não informados (considere ingredientes comuns do mercado)"}`,
-          isProfessional: isProfessional === "sim",
-          professionalName: professionalName,
-          councilNumber: `${councilType} ${councilNumber}`,
-          councilUF: professionalUF,
-          context: "Formulação de ração animal balanceada",
-        },
+        isProfessional: isProfessional === "sim",
+        professionalName: professionalName,
+        councilNumber: `${councilType} ${councilNumber}`,
+        councilUF: professionalUF,
+        context: "Formulação de ração animal balanceada",
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: res.friendlyError || "Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const data = res.data;
 
       // Limpar formatação usando utilitário + normalização específica desta ferramenta
       const cleanResult = cleanTextForDisplay(data.answer);

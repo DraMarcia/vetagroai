@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Upload, Loader2, Image as ImageIcon, X, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { fileToCompressedDataUrl } from "@/lib/imageDataUrl";
 import { UFS } from "@/hooks/useCrmvValidation";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
@@ -147,31 +148,40 @@ const ResenhaEquinos = () => {
     // Debug log removido
     
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-equine", {
-        body: { 
-          images: images.map(img => img.url), 
-          breed, 
-          age, 
-          purpose,
-          horseName,
-          sex,
-          coat,
-          vetName,
-          crmv: `${crmv}-${uf}`
-        },
-      });
+      const res = await resilientInvoke("analyze-equine", {
+        images: images.map(img => img.url), 
+        breed, 
+        age, 
+        purpose,
+        horseName,
+        sex,
+        coat,
+        vetName,
+        crmv: `${crmv}-${uf}`
+      }, { hasImages: true, answerField: "resenha" });
 
-      // Debug log removido
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: res.friendlyError || "Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      if (error) throw error;
+      const data = res.data;
 
       if (!data?.resenha) {
-        throw new Error('Resposta vazia do servidor');
+        toast({
+          title: "Atenção",
+          description: "O servidor não retornou dados suficientes. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
       }
 
       // Check if response is rejection message
       if (data.resenha.includes("exclusiva para avaliação morfológica de equinos")) {
-        // Warning log removido
         toast({
           title: "Erro na análise",
           description: "O sistema não conseguiu processar as imagens. Tente novamente.",
@@ -196,28 +206,9 @@ const ResenhaEquinos = () => {
       });
     } catch (error: any) {
       console.error("Erro:", error);
-      
-      if (error.message?.includes("429") || error.status === 429) {
-        toast({
-          title: "Limite de requisições",
-          description: "Aguarde alguns instantes e tente novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (error.message?.includes("402") || error.status === 402) {
-        toast({
-          title: "Créditos insuficientes",
-          description: "Adicione créditos para continuar usando a ferramenta.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
       toast({
-        title: "Erro ao gerar resenha",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "A análise automática não pôde ser concluída. Tente novamente com imagens mais nítidas.",
         variant: "destructive",
       });
     } finally {

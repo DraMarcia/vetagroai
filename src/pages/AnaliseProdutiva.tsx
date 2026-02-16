@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TrendingUp, Loader2, ChevronDown, Target, DollarSign, AlertTriangle, Lightbulb, BarChart3, FileText, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import DOMPurify from "dompurify";
@@ -173,36 +173,41 @@ const AnaliseProdutiva = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke("veterinary-consultation", {
-        body: {
-          tool: "analise-produtiva",
-          plan: plan || "free",
-          tipoUsuario,
-          nomeUsuario: nomeUsuario || undefined,
-          numeroConselho: requiresProfessionalValidation ? numeroConselho : undefined,
-          ufConselho: requiresProfessionalValidation ? ufConselho : undefined,
-          data: {
-            tipoSistema,
-            numeroAnimais: Number(numeroAnimais),
-            pesoInicial: pesoInicial ? Number(pesoInicial) : null,
-            gmd: gmd ? Number(gmd) : null,
-            conversaoAlimentar: conversaoAlimentar ? Number(conversaoAlimentar) : null,
-            custoPorKg: custoPorKg ? Number(custoPorKg) : null,
-            taxaLotacao: taxaLotacao ? Number(taxaLotacao) : null,
-            areaTotal: areaTotal ? Number(areaTotal) : null,
-            precoVenda: precoVenda ? Number(precoVenda) : null,
-            mortalidade: mortalidade ? Number(mortalidade) : null,
-            eficienciaReprodutiva: eficienciaReprodutiva ? Number(eficienciaReprodutiva) : null,
-            datasLote,
-            observacoesAdicionais,
-          },
+      const res = await resilientInvoke("veterinary-consultation", {
+        tool: "analise-produtiva",
+        plan: plan || "free",
+        tipoUsuario,
+        nomeUsuario: nomeUsuario || undefined,
+        numeroConselho: requiresProfessionalValidation ? numeroConselho : undefined,
+        ufConselho: requiresProfessionalValidation ? ufConselho : undefined,
+        data: {
+          tipoSistema,
+          numeroAnimais: Number(numeroAnimais),
+          pesoInicial: pesoInicial ? Number(pesoInicial) : null,
+          gmd: gmd ? Number(gmd) : null,
+          conversaoAlimentar: conversaoAlimentar ? Number(conversaoAlimentar) : null,
+          custoPorKg: custoPorKg ? Number(custoPorKg) : null,
+          taxaLotacao: taxaLotacao ? Number(taxaLotacao) : null,
+          areaTotal: areaTotal ? Number(areaTotal) : null,
+          precoVenda: precoVenda ? Number(precoVenda) : null,
+          mortalidade: mortalidade ? Number(mortalidade) : null,
+          eficienciaReprodutiva: eficienciaReprodutiva ? Number(eficienciaReprodutiva) : null,
+          datasLote,
+          observacoesAdicionais,
         },
       });
 
-      if (error) throw error;
+      if (!res.ok) {
+        toast({
+          title: "Atenção",
+          description: res.friendlyError || "Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Keep original HTML for display - cleaning only happens during PDF export
-      setResult(data.answer || data.response || "");
+      setResult(extractAnswer(res.data));
       toast({
         title: "Análise concluída!",
         description: "Planejamento produtivo gerado com sucesso.",
@@ -210,8 +215,8 @@ const AnaliseProdutiva = () => {
     } catch (error: any) {
       console.error("Erro:", error);
       toast({
-        title: "Erro ao analisar",
-        description: error.message || "Tente novamente mais tarde.",
+        title: "Atenção",
+        description: "Ocorreu um problema temporário. Por favor, tente novamente.",
         variant: "destructive",
       });
     } finally {

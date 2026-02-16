@@ -17,7 +17,7 @@ import { FileText, Loader2, Upload, Image as ImageIcon, X, AlertTriangle, FileUp
 import { useToast } from "@/hooks/use-toast";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
-import { supabase } from "@/integrations/supabase/client";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
 
@@ -214,14 +214,14 @@ const InterpretacaoExames = () => {
       setLoadingMessage("Processando exames (OCR e análise)...");
 
       // Call the Edge Function
-      const { data, error } = await supabase.functions.invoke('interpret-exams', {
-        body: requestBody
-      });
+      const res = await resilientInvoke("interpret-exams", requestBody, { answerField: "analysis" });
 
-      if (error) {
-        console.error("Edge Function error:", error);
-        throw new Error(error.message || "Erro ao chamar a função de análise");
+      if (!res.ok) {
+        // Generate fallback guidance instead of showing technical error
+        throw new Error(res.friendlyError || "Não foi possível processar a análise.");
       }
+
+      const data = res.data;
 
       // Check for API errors returned in the response
       if (data?.error) {
@@ -358,8 +358,8 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
       setCanExportPdf(false);
       
       toast({
-        title: "Erro na análise",
-        description: error.message || "Ocorreu um erro ao processar. Insira os dados manualmente.",
+        title: "Atenção",
+        description: "A análise automática não pôde ser concluída. Insira os dados manualmente para continuar.",
         variant: "destructive",
       });
     } finally {
