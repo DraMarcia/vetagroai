@@ -284,27 +284,24 @@ Extraia agora:`
       combinedData += `\n\n--- Dados clínicos informados pelo usuário ---\n${sanitizedClinicalData}`;
     }
 
-    // Validate lab values
+    // Validate lab values — but NEVER block report generation
     const labValidation = extractLabValues(combinedData);
+    let imageFallback = false;
     
-    // If no lab values found, return guidance
+    // If no lab values found from OCR, proceed with clinical reasoning instead of blocking
     if (!labValidation.found && !sanitizedClinicalData) {
-      const ocrFailedFiles = ocrErrors.length > 0 ? `\n\nArquivos não lidos: ${ocrErrors.join(', ')}` : '';
-      
-      return new Response(JSON.stringify({ 
-        error: `O PDF foi lido, porém os valores não puderam ser extraídos automaticamente.
+      imageFallback = true;
+      console.log("No lab values extracted and no clinical data — proceeding with clinical reasoning based on patient info");
+      // Build minimal clinical context from patient data so AI can still generate differential diagnoses
+      combinedData = `--- Dados do paciente (sem valores laboratoriais extraídos) ---
+Espécie: ${patient.species || 'Não informada'}
+Idade: ${patient.age || 'Não informada'}
+Peso: ${patient.weight || 'Não informado'}
+Tipo de exame solicitado: ${examType || 'Não especificado'}
 
-Para realizar a interpretação, forneça os valores do exame:
-• Hemograma: Hemácias, Hemoglobina, Hematócrito, Leucócitos, Plaquetas
-• Bioquímica: ALT, AST, Ureia, Creatinina, Proteínas totais
-
-Insira os valores no campo de texto ou envie uma imagem mais nítida do exame.${ocrFailedFiles}`,
-        code: "NO_LAB_VALUES",
-        ocrSuccess: ocrSuccess
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+NOTA: A imagem/PDF do exame não pôde ser interpretada automaticamente. Gere diagnósticos diferenciais baseados no contexto clínico disponível.`;
+    } else if (!labValidation.found && sanitizedClinicalData) {
+      imageFallback = !ocrSuccess;
     }
 
     // Build interpretation prompt based on user type and server-validated plan
@@ -327,6 +324,14 @@ Insira os valores no campo de texto ou envie uma imagem mais nítida do exame.${
 
 PADRÃO DE SAÍDA OBRIGATÓRIO:
 
+REGRA CRÍTICA — DIAGNÓSTICOS DIFERENCIAIS OBRIGATÓRIOS:
+Mesmo que NÃO existam valores laboratoriais ou a imagem não tenha sido interpretada, você DEVE gerar no MÍNIMO 3 diagnósticos diferenciais ordenados por probabilidade, utilizando:
+• Espécie, idade e peso do paciente
+• Tipo de exame solicitado (região anatômica/sistema)
+• Histórico clínico e suspeita clínica informados
+• Dados epidemiológicos relevantes para a espécie
+NUNCA deixe a seção de diagnósticos diferenciais vazia ou com menos de 3 opções.
+
 REGRAS ABSOLUTAS DE FORMATAÇÃO:
 1. PROIBIDO texto corrido longo - TODA resposta DEVE ser dividida em SEÇÕES NUMERADAS
 2. PROIBIDO usar asteriscos (*), hashtags (#), emojis ou markdown
@@ -335,6 +340,7 @@ REGRAS ABSOLUTAS DE FORMATAÇÃO:
 5. O texto deve ser ESCANEÁVEL em leitura rápida
 6. Espaçamento visual consistente entre blocos
 7. Cada seção deve ser VISUALMENTE RECONHECÍVEL
+
 
 INFORMAÇÕES DO PACIENTE:
 • Espécie: ${patient.species || 'Não informada'}
@@ -498,12 +504,18 @@ Relatório gerado via VetAgro Sustentável AI — Análise Assistida © 2025
 
     console.log("Analysis completed successfully");
 
+    // Prepend image fallback notice if applicable
+    if (imageFallback) {
+      analysisResult = `AVISO: A imagem não pôde ser interpretada automaticamente. Os diagnósticos abaixo foram gerados com base na avaliação clínica informada.\n\n${analysisResult}`;
+    }
+
     // Return successful response
     return new Response(JSON.stringify({ 
       success: true,
       analysis: analysisResult,
       extractedData: extractedContent,
       ocrSuccess: ocrSuccess,
+      imageFallback: imageFallback,
       ocrErrors: ocrErrors.length > 0 ? ocrErrors : null,
       plan: plan,
       canExportPdf: plan !== 'free'

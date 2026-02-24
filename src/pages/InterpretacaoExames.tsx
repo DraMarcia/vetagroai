@@ -227,48 +227,6 @@ const InterpretacaoExames = () => {
       if (data?.error) {
         const errorCode = data.code;
         
-        // Handle specific error codes
-        if (errorCode === "NO_LAB_VALUES" || errorCode === "NO_INPUT") {
-          setOcrFailed(true);
-          setShowFallbackInput(true);
-          toast({
-            title: "Dados insuficientes",
-            description: data.error,
-            variant: "destructive",
-          });
-          
-          // Show guidance result
-          setResult(`ORIENTAÇÃO PARA INSERÇÃO DE DADOS
-
-O PDF foi lido, porém os valores não puderam ser extraídos automaticamente.
-
-Para continuar a análise, forneça os valores do exame manualmente:
-
-HEMOGRAMA
-• Hemácias (milhões/µL)
-• Hemoglobina (g/dL)
-• Hematócrito (%)
-• Leucócitos totais (/µL)
-• Plaquetas (/µL)
-• VCM, HCM, CHCM (se disponíveis)
-
-BIOQUÍMICA
-• ALT/TGP (U/L)
-• AST/TGO (U/L)
-• Ureia (mg/dL)
-• Creatinina (mg/dL)
-• Proteínas totais (g/dL)
-• Albumina (g/dL)
-
-COMO INSERIR
-Copie os valores do seu laudo no campo de texto abaixo, no formato:
-"Hemácias 5.2; Hemoglobina 13; Leucócitos 12.000; Plaquetas 190.000..."
-
----
-Relatório gerado via VetAgro Sustentável AI © 2025`);
-          return;
-        }
-        
         if (errorCode === "RATE_LIMIT") {
           toast({
             title: "Limite de requisições",
@@ -295,8 +253,13 @@ Relatório gerado via VetAgro Sustentável AI © 2025`);
         setResult(data.analysis);
         setCanExportPdf(data.canExportPdf !== false);
         
-        // Show OCR warning if some files failed
-        if (data.ocrErrors && data.ocrErrors.length > 0) {
+        // Show image fallback notice
+        if (data.imageFallback) {
+          toast({
+            title: "Análise clínica gerada",
+            description: "A imagem não pôde ser interpretada. Os diagnósticos foram gerados com base nos dados clínicos.",
+          });
+        } else if (data.ocrErrors && data.ocrErrors.length > 0) {
           toast({
             title: "Alguns arquivos não foram lidos",
             description: `Arquivos não processados: ${data.ocrErrors.join(", ")}. A análise foi feita com os dados disponíveis.`,
