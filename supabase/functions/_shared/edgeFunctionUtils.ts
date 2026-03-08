@@ -201,7 +201,7 @@ export async function handleRequest(
     const userId = authResult.user!.id;
     const plan = authResult.plan;
 
-    const rateLimitResult = checkRateLimit(userId, plan);
+    const rateLimitResult = await checkRateLimit(userId, plan);
     if (!rateLimitResult.allowed) {
       return new Response(JSON.stringify({ error: 'Limite de requisições excedido.', retryAfter: rateLimitResult.resetIn }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimitResult.resetIn) } });
