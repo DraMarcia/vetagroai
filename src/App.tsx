@@ -34,6 +34,8 @@ import ModeladorCarbono from "./pages/ModeladorCarbono";
 import FAQ from "./pages/FAQ";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import MonitoramentoTecnico from "./pages/MonitoramentoTecnico";
+import MonitoramentoCustos from "./pages/MonitoramentoCustos";
+import RankingFerramentas from "./pages/RankingFerramentas";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -78,6 +80,8 @@ const App = () => (
                       <Route path="/faq" element={<FAQ />} />
                       <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
                       <Route path="/monitoramento-tecnico" element={<MonitoramentoTecnico />} />
+                      <Route path="/monitoramento-custos" element={<MonitoramentoCustos />} />
+                      <Route path="/ranking-ferramentas" element={<RankingFerramentas />} />
                       
                       <Route path="*" element={<NotFound />} />
                     </Routes>

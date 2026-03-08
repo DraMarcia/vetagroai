@@ -1,5 +1,7 @@
 import { invokeEdgeFunction } from "@/lib/edgeInvoke";
 import { logToolSuccess, logToolError } from "@/lib/toolMonitoring";
+import { logAiUsage } from "@/lib/aiUsageLogger";
+import { getCachedResponse, setCachedResponse, hasMediaContent } from "@/lib/responseCache";
 
 const FRIENDLY_MESSAGES: Record<string, string> = {
   "429": "O sistema está temporariamente ocupado. Aguarde alguns instantes e tente novamente.",
@@ -45,9 +47,28 @@ export async function resilientInvoke<T = any>(
     answerField?: string;
     /** If true, the call includes images and should degrade gracefully on image failure */
     hasImages?: boolean;
+    /** AI model used (for cost tracking) */
+    aiModel?: string;
   }
 ): Promise<ResilientResult<T>> {
   const startedAt = performance.now();
+
+  // --- Cache check (skip for media-containing requests) ---
+  if (!hasMediaContent(body)) {
+    try {
+      const cached = await getCachedResponse(functionName, body);
+      if (cached) {
+        const elapsed = Math.round(performance.now() - startedAt);
+        console.info("[ResilientInvoke] Cache hit for", functionName, `(${elapsed}ms)`);
+        logToolSuccess(functionName, elapsed);
+        const answerField = opts?.answerField || "answer";
+        return { ok: true, data: { [answerField]: cached } as T };
+      }
+    } catch {
+      // Cache miss or error — proceed normally
+    }
+  }
+
   try {
     const res = await invokeEdgeFunction<T>(functionName, body);
     const elapsed = Math.round(performance.now() - startedAt);
@@ -76,6 +97,22 @@ export async function resilientInvoke<T = any>(
     }
 
     logToolSuccess(functionName, elapsed, res.requestId);
+
+    // --- AI usage logging (fire-and-forget) ---
+    const responseText = extractAnswer(data);
+    logAiUsage({
+      toolName: functionName,
+      aiModel: opts?.aiModel || data?.model || "unknown",
+      tokensInput: data?.usage?.prompt_tokens || Math.round((JSON.stringify(body).length) / 4),
+      tokensOutput: data?.usage?.completion_tokens || Math.round((responseText.length) / 4),
+      responseTimeMs: elapsed,
+    });
+
+    // --- Cache store (skip for media requests) ---
+    if (!hasMediaContent(body) && responseText.length > 100) {
+      setCachedResponse(functionName, body, responseText);
+    }
+
     return { ok: true, data: res.data };
   } catch (err) {
     const elapsed = Math.round(performance.now() - startedAt);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
+import {
   Stethoscope, 
   Calculator, 
   Eye, 
@@ -24,7 +24,9 @@ import {
   HelpCircle,
   Shield,
   LogOut,
-  MonitorCheck
+  MonitorCheck,
+  DollarSign,
+  Trophy
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -101,6 +103,8 @@ const categories = [
       { title: "Blog", url: "/blog", icon: BookOpen },
       { title: "Política de Privacidade", url: "/politica-de-privacidade", icon: Shield },
       { title: "Monitoramento Técnico", url: "/monitoramento-tecnico", icon: MonitorCheck },
+      { title: "Custos de IA", url: "/monitoramento-custos", icon: DollarSign },
+      { title: "Ranking de Ferramentas", url: "/ranking-ferramentas", icon: Trophy },
     ],
   },
 ];
