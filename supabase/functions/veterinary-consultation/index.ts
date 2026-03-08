@@ -1686,9 +1686,8 @@ Gere o relatório técnico fitossanitário completo seguindo a estrutura obrigat
       // Propagate non-2xx explicitly to the client (so it's not masked as generic fetch failure)
       return new Response(
         JSON.stringify({
-          error: `Erro na API: ${response.status}`,
+          error: 'Erro temporário no serviço de IA. Tente novamente.',
           requestId,
-          details: errorText.slice(0, 1500),
         }),
         {
           status: response.status,
