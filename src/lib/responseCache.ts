@@ -48,17 +48,13 @@ export async function getCachedResponse(
     const signature = buildCacheSignature(toolName, body);
     const hash = await sha256(signature);
 
-    const { data, error } = await (supabase.from("ai_response_cache") as any)
-      .select("response_text")
-      .eq("tool_name", toolName)
-      .eq("request_hash", hash)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("get_cached_response", {
+      _tool_name: toolName,
+      _request_hash: hash,
+    });
 
     if (error || !data) return null;
-    return data.response_text;
+    return data as string;
   } catch {
     return null;
   }
