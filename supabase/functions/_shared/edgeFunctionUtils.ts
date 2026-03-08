@@ -71,7 +71,7 @@ export interface AuthResult {
 export async function authenticateRequest(req: Request): Promise<AuthResult> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    return { user: null, plan: 'default', isAdmin: false, error: 'Authentication required' };
+    return { user: null, plan: 'default', isAdmin: false, isProfessional: false, error: 'Authentication required' };
   }
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -80,11 +80,11 @@ export async function authenticateRequest(req: Request): Promise<AuthResult> {
   );
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
   if (authError || !user) {
-    return { user: null, plan: 'default', isAdmin: false, error: 'Invalid or expired token' };
+    return { user: null, plan: 'default', isAdmin: false, isProfessional: false, error: 'Invalid or expired token' };
   }
-  const { data: profile } = await supabaseClient.from('profiles').select('current_plan').eq('user_id', user.id).single();
+  const { data: profile } = await supabaseClient.from('profiles').select('current_plan, is_professional').eq('user_id', user.id).single();
   const { data: adminRole } = await supabaseClient.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle();
-  return { user, plan: profile?.current_plan || 'free', isAdmin: !!adminRole, error: null };
+  return { user, plan: profile?.current_plan || 'free', isAdmin: !!adminRole, isProfessional: profile?.is_professional ?? false, error: null };
 }
 
 // ===== SANITIZE =====
