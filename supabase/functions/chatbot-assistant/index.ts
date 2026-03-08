@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateAndSanitizeInput, validateMessageHistory } from "../_shared/inputValidation.ts";
+import { checkRateLimit } from "../_shared/edgeFunctionUtils.ts";
 
 // Allowed origins for CORS (production + development)
 const allowedOrigins = [
