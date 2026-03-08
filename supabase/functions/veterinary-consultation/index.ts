@@ -121,6 +121,7 @@ interface AuthResult {
   user: { id: string; email?: string } | null;
   plan: string;
   isAdmin: boolean;
+  isProfessional: boolean;
   error: string | null;
 }
 
@@ -128,7 +129,7 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
   const authHeader = req.headers.get('Authorization');
   
   if (!authHeader?.startsWith('Bearer ')) {
-    return { user: null, plan: 'default', isAdmin: false, error: 'Authentication required' };
+    return { user: null, plan: 'default', isAdmin: false, isProfessional: false, error: 'Authentication required' };
   }
 
   const supabaseClient = createClient(
@@ -140,13 +141,13 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
   
   if (authError || !user) {
-    return { user: null, plan: 'default', isAdmin: false, error: 'Invalid or expired token' };
+    return { user: null, plan: 'default', isAdmin: false, isProfessional: false, error: 'Invalid or expired token' };
   }
 
-  // Retrieve actual plan from profiles table
+  // Retrieve actual plan and professional status from profiles table
   const { data: profile } = await supabaseClient
     .from('profiles')
-    .select('current_plan')
+    .select('current_plan, is_professional')
     .eq('user_id', user.id)
     .single();
 
@@ -160,8 +161,9 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
 
   const actualPlan = profile?.current_plan || 'free';
   const isAdmin = !!adminRole;
+  const isProfessional = profile?.is_professional ?? false;
 
-  return { user, plan: actualPlan, isAdmin, error: null };
+  return { user, plan: actualPlan, isAdmin, isProfessional, error: null };
 }
 // ===== END AUTHENTICATION HELPER =====
 
@@ -191,7 +193,7 @@ serve(async (req) => {
     // Minimal, safe request logging for auditing/debugging (avoid logging full base64)
     try {
       const tool = requestBody?.tool;
-      const isProfessional = Boolean(requestBody?.isProfessional);
+      const isProfessional = authResult.isProfessional;
       const imgArr = requestBody?.data?.images || requestBody?.images;
       const imgList = Array.isArray(imgArr) ? imgArr : [];
       const imgSummaries = imgList
@@ -1684,9 +1686,8 @@ Gere o relatório técnico fitossanitário completo seguindo a estrutura obrigat
       // Propagate non-2xx explicitly to the client (so it's not masked as generic fetch failure)
       return new Response(
         JSON.stringify({
-          error: `Erro na API: ${response.status}`,
+          error: 'Erro temporário no serviço de IA. Tente novamente.',
           requestId,
-          details: errorText.slice(0, 1500),
         }),
         {
           status: response.status,
@@ -1704,8 +1705,7 @@ Gere o relatório técnico fitossanitário completo seguindo a estrutura obrigat
     });
   } catch (error) {
     console.error('[veterinary-consultation] handler error', { requestId, error });
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: 'Erro interno do servidor. Tente novamente.', requestId }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

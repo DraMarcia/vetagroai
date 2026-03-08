@@ -203,7 +203,7 @@ serve(async (req) => {
     console.error("Chatbot error:", error);
     const corsHeaders = getCorsHeaders(req);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "Erro interno do servidor. Tente novamente." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -64,13 +64,14 @@ export interface AuthResult {
   user: { id: string; email?: string } | null;
   plan: string;
   isAdmin: boolean;
+  isProfessional: boolean;
   error: string | null;
 }
 
 export async function authenticateRequest(req: Request): Promise<AuthResult> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    return { user: null, plan: 'default', isAdmin: false, error: 'Authentication required' };
+    return { user: null, plan: 'default', isAdmin: false, isProfessional: false, error: 'Authentication required' };
   }
   const supabaseClient = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -79,11 +80,11 @@ export async function authenticateRequest(req: Request): Promise<AuthResult> {
   );
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
   if (authError || !user) {
-    return { user: null, plan: 'default', isAdmin: false, error: 'Invalid or expired token' };
+    return { user: null, plan: 'default', isAdmin: false, isProfessional: false, error: 'Invalid or expired token' };
   }
-  const { data: profile } = await supabaseClient.from('profiles').select('current_plan').eq('user_id', user.id).single();
+  const { data: profile } = await supabaseClient.from('profiles').select('current_plan, is_professional').eq('user_id', user.id).single();
   const { data: adminRole } = await supabaseClient.from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle();
-  return { user, plan: profile?.current_plan || 'free', isAdmin: !!adminRole, error: null };
+  return { user, plan: profile?.current_plan || 'free', isAdmin: !!adminRole, isProfessional: profile?.is_professional ?? false, error: null };
 }
 
 // ===== SANITIZE =====
@@ -207,7 +208,7 @@ export async function handleRequest(
     const requestBody = await req.json();
     const tool = sanitizeField(requestBody?.tool, 100);
     const data = (requestBody.data && typeof requestBody.data === 'object') ? requestBody.data : requestBody;
-    const isProfessional = Boolean(requestBody?.isProfessional);
+    const isProfessional = authResult.isProfessional;
 
     console.info(`[EdgeFunction] request`, { requestId, tool, origin: req.headers.get('origin') });
 
@@ -227,8 +228,7 @@ export async function handleRequest(
     });
   } catch (error) {
     console.error('[EdgeFunction] handler error', { requestId, error });
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    return new Response(JSON.stringify({ error: errorMessage }),
+    return new Response(JSON.stringify({ error: 'Erro interno do servidor. Tente novamente.', requestId }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 }
