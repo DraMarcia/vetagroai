@@ -34,6 +34,8 @@ import ModeladorCarbono from "./pages/ModeladorCarbono";
 import FAQ from "./pages/FAQ";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import MonitoramentoTecnico from "./pages/MonitoramentoTecnico";
+import MonitoramentoCustos from "./pages/MonitoramentoCustos";
+import RankingFerramentas from "./pages/RankingFerramentas";
 const queryClient = new QueryClient();
 
 const App = () => (
