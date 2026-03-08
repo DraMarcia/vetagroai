@@ -193,7 +193,7 @@ serve(async (req) => {
     // Minimal, safe request logging for auditing/debugging (avoid logging full base64)
     try {
       const tool = requestBody?.tool;
-      const isProfessional = Boolean(requestBody?.isProfessional);
+      const isProfessional = authResult.isProfessional;
       const imgArr = requestBody?.data?.images || requestBody?.images;
       const imgList = Array.isArray(imgArr) ? imgArr : [];
       const imgSummaries = imgList
