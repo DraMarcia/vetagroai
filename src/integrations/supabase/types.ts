@@ -155,6 +155,48 @@ export type Database = {
         }
         Relationships: []
       }
+      territorial_agro_metrics: {
+        Row: {
+          calculation_method: string | null
+          created_at: string
+          emission_type: string | null
+          estimated_emission_value: number | null
+          herd_size_range: string | null
+          id: string
+          metadata: Json | null
+          municipality: string | null
+          production_system: string | null
+          state: string | null
+          tool_name: string
+        }
+        Insert: {
+          calculation_method?: string | null
+          created_at?: string
+          emission_type?: string | null
+          estimated_emission_value?: number | null
+          herd_size_range?: string | null
+          id?: string
+          metadata?: Json | null
+          municipality?: string | null
+          production_system?: string | null
+          state?: string | null
+          tool_name: string
+        }
+        Update: {
+          calculation_method?: string | null
+          created_at?: string
+          emission_type?: string | null
+          estimated_emission_value?: number | null
+          herd_size_range?: string | null
+          id?: string
+          metadata?: Json | null
+          municipality?: string | null
+          production_system?: string | null
+          state?: string | null
+          tool_name?: string
+        }
+        Relationships: []
+      }
       tool_monitoring_logs: {
         Row: {
           created_at: string
