@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
+import {
   Stethoscope, 
   Calculator, 
   Eye, 
@@ -24,7 +24,9 @@ import {
   HelpCircle,
   Shield,
   LogOut,
-  MonitorCheck
+  MonitorCheck,
+  DollarSign,
+  Trophy
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
