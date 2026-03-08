@@ -129,7 +129,7 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
   const authHeader = req.headers.get('Authorization');
   
   if (!authHeader?.startsWith('Bearer ')) {
-    return { user: null, plan: 'default', isAdmin: false, error: 'Authentication required' };
+    return { user: null, plan: 'default', isAdmin: false, isProfessional: false, error: 'Authentication required' };
   }
 
   const supabaseClient = createClient(
@@ -141,13 +141,13 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
   const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
   
   if (authError || !user) {
-    return { user: null, plan: 'default', isAdmin: false, error: 'Invalid or expired token' };
+    return { user: null, plan: 'default', isAdmin: false, isProfessional: false, error: 'Invalid or expired token' };
   }
 
-  // Retrieve actual plan from profiles table
+  // Retrieve actual plan and professional status from profiles table
   const { data: profile } = await supabaseClient
     .from('profiles')
-    .select('current_plan')
+    .select('current_plan, is_professional')
     .eq('user_id', user.id)
     .single();
 
@@ -161,8 +161,9 @@ async function authenticateRequest(req: Request): Promise<AuthResult> {
 
   const actualPlan = profile?.current_plan || 'free';
   const isAdmin = !!adminRole;
+  const isProfessional = profile?.is_professional ?? false;
 
-  return { user, plan: actualPlan, isAdmin, error: null };
+  return { user, plan: actualPlan, isAdmin, isProfessional, error: null };
 }
 // ===== END AUTHENTICATION HELPER =====
 
