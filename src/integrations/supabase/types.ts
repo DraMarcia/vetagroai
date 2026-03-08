@@ -89,6 +89,54 @@ export type Database = {
         }
         Relationships: []
       }
+      tool_monitoring_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          error_type: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          request_id: string | null
+          request_status: string | null
+          response_time_ms: number | null
+          tool_name: string
+          tool_route: string | null
+          user_id: string | null
+          user_plan: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          request_id?: string | null
+          request_status?: string | null
+          response_time_ms?: number | null
+          tool_name: string
+          tool_route?: string | null
+          user_id?: string | null
+          user_plan?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          error_type?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          request_id?: string | null
+          request_status?: string | null
+          response_time_ms?: number | null
+          tool_name?: string
+          tool_route?: string | null
+          user_id?: string | null
+          user_plan?: string | null
+        }
+        Relationships: []
+      }
       tool_suggestions: {
         Row: {
           category: string | null
