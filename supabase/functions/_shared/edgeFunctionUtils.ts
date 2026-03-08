@@ -208,7 +208,7 @@ export async function handleRequest(
     const requestBody = await req.json();
     const tool = sanitizeField(requestBody?.tool, 100);
     const data = (requestBody.data && typeof requestBody.data === 'object') ? requestBody.data : requestBody;
-    const isProfessional = Boolean(requestBody?.isProfessional);
+    const isProfessional = authResult.isProfessional;
 
     console.info(`[EdgeFunction] request`, { requestId, tool, origin: req.headers.get('origin') });
 
