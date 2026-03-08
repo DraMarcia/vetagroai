@@ -421,6 +421,7 @@ export type Database = {
     }
     Functions: {
       check_credits: { Args: never; Returns: Json }
+      cleanup_expired_cache: { Args: never; Returns: number }
       get_admin_tool_suggestions: {
         Args: never
         Returns: {
