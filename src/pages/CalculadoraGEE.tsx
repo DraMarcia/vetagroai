@@ -554,7 +554,7 @@ ${commonInstructions}`;
 
       const prompt = generatePrompt(result);
 
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("sustainability-handler", {
         question: prompt,
         isProfessional: userLevel !== "produtor",
         context: "Calculadora de Emissões de GEE - Metodologia IPCC Tier 2",
