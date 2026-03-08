@@ -11,3 +11,15 @@ verify_jwt = false
 
 [functions.interpret-exams]
 verify_jwt = false
+
+[functions.sustainability-handler]
+verify_jwt = false
+
+[functions.vet-clinical-handler]
+verify_jwt = false
+
+[functions.plant-handler]
+verify_jwt = false
+
+[functions.nutrition-handler]
+verify_jwt = false
