@@ -80,6 +80,8 @@ const App = () => (
                       <Route path="/faq" element={<FAQ />} />
                       <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
                       <Route path="/monitoramento-tecnico" element={<MonitoramentoTecnico />} />
+                      <Route path="/monitoramento-custos" element={<MonitoramentoCustos />} />
+                      <Route path="/ranking-ferramentas" element={<RankingFerramentas />} />
                       
                       <Route path="*" element={<NotFound />} />
                     </Routes>

@@ -103,6 +103,8 @@ const categories = [
       { title: "Blog", url: "/blog", icon: BookOpen },
       { title: "Política de Privacidade", url: "/politica-de-privacidade", icon: Shield },
       { title: "Monitoramento Técnico", url: "/monitoramento-tecnico", icon: MonitorCheck },
+      { title: "Custos de IA", url: "/monitoramento-custos", icon: DollarSign },
+      { title: "Ranking de Ferramentas", url: "/ranking-ferramentas", icon: Trophy },
     ],
   },
 ];
