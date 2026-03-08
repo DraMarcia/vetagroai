@@ -29,34 +29,36 @@ export function getRequestId(req: Request) {
   return req.headers.get('x-request-id') || (globalThis.crypto?.randomUUID?.() ?? `req_${Date.now()}`);
 }
 
-// ===== RATE LIMITING =====
-interface RateLimitEntry { count: number; resetTime: number; }
-const rateLimitStore = new Map<string, RateLimitEntry>();
-const RATE_LIMITS: Record<string, { maxRequests: number; windowMs: number }> = {
-  free: { maxRequests: 10, windowMs: 3600000 },
-  pro: { maxRequests: 100, windowMs: 3600000 },
-  enterprise: { maxRequests: 1000, windowMs: 3600000 },
-  default: { maxRequests: 5, windowMs: 3600000 },
+// ===== RATE LIMITING (DB-backed, persistent across cold starts) =====
+const RATE_LIMITS: Record<string, { maxRequests: number; windowSeconds: number }> = {
+  free: { maxRequests: 10, windowSeconds: 3600 },
+  pro: { maxRequests: 100, windowSeconds: 3600 },
+  enterprise: { maxRequests: 1000, windowSeconds: 3600 },
+  default: { maxRequests: 5, windowSeconds: 3600 },
 };
 
-export function checkRateLimit(identifier: string, plan: string = 'default') {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetTime) rateLimitStore.delete(key);
-  }
+export async function checkRateLimit(identifier: string, plan: string = 'default') {
   const limits = RATE_LIMITS[plan] || RATE_LIMITS.default;
-  const key = `${plan}:${identifier}`;
-  let entry = rateLimitStore.get(key);
-  if (!entry || now > entry.resetTime) {
-    entry = { count: 1, resetTime: now + limits.windowMs };
-    rateLimitStore.set(key, entry);
-    return { allowed: true, remaining: limits.maxRequests - 1, resetIn: Math.ceil(limits.windowMs / 1000) };
+  try {
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    const { data, error } = await adminClient.rpc('check_rate_limit', {
+      _identifier: identifier,
+      _plan: plan,
+      _max_requests: limits.maxRequests,
+      _window_seconds: limits.windowSeconds,
+    });
+    if (error || !data) {
+      console.warn('[RateLimit] DB check failed, allowing request:', error?.message);
+      return { allowed: true, remaining: limits.maxRequests - 1, resetIn: limits.windowSeconds };
+    }
+    return { allowed: data.allowed as boolean, remaining: data.remaining as number, resetIn: data.resetIn as number };
+  } catch (err) {
+    console.warn('[RateLimit] Exception, allowing request:', err);
+    return { allowed: true, remaining: limits.maxRequests - 1, resetIn: limits.windowSeconds };
   }
-  if (entry.count >= limits.maxRequests) {
-    return { allowed: false, remaining: 0, resetIn: Math.ceil((entry.resetTime - now) / 1000) };
-  }
-  entry.count++;
-  return { allowed: true, remaining: limits.maxRequests - entry.count, resetIn: Math.ceil((entry.resetTime - now) / 1000) };
 }
 
 // ===== AUTHENTICATION =====
@@ -199,7 +201,7 @@ export async function handleRequest(
     const userId = authResult.user!.id;
     const plan = authResult.plan;
 
-    const rateLimitResult = checkRateLimit(userId, plan);
+    const rateLimitResult = await checkRateLimit(userId, plan);
     if (!rateLimitResult.allowed) {
       return new Response(JSON.stringify({ error: 'Limite de requisições excedido.', retryAfter: rateLimitResult.resetIn }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimitResult.resetIn) } });
