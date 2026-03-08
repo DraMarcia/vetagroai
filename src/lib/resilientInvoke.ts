@@ -1,4 +1,5 @@
 import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { logToolSuccess, logToolError } from "@/lib/toolMonitoring";
 
 const FRIENDLY_MESSAGES: Record<string, string> = {
   "429": "O sistema está temporariamente ocupado. Aguarde alguns instantes e tente novamente.",
