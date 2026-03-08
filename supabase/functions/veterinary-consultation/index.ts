@@ -44,76 +44,36 @@ function summarizeDataUrl(dataUrl: string) {
   };
 }
 
-// ===== RATE LIMITING CONFIGURATION =====
-interface RateLimitEntry {
-  count: number;
-  resetTime: number;
-}
-
-// In-memory rate limit store (resets on function cold start)
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-// Rate limit settings per plan tier
-const RATE_LIMITS = {
-  free: { maxRequests: 10, windowMs: 60 * 60 * 1000 },      // 10 requests per hour
-  pro: { maxRequests: 100, windowMs: 60 * 60 * 1000 },      // 100 requests per hour  
-  enterprise: { maxRequests: 1000, windowMs: 60 * 60 * 1000 }, // 1000 requests per hour
-  default: { maxRequests: 5, windowMs: 60 * 60 * 1000 }     // 5 requests per hour for unauthenticated
+// ===== RATE LIMITING (DB-backed, persistent across cold starts) =====
+const RATE_LIMITS: Record<string, { maxRequests: number; windowSeconds: number }> = {
+  free: { maxRequests: 10, windowSeconds: 3600 },
+  pro: { maxRequests: 100, windowSeconds: 3600 },
+  enterprise: { maxRequests: 1000, windowSeconds: 3600 },
+  default: { maxRequests: 5, windowSeconds: 3600 },
 };
 
-// Clean up expired entries periodically
-function cleanupExpiredEntries() {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitStore.delete(key);
-    }
-  }
-}
-
-// Check and update rate limit for a given identifier (now uses user_id, not IP)
-function checkRateLimit(identifier: string, plan: string = 'default'): { allowed: boolean; remaining: number; resetIn: number } {
-  cleanupExpiredEntries();
-  
+async function checkRateLimit(identifier: string, plan: string = 'default'): Promise<{ allowed: boolean; remaining: number; resetIn: number }> {
   const limits = RATE_LIMITS[plan as keyof typeof RATE_LIMITS] || RATE_LIMITS.default;
-  const now = Date.now();
-  const key = `${plan}:${identifier}`;
-  
-  let entry = rateLimitStore.get(key);
-  
-  // Create new entry if doesn't exist or has expired
-  if (!entry || now > entry.resetTime) {
-    entry = {
-      count: 1,
-      resetTime: now + limits.windowMs
-    };
-    rateLimitStore.set(key, entry);
-    return { 
-      allowed: true, 
-      remaining: limits.maxRequests - 1,
-      resetIn: Math.ceil(limits.windowMs / 1000)
-    };
+  try {
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    const { data, error } = await adminClient.rpc('check_rate_limit', {
+      _identifier: identifier,
+      _plan: plan,
+      _max_requests: limits.maxRequests,
+      _window_seconds: limits.windowSeconds,
+    });
+    if (error || !data) {
+      console.warn('[RateLimit] DB check failed, allowing request:', error?.message);
+      return { allowed: true, remaining: limits.maxRequests - 1, resetIn: limits.windowSeconds };
+    }
+    return { allowed: data.allowed as boolean, remaining: data.remaining as number, resetIn: data.resetIn as number };
+  } catch (err) {
+    console.warn('[RateLimit] Exception, allowing request:', err);
+    return { allowed: true, remaining: limits.maxRequests - 1, resetIn: limits.windowSeconds };
   }
-  
-  // Check if limit exceeded
-  if (entry.count >= limits.maxRequests) {
-    const resetIn = Math.ceil((entry.resetTime - now) / 1000);
-    return { 
-      allowed: false, 
-      remaining: 0,
-      resetIn
-    };
-  }
-  
-  // Increment counter
-  entry.count++;
-  rateLimitStore.set(key, entry);
-  
-  return { 
-    allowed: true, 
-    remaining: limits.maxRequests - entry.count,
-    resetIn: Math.ceil((entry.resetTime - now) / 1000)
-  };
 }
 
 // ===== AUTHENTICATION HELPER =====
