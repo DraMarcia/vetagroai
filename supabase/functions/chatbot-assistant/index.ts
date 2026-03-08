@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateAndSanitizeInput, validateMessageHistory } from "../_shared/inputValidation.ts";
+import { checkRateLimit } from "../_shared/edgeFunctionUtils.ts";
 
 // Allowed origins for CORS (production + development)
 const allowedOrigins = [
@@ -131,6 +132,15 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: authResult.error }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit(authResult.user!.id, authResult.plan);
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente mais tarde.', retryAfter: rateLimitResult.resetIn }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(rateLimitResult.resetIn) } }
       );
     }
 
