@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_response_cache: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          request_hash: string
+          request_signature: string | null
+          response_text: string
+          tool_name: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          request_hash: string
+          request_signature?: string | null
+          response_text: string
+          tool_name: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          request_hash?: string
+          request_signature?: string | null
+          response_text?: string
+          tool_name?: string
+        }
+        Relationships: []
+      }
+      ai_usage_logs: {
+        Row: {
+          ai_model: string | null
+          created_at: string
+          id: string
+          response_time_ms: number | null
+          tokens_input: number | null
+          tokens_output: number | null
+          tool_name: string
+          user_id: string
+          user_plan: string | null
+        }
+        Insert: {
+          ai_model?: string | null
+          created_at?: string
+          id?: string
+          response_time_ms?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_name: string
+          user_id: string
+          user_plan?: string | null
+        }
+        Update: {
+          ai_model?: string | null
+          created_at?: string
+          id?: string
+          response_time_ms?: number | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          tool_name?: string
+          user_id?: string
+          user_plan?: string | null
+        }
+        Relationships: []
+      }
       app_config: {
         Row: {
           created_at: string
