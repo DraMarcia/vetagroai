@@ -85,6 +85,15 @@ serve(async (req) => {
       );
     }
 
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit(authResult.user!.id, authResult.plan);
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente mais tarde.', retryAfter: rateLimitResult.resetIn }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimitResult.resetIn) } }
+      );
+    }
+
     const requestBody = await req.json();
     const { images, breed, age, purpose, horseName, sex, coat, vetName, crmv } = requestBody;
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
