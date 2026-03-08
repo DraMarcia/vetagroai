@@ -23,7 +23,7 @@ export function logToolEvent(event: MonitoringEvent): void {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return; // Only log for authenticated users
 
-      await supabase.from("tool_monitoring_logs").insert({
+      await (supabase.from("tool_monitoring_logs") as any).insert({
         user_id: session.user.id,
         tool_name: event.toolName,
         tool_route: event.toolRoute || window.location.pathname,
