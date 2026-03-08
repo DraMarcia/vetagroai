@@ -178,7 +178,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     // Check rate limit using user ID and server-validated plan
-    const rateLimitResult = checkRateLimit(userId, plan);
+    const rateLimitResult = await checkRateLimit(userId, plan);
     
     if (!rateLimitResult.allowed) {
       console.log('Rate limit exceeded for request');
