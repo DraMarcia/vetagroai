@@ -23,7 +23,8 @@ import {
   Home,
   HelpCircle,
   Shield,
-  LogOut
+  LogOut,
+  MonitorCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
