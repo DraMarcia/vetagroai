@@ -64,6 +64,7 @@ export interface AuthResult {
   user: { id: string; email?: string } | null;
   plan: string;
   isAdmin: boolean;
+  isProfessional: boolean;
   error: string | null;
 }
 
