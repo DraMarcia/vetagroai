@@ -687,7 +687,7 @@ REFERÊNCIAS OBRIGATÓRIAS:
 - EMBRAPA - Carne Carbono Neutro
 - ABC+ / MAPA`;
 
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("sustainability-handler", {
         question: prompt,
         isProfessional: true,
         context: "Simulação de mitigação de GEE - Créditos de Carbono",

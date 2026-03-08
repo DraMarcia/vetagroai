@@ -152,7 +152,7 @@ const ConsultaGeoespacial = () => {
     setResposta("");
 
     try {
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("sustainability-handler", {
         tool: "consulta-geoespacial",
         plan,
         data: {

@@ -168,7 +168,7 @@ const AnaliseMucosa = () => {
     setResult("");
 
     try {
-      const res = await invokeEdgeFunction<any>("veterinary-consultation", {
+      const res = await invokeEdgeFunction<any>("vet-clinical-handler", {
         tool: "analise-mucosa",
         isProfessional: isProfessional === "sim",
         crmv: isProfessional === "sim" ? `${crmv}-${uf}` : null,

@@ -110,7 +110,7 @@ const CalculadoraRacao = () => {
         ? `\n\nPROFISSIONAL RESPONSÁVEL:\n• Nome: ${professionalName}\n• Registro: ${councilType} ${councilNumber} - ${professionalUF}`
         : "";
 
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("nutrition-handler", {
         tool: "calculadora-racao",
         question: `DADOS PARA FORMULAÇÃO:
 ${professionalInfo}

@@ -71,7 +71,7 @@ const EscoreCorporal = () => {
         }
       }
 
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         tool: "escore-corporal",
         plan: "enterprise",
         tipoUsuario: "profissional",

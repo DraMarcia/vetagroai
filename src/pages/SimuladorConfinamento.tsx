@@ -213,7 +213,7 @@ const SimuladorConfinamento = () => {
     toast.info("Processando simulação completa...");
 
     try {
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("sustainability-handler", {
         tool: "simulador-confinamento",
         plan,
         data: {

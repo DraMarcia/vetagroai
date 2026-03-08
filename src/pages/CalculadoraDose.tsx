@@ -288,7 +288,7 @@ CONTEXTO CLÍNICO: ${clinicalContext || "Não informado"}
 Forneça a análise seguindo rigorosamente a estrutura definida.`;
 
       // Use supabase.functions.invoke() which automatically includes the user's session token
-      const res = await invokeEdgeFunction<any>("veterinary-consultation", {
+      const res = await invokeEdgeFunction<any>("vet-clinical-handler", {
         tool: "calculadora-dose",
         data: {
           medicamento: isManipulated ? `Manipulado: ${medicationInfo}` : medication,

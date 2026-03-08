@@ -101,7 +101,7 @@ const AnaliseSustentabilidade = () => {
     setLoading(true);
     
     try {
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("sustainability-handler", {
         tool: "analise-sustentabilidade",
         perfilUsuario,
         tipoProducao: tipoProducaoOptions.find(t => t.value === tipoProducao)?.label || tipoProducao,
