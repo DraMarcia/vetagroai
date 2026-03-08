@@ -33,8 +33,6 @@ import SimuladorConfinamento from "./pages/SimuladorConfinamento";
 import ModeladorCarbono from "./pages/ModeladorCarbono";
 import FAQ from "./pages/FAQ";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
-import DiagnosticoMandioca from "./pages/DiagnosticoMandioca";
-
 const queryClient = new QueryClient();
 
 const App = () => (
