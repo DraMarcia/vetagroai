@@ -155,6 +155,30 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_entries: {
+        Row: {
+          id: string
+          rate_key: string
+          request_count: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          id?: string
+          rate_key: string
+          request_count?: number
+          window_end: string
+          window_start?: string
+        }
+        Update: {
+          id?: string
+          rate_key?: string
+          request_count?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       territorial_agro_metrics: {
         Row: {
           calculation_method: string | null
@@ -421,7 +445,17 @@ export type Database = {
     }
     Functions: {
       check_credits: { Args: never; Returns: Json }
+      check_rate_limit: {
+        Args: {
+          _identifier: string
+          _max_requests?: number
+          _plan?: string
+          _window_seconds?: number
+        }
+        Returns: Json
+      }
       cleanup_expired_cache: { Args: never; Returns: number }
+      cleanup_expired_rate_limits: { Args: never; Returns: number }
       get_admin_tool_suggestions: {
         Args: never
         Returns: {
