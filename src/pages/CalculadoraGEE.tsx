@@ -18,6 +18,7 @@ import {
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { logTerritorialMetric, anonymizeHerdSize } from "@/lib/territorialLogger";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend } from "recharts";
 import { ToolExplanatoryBlock } from "@/components/ToolExplanatoryBlock";
