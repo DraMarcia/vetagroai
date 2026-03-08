@@ -148,7 +148,7 @@ Esta análise tem caráter orientativo e não substitui o acompanhamento técnic
 
 CENÁRIO A ANALISAR:
 ${scenario}`,
-        isProfessional: true,
+        
         context: "Análise climática para planejamento rural estratégico",
       });
 

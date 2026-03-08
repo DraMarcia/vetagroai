@@ -710,7 +710,7 @@ REFERÊNCIAS OBRIGATÓRIAS:
 
       const res = await resilientInvoke("sustainability-handler", {
         question: prompt,
-        isProfessional: true,
+        
         context: "Simulação de mitigação de GEE - Créditos de Carbono",
       });
 

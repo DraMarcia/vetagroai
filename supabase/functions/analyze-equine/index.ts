@@ -256,9 +256,8 @@ DADOS INFORMADOS:`;
     });
   } catch (error) {
     console.error('Erro ao processar resenha:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     const corsHeaders = getCorsHeaders(req);
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: 'Erro interno do servidor. Tente novamente.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

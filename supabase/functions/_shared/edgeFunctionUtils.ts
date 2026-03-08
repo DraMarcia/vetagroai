@@ -228,8 +228,7 @@ export async function handleRequest(
     });
   } catch (error) {
     console.error('[EdgeFunction] handler error', { requestId, error });
-    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-    return new Response(JSON.stringify({ error: errorMessage }),
+    return new Response(JSON.stringify({ error: 'Erro interno do servidor. Tente novamente.', requestId }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 }
