@@ -47,8 +47,10 @@ export async function resilientInvoke<T = any>(
     hasImages?: boolean;
   }
 ): Promise<ResilientResult<T>> {
+  const startedAt = performance.now();
   try {
     const res = await invokeEdgeFunction<T>(functionName, body);
+    const elapsed = Math.round(performance.now() - startedAt);
 
     if (!res.ok) {
       const errorType = detectErrorType(res.error);
@@ -56,6 +58,7 @@ export async function resilientInvoke<T = any>(
         "Ocorreu um problema temporário. Por favor, tente novamente.";
       
       console.warn("[ResilientInvoke] Error mapped:", { errorType, requestId: res.requestId, raw: res.error });
+      logToolError(functionName, res.error, elapsed, res.requestId);
       return { ok: false, friendlyError: friendlyMsg };
     }
 
@@ -65,19 +68,23 @@ export async function resilientInvoke<T = any>(
     
     if (data && !data[answerField] && !data.response && !data.analysis && !data.resenha) {
       console.warn("[ResilientInvoke] Empty response body", { requestId: res.requestId });
+      logToolError(functionName, "empty_response", elapsed, res.requestId);
       return { 
         ok: false, 
         friendlyError: "O servidor retornou uma resposta vazia. Tente novamente." 
       };
     }
 
+    logToolSuccess(functionName, elapsed, res.requestId);
     return { ok: true, data: res.data };
   } catch (err) {
+    const elapsed = Math.round(performance.now() - startedAt);
     const errorType = detectErrorType(err);
     const friendlyMsg = FRIENDLY_MESSAGES[errorType] ||
       "Ocorreu um problema temporário. Por favor, tente novamente.";
     
     console.error("[ResilientInvoke] Uncaught error:", err);
+    logToolError(functionName, err, elapsed);
     return { ok: false, friendlyError: friendlyMsg };
   }
 }

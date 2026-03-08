@@ -100,6 +100,7 @@ const categories = [
       { title: "Meu Espaço Inteligente", url: "/meu-perfil", icon: User },
       { title: "Blog", url: "/blog", icon: BookOpen },
       { title: "Política de Privacidade", url: "/politica-de-privacidade", icon: Shield },
+      { title: "Monitoramento Técnico", url: "/monitoramento-tecnico", icon: MonitorCheck },
     ],
   },
 ];
