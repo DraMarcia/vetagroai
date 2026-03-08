@@ -18,6 +18,7 @@ import {
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { logTerritorialMetric, anonymizeHerdSize } from "@/lib/territorialLogger";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend } from "recharts";
 import { ToolExplanatoryBlock } from "@/components/ToolExplanatoryBlock";
@@ -554,7 +555,7 @@ ${commonInstructions}`;
 
       const prompt = generatePrompt(result);
 
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("sustainability-handler", {
         question: prompt,
         isProfessional: userLevel !== "produtor",
         context: "Calculadora de Emissões de GEE - Metodologia IPCC Tier 2",
@@ -570,6 +571,26 @@ ${commonInstructions}`;
       }
 
       setAiAnalysis(extractAnswer(res.data));
+
+      // Log anonymized territorial data
+      const totalAnimals = animals.reduce((sum, a) => sum + a.count, 0);
+      const system = PRODUCTION_SYSTEMS.find(s => s.id === productionSystem);
+      logTerritorialMetric({
+        toolName: "calculadora-gee",
+        state: location?.match(/[A-Z]{2}/)?.[0] || undefined,
+        municipality: location || undefined,
+        productionSystem: system?.name,
+        estimatedEmissionValue: result.totalCO2eq,
+        emissionType: "CO2eq_total",
+        herdSizeRange: anonymizeHerdSize(totalAnimals),
+        calculationMethod: "IPCC Tier 2",
+        metadata: {
+          ch4Enterico: result.ch4Enterico,
+          ch4Dejetos: result.ch4Dejetos,
+          n2oDireto: result.n2oDireto,
+          n2oIndireto: result.n2oIndireto,
+        },
+      });
 
       toast({
         title: "Cálculo concluído",
@@ -687,7 +708,7 @@ REFERÊNCIAS OBRIGATÓRIAS:
 - EMBRAPA - Carne Carbono Neutro
 - ABC+ / MAPA`;
 
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("sustainability-handler", {
         question: prompt,
         isProfessional: true,
         context: "Simulação de mitigação de GEE - Créditos de Carbono",

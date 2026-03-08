@@ -47,7 +47,7 @@ const AnaliseClimatica = () => {
         year: 'numeric' 
       });
 
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("sustainability-handler", {
         question: `Você é um especialista em climatologia aplicada ao agronegócio brasileiro, com foco especial na região Norte (Amazônia e Roraima).
 
 INSTRUÇÕES DE FORMATAÇÃO OBRIGATÓRIAS:

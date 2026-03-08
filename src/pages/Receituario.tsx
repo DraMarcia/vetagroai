@@ -98,7 +98,7 @@ const Receituario = () => {
     setResult("");
 
     try {
-      const res = await invokeEdgeFunction<{ answer: string }>("veterinary-consultation", {
+      const res = await invokeEdgeFunction<{ answer: string }>("vet-clinical-handler", {
         tool: "receituario",
         isProfessional: true,
         data: {

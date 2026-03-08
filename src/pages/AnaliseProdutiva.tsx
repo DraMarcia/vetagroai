@@ -173,7 +173,7 @@ const AnaliseProdutiva = () => {
     setLoading(true);
     
     try {
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("nutrition-handler", {
         tool: "analise-produtiva",
         plan: plan || "free",
         tipoUsuario,

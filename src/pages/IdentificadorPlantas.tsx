@@ -120,7 +120,7 @@ const IdentificadorPlantas = () => {
     try {
       const prompt = buildPrompt();
 
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("plant-handler", {
         tool: "identificador-plantas",
         question: prompt,
         images: images.length > 0 ? images : undefined,

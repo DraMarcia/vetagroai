@@ -147,7 +147,7 @@ REGRAS OBRIGATÓRIAS:
 – Jamais inventar informações — se não houver dados confiáveis, informar claramente
 – Resposta estruturada e organizada, fácil de consultar rapidamente`;
 
-      const res = await invokeEdgeFunction<{ answer: string }>("veterinary-consultation", {
+      const res = await invokeEdgeFunction<{ answer: string }>("vet-clinical-handler", {
         question: prompt,
         isProfessional: isProfessional,
         context: "Dicionário Veterinário",

@@ -203,7 +203,7 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
 • Nelson & Couto — Medicina Interna de Pequenos Animais
 • Literatura científica reconhecida`;
 
-      const res = await invokeEdgeFunction<{ answer: string }>("veterinary-consultation", {
+      const res = await invokeEdgeFunction<{ answer: string }>("vet-clinical-handler", {
         question: prompt,
         isProfessional: isProfessional === "sim",
         context: "Diagnóstico diferencial veterinário",

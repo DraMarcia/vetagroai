@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Leaf, Loader2, HelpCircle, TreePine, Droplets, Recycle, Award, TrendingUp, Lightbulb, CheckCircle2, Sprout, DollarSign, FileCheck, Target, MapPin, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { logTerritorialMetric } from "@/lib/territorialLogger";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 
@@ -101,7 +102,7 @@ const AnaliseSustentabilidade = () => {
     setLoading(true);
     
     try {
-      const res = await resilientInvoke("veterinary-consultation", {
+      const res = await resilientInvoke("sustainability-handler", {
         tool: "analise-sustentabilidade",
         perfilUsuario,
         tipoProducao: tipoProducaoOptions.find(t => t.value === tipoProducao)?.label || tipoProducao,
