@@ -33,6 +33,7 @@ import SimuladorConfinamento from "./pages/SimuladorConfinamento";
 import ModeladorCarbono from "./pages/ModeladorCarbono";
 import FAQ from "./pages/FAQ";
 import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
+import MonitoramentoTecnico from "./pages/MonitoramentoTecnico";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -76,6 +77,7 @@ const App = () => (
                       <Route path="/modelador-carbono" element={<ModeladorCarbono />} />
                       <Route path="/faq" element={<FAQ />} />
                       <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
+                      <Route path="/monitoramento-tecnico" element={<MonitoramentoTecnico />} />
                       
                       <Route path="*" element={<NotFound />} />
                     </Routes>

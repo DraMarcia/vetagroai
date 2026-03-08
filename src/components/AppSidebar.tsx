@@ -23,7 +23,8 @@ import {
   Home,
   HelpCircle,
   Shield,
-  LogOut
+  LogOut,
+  MonitorCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -99,6 +100,7 @@ const categories = [
       { title: "Meu Espaço Inteligente", url: "/meu-perfil", icon: User },
       { title: "Blog", url: "/blog", icon: BookOpen },
       { title: "Política de Privacidade", url: "/politica-de-privacidade", icon: Shield },
+      { title: "Monitoramento Técnico", url: "/monitoramento-tecnico", icon: MonitorCheck },
     ],
   },
 ];
