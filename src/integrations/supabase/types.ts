@@ -431,6 +431,10 @@ export type Database = {
           suggestion: string
         }[]
       }
+      get_cached_response: {
+        Args: { _request_hash: string; _tool_name: string }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
