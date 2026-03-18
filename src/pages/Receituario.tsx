@@ -28,6 +28,7 @@ const Receituario = () => {
   const { toast } = useToast();
   const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   // Veterinarian data
   const [vetName, setVetName] = useState("");
