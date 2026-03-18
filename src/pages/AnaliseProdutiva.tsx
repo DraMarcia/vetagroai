@@ -55,6 +55,7 @@ const AnaliseProdutiva = () => {
   const { toast } = useToast();
   const { plan } = useSubscription();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [result, setResult] = useState("");
   const [showOptional, setShowOptional] = useState(false);
 
