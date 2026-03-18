@@ -34,6 +34,7 @@ const InterpretacaoExames = () => {
   const { plan } = useSubscription();
   const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [isProfessional, setIsProfessional] = useState("");
   const [crmv, setCrmv] = useState("");
