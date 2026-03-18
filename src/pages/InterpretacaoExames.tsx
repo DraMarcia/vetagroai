@@ -153,6 +153,7 @@ const InterpretacaoExames = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[InterpretacaoExames] handleAnalyze TRIGGERED");
     // Validation
     if (!isProfessional) {
       toast({
