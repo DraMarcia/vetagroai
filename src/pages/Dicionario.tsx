@@ -57,6 +57,7 @@ const Dicionario = () => {
   const { toast } = useToast();
   const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   // Professional identification
   const [isProfessional, setIsProfessional] = useState(false);
