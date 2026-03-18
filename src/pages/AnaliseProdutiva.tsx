@@ -9,6 +9,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { TrendingUp, Loader2, ChevronDown, Target, DollarSign, AlertTriangle, Lightbulb, BarChart3, FileText, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import DOMPurify from "dompurify";
