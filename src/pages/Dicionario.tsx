@@ -84,6 +84,7 @@ const Dicionario = () => {
   };
 
   const handleSearch = async () => {
+    console.log("[Dicionario] handleSearch TRIGGERED");
     // Validate medication field
     if (!medication.trim()) {
       toast({
