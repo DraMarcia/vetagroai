@@ -9,7 +9,9 @@ import { FileText, Loader2, Shield, Stethoscope, ClipboardList, AlertTriangle } 
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { UFS, useCrmvValidation, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
-import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 // Simple cleaning for prescription - preserve line breaks
 const cleanPrescriptionText = (text: string): string => {
