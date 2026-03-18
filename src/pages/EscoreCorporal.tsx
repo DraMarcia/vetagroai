@@ -10,6 +10,8 @@ import { cleanTextForDisplay } from "@/lib/textUtils";
 import { fileToCompressedDataUrl } from "@/lib/imageDataUrl";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const EscoreCorporal = () => {
   const { toast } = useToast();
