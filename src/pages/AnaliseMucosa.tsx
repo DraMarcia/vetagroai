@@ -183,13 +183,13 @@ const AnaliseMucosa = () => {
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      const cleanedResult = cleanTextForDisplay(res.data?.answer || res.data?.response);
+      const cleanedResult = cleanTextForDisplay(extractAnswer(res.data));
       setResult(cleanedResult);
 
       toast({
