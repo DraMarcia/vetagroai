@@ -647,9 +647,9 @@ O produtor deve sair da análise pensando: "Eu já faço muita coisa certa — e
           )}
         </div>
       </div>
-      </div>
       <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
+};
 
 export default AnaliseSustentabilidade;
