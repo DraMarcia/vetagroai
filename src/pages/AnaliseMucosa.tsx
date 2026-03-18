@@ -130,6 +130,7 @@ const AnaliseMucosa = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[AnaliseMucosa] handleAnalyze TRIGGERED");
     if (!isProfessional) {
       toast({
         title: "Campo obrigatório",
