@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
-import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { fileToCompressedDataUrl } from "@/lib/imageDataUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthDialog } from "@/components/AuthDialog";

@@ -92,6 +92,7 @@ const IdentificadorPlantas = () => {
   };
 
   const handleIdentify = async () => {
+    console.log("[IdentificadorPlantas] handleIdentify TRIGGERED");
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para utilizar a ferramenta.", variant: "destructive" });

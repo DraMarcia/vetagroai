@@ -526,6 +526,7 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
           </Card>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

@@ -173,6 +173,14 @@ const AnaliseProdutiva = () => {
       }
     }
 
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
+      return;
+    }
+
     if (loading) return;
     setLoading(true);
     

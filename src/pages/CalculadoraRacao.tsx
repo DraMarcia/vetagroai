@@ -108,6 +108,14 @@ const CalculadoraRacao = () => {
       return;
     }
 
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
+      return;
+    }
+
     setLoading(true);
     try {
       const professionalInfo = isProfessional === "sim" 

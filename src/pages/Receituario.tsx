@@ -110,9 +110,8 @@ const Receituario = () => {
     setResult("");
 
     try {
-      const res = await invokeEdgeFunction<{ answer: string }>("vet-clinical-handler", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         tool: "receituario",
-        
         data: {
           vetName,
           crmv: `${crmv}-${uf}`,
@@ -132,13 +131,14 @@ const Receituario = () => {
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      if (!res.data?.answer) {
+      const answer = extractAnswer(res.data);
+      if (!answer) {
         toast({
           title: "Resposta vazia",
           description: "O servidor não retornou dados. Tente novamente.",
@@ -147,7 +147,7 @@ const Receituario = () => {
         return;
       }
 
-      const cleanedResult = cleanPrescriptionText(res.data.answer);
+      const cleanedResult = cleanPrescriptionText(answer);
       setResult(cleanedResult);
       
       toast({

@@ -299,8 +299,7 @@ CONTEXTO CLÍNICO: ${clinicalContext || "Não informado"}
 
 Forneça a análise seguindo rigorosamente a estrutura definida.`;
 
-      // Use supabase.functions.invoke() which automatically includes the user's session token
-      const res = await invokeEdgeFunction<any>("vet-clinical-handler", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         tool: "calculadora-dose",
         data: {
           medicamento: isManipulated ? `Manipulado: ${medicationInfo}` : medication,
@@ -317,13 +316,13 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      const cleanedResult = cleanTextForDisplay(res.data?.answer || res.data?.response || "");
+      const cleanedResult = cleanTextForDisplay(extractAnswer(res.data));
       
       setResult(cleanedResult);
       toast({

@@ -159,7 +159,7 @@ REGRAS OBRIGATÓRIAS:
 – Jamais inventar informações — se não houver dados confiáveis, informar claramente
 – Resposta estruturada e organizada, fácil de consultar rapidamente`;
 
-      const res = await invokeEdgeFunction<{ answer: string }>("vet-clinical-handler", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         question: prompt,
         isProfessional: isProfessional,
         context: "Dicionário Veterinário",
@@ -169,14 +169,13 @@ REGRAS OBRIGATÓRIAS:
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      const cleanedResult = cleanTextForDisplay(res.data.answer)
-        // Correção pontual: evita quebra indevida no meio da palavra "EQUINOS"
+      const cleanedResult = cleanTextForDisplay(extractAnswer(res.data))
         .replace(/EQUI\s*\n\s*NOS/gi, "EQUINOS");
 
       setResult(cleanedResult);
