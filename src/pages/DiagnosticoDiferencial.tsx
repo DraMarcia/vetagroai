@@ -13,7 +13,9 @@ import { cleanTextForDisplay } from "@/lib/textUtils";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { trackFeatureUsed } from "@/lib/analytics";
-import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const DiagnosticoDiferencial = () => {
   const { toast } = useToast();
