@@ -8,6 +8,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CloudRain, Loader2, HelpCircle, Sun, Thermometer, Droplets, Wind, Calendar, AlertTriangle, ExternalLink, MapPin, Lightbulb, Target, FileText, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
