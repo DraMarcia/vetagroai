@@ -138,6 +138,7 @@ const AnaliseProdutiva = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[AnaliseProdutiva] handleAnalyze TRIGGERED");
     // Validação básica
     if (!tipoSistema || !numeroAnimais) {
       toast({
