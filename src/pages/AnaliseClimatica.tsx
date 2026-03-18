@@ -33,6 +33,7 @@ const AnaliseClimatica = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[AnaliseClimatica] handleAnalyze TRIGGERED");
     if (!scenario.trim()) {
       toast({
         title: "Campo obrigatório",
