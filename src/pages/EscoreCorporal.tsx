@@ -21,6 +21,7 @@ const EscoreCorporal = () => {
   const [weight, setWeight] = useState("");
   const [image, setImage] = useState("");
   const [result, setResult] = useState("");
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
