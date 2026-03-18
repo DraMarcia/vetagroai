@@ -92,6 +92,7 @@ const AnaliseSustentabilidade = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[AnaliseSustentabilidade] handleAnalyze TRIGGERED");
     if (!perfilUsuario || !tipoProducao || !localizacao.trim() || !praticasAtuais.trim()) {
       toast({
         title: "Campos obrigatórios",
