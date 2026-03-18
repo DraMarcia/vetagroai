@@ -1,5 +1,5 @@
 // Google Analytics 4 Integration
-const GA_MEASUREMENT_ID = 'G-5KCDEZSDF4';
+const GA_MEASUREMENT_ID = 'G-T6S3J6MSSR';
 
 // Declare gtag on window
 declare global {
