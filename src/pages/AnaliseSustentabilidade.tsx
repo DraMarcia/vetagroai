@@ -20,6 +20,7 @@ import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 const AnaliseSustentabilidade = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   // Form fields
   const [perfilUsuario, setPerfilUsuario] = useState("");
