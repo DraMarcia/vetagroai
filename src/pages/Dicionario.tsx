@@ -11,7 +11,9 @@ import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useCrmvValidation, UFS } from "@/hooks/useCrmvValidation";
 import { cleanTextForDisplay } from "@/lib/textUtils";
-import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 // Pharmacological categories
 const PHARMACOLOGICAL_CATEGORIES = [
