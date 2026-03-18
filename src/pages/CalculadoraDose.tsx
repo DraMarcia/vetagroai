@@ -82,6 +82,7 @@ const CalculadoraDose = () => {
   };
 
   const handleCalculate = async () => {
+    console.log("[CalculadoraDose] handleCalculate TRIGGERED");
     // Validate user type selection
     if (!isProfessional) {
       toast({
