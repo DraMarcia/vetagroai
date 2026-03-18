@@ -816,6 +816,7 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
           </>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

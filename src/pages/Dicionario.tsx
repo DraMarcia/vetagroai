@@ -433,6 +433,7 @@ REGRAS OBRIGATÓRIAS:
           </Card>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

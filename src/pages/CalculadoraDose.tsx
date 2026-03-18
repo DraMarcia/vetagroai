@@ -676,6 +676,7 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
           </Card>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };
