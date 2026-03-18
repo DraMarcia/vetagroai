@@ -22,6 +22,7 @@ interface ActiveIngredient {
 const CalculadoraDose = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [isProfessional, setIsProfessional] = useState<string>("");
   const [crmv, setCrmv] = useState("");
   const [uf, setUf] = useState("");
