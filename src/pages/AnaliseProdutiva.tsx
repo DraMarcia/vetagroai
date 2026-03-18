@@ -662,6 +662,7 @@ const AnaliseProdutiva = () => {
           </div>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };
