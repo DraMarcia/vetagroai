@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { Calculator, Loader2 } from "lucide-react";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { useToast } from "@/hooks/use-toast";
