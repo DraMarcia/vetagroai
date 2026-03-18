@@ -25,6 +25,7 @@ import { UFS } from "@/hooks/useCrmvValidation";
 const CalculadoraRacao = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [isProfessional, setIsProfessional] = useState<string>("");
   const [result, setResult] = useState("");
 
