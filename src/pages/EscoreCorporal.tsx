@@ -40,6 +40,7 @@ const EscoreCorporal = () => {
 
 
   const handleAnalyze = async () => {
+    console.log("[EscoreCorporal] handleAnalyze TRIGGERED");
     if (loading) return;
     
     if (!species.trim() || !age.trim() || !weight.trim()) {
