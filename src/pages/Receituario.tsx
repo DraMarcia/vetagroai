@@ -74,6 +74,7 @@ const Receituario = () => {
   };
 
   const handleGenerate = async () => {
+    console.log("[Receituario] handleGenerate TRIGGERED");
     if (loading) return;
 
     const validation = validateAndNotify(true, crmv, uf);
