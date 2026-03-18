@@ -456,7 +456,7 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
 
         <Button
           onClick={handleAnalyze}
-          disabled={loading || !isProfessional}
+          disabled={loading}
           size="lg"
           className="w-full"
         >

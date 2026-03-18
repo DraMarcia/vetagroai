@@ -400,7 +400,7 @@ const AnaliseMucosa = () => {
         {/* Botão de Análise */}
         <Button
           onClick={handleAnalyze}
-          disabled={loading || !isProfessional}
+          disabled={loading}
           size="lg"
           className="w-full"
         >

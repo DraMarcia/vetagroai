@@ -708,7 +708,7 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
 
         <Button
           onClick={handleAnalyze}
-          disabled={loading || !isProfessional}
+          disabled={loading}
           size="lg"
           className="w-full"
         >

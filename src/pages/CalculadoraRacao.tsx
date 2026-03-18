@@ -460,7 +460,7 @@ ANIMAL:
 
         <Button
           onClick={handleCalculate}
-          disabled={loading || !isProfessional}
+          disabled={loading}
           size="lg"
           className="w-full"
         >
