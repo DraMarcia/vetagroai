@@ -16,6 +16,7 @@ import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 const AnaliseClimatica = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [scenario, setScenario] = useState("");
   const [result, setResult] = useState("");
   const [riskLevel, setRiskLevel] = useState<string | null>(null);
