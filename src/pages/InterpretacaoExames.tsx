@@ -18,6 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
 
