@@ -13,12 +13,15 @@ import { cleanTextForDisplay } from "@/lib/textUtils";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { trackFeatureUsed } from "@/lib/analytics";
-import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const DiagnosticoDiferencial = () => {
   const { toast } = useToast();
   const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [isProfessional, setIsProfessional] = useState("");
   const [crmv, setCrmv] = useState("");
   const [uf, setUf] = useState("");
@@ -87,7 +90,17 @@ const DiagnosticoDiferencial = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[DiagnosticoDiferencial] handleAnalyze TRIGGERED");
+
     if (!validateInputs()) return;
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
+      return;
+    }
 
     // Track feature usage
     trackFeatureUsed('diagnostico_diferencial');
@@ -203,7 +216,7 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
 • Nelson & Couto — Medicina Interna de Pequenos Animais
 • Literatura científica reconhecida`;
 
-      const res = await invokeEdgeFunction<{ answer: string }>("vet-clinical-handler", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         question: prompt,
         isProfessional: isProfessional === "sim",
         context: "Diagnóstico diferencial veterinário",
@@ -212,13 +225,14 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      const cleanedResult = cleanTextForDisplay(res.data?.answer);
+      const answer = extractAnswer(res.data);
+      const cleanedResult = cleanTextForDisplay(answer);
       setResult(cleanedResult);
       
       toast({
@@ -512,6 +526,7 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
           </Card>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

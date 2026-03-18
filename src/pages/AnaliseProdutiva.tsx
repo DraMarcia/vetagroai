@@ -9,6 +9,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { TrendingUp, Loader2, ChevronDown, Target, DollarSign, AlertTriangle, Lightbulb, BarChart3, FileText, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import DOMPurify from "dompurify";
@@ -53,6 +55,7 @@ const AnaliseProdutiva = () => {
   const { toast } = useToast();
   const { plan } = useSubscription();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [result, setResult] = useState("");
   const [showOptional, setShowOptional] = useState(false);
 
@@ -135,6 +138,7 @@ const AnaliseProdutiva = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[AnaliseProdutiva] handleAnalyze TRIGGERED");
     // Validação básica
     if (!tipoSistema || !numeroAnimais) {
       toast({
@@ -167,6 +171,14 @@ const AnaliseProdutiva = () => {
         });
         return;
       }
+    }
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
+      return;
     }
 
     if (loading) return;
@@ -650,6 +662,7 @@ const AnaliseProdutiva = () => {
           </div>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

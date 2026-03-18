@@ -18,6 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useCrmvValidation, UFS, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
 
@@ -32,6 +34,7 @@ const InterpretacaoExames = () => {
   const { plan } = useSubscription();
   const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [isProfessional, setIsProfessional] = useState("");
   const [crmv, setCrmv] = useState("");
@@ -150,6 +153,7 @@ const InterpretacaoExames = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[InterpretacaoExames] handleAnalyze TRIGGERED");
     // Validation
     if (!isProfessional) {
       toast({
@@ -183,6 +187,14 @@ const InterpretacaoExames = () => {
         description: "Anexe arquivos (imagens ou PDFs) ou descreva os valores clínicos no campo de texto.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
       return;
     }
 
@@ -804,6 +816,7 @@ Relatório gerado via VetAgro Sustentável AI © 2025`;
           </>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

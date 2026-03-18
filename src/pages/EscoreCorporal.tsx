@@ -10,6 +10,8 @@ import { cleanTextForDisplay } from "@/lib/textUtils";
 import { fileToCompressedDataUrl } from "@/lib/imageDataUrl";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 const EscoreCorporal = () => {
   const { toast } = useToast();
@@ -19,6 +21,7 @@ const EscoreCorporal = () => {
   const [weight, setWeight] = useState("");
   const [image, setImage] = useState("");
   const [result, setResult] = useState("");
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,6 +40,7 @@ const EscoreCorporal = () => {
 
 
   const handleAnalyze = async () => {
+    console.log("[EscoreCorporal] handleAnalyze TRIGGERED");
     if (loading) return;
     
     if (!species.trim() || !age.trim() || !weight.trim()) {
@@ -54,6 +58,14 @@ const EscoreCorporal = () => {
         description: "Anexe uma foto lateral do animal.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
       return;
     }
 
@@ -312,6 +324,7 @@ Liste as fontes técnicas utilizadas (NRC, Henneke, Edmonson, Ferguson, Embrapa)
           </Card>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

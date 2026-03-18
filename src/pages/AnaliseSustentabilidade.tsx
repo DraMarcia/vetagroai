@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Leaf, Loader2, HelpCircle, TreePine, Droplets, Recycle, Award, TrendingUp, Lightbulb, CheckCircle2, Sprout, DollarSign, FileCheck, Target, MapPin, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 import { logTerritorialMetric } from "@/lib/territorialLogger";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
@@ -18,6 +20,7 @@ import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 const AnaliseSustentabilidade = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   // Form fields
   const [perfilUsuario, setPerfilUsuario] = useState("");
@@ -89,12 +92,21 @@ const AnaliseSustentabilidade = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[AnaliseSustentabilidade] handleAnalyze TRIGGERED");
     if (!perfilUsuario || !tipoProducao || !localizacao.trim() || !praticasAtuais.trim()) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha o perfil, tipo de produção, localização e práticas atuais.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
       return;
     }
 
@@ -635,6 +647,7 @@ O produtor deve sair da análise pensando: "Eu já faço muita coisa certa — e
           )}
         </div>
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

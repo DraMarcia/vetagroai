@@ -10,7 +10,9 @@ import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
-import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 interface ActiveIngredient {
   name: string;
@@ -20,6 +22,7 @@ interface ActiveIngredient {
 const CalculadoraDose = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [isProfessional, setIsProfessional] = useState<string>("");
   const [crmv, setCrmv] = useState("");
   const [uf, setUf] = useState("");
@@ -79,6 +82,7 @@ const CalculadoraDose = () => {
   };
 
   const handleCalculate = async () => {
+    console.log("[CalculadoraDose] handleCalculate TRIGGERED");
     // Validate user type selection
     if (!isProfessional) {
       toast({
@@ -137,6 +141,14 @@ const CalculadoraDose = () => {
         });
         return;
       }
+    }
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
+      return;
     }
 
     setLoading(true);
@@ -287,8 +299,7 @@ CONTEXTO CLÍNICO: ${clinicalContext || "Não informado"}
 
 Forneça a análise seguindo rigorosamente a estrutura definida.`;
 
-      // Use supabase.functions.invoke() which automatically includes the user's session token
-      const res = await invokeEdgeFunction<any>("vet-clinical-handler", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         tool: "calculadora-dose",
         data: {
           medicamento: isManipulated ? `Manipulado: ${medicationInfo}` : medication,
@@ -305,13 +316,13 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      const cleanedResult = cleanTextForDisplay(res.data?.answer || res.data?.response || "");
+      const cleanedResult = cleanTextForDisplay(extractAnswer(res.data));
       
       setResult(cleanedResult);
       toast({
@@ -665,6 +676,7 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
           </Card>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

@@ -9,7 +9,9 @@ import { FileText, Loader2, Shield, Stethoscope, ClipboardList, AlertTriangle } 
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useToast } from "@/hooks/use-toast";
 import { UFS, useCrmvValidation, SPECIES_OPTIONS } from "@/hooks/useCrmvValidation";
-import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 // Simple cleaning for prescription - preserve line breaks
 const cleanPrescriptionText = (text: string): string => {
@@ -26,6 +28,7 @@ const Receituario = () => {
   const { toast } = useToast();
   const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   // Veterinarian data
   const [vetName, setVetName] = useState("");
@@ -71,6 +74,7 @@ const Receituario = () => {
   };
 
   const handleGenerate = async () => {
+    console.log("[Receituario] handleGenerate TRIGGERED");
     if (loading) return;
 
     const validation = validateAndNotify(true, crmv, uf);
@@ -94,13 +98,20 @@ const Receituario = () => {
       return;
     }
 
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
+      return;
+    }
+
     setLoading(true);
     setResult("");
 
     try {
-      const res = await invokeEdgeFunction<{ answer: string }>("vet-clinical-handler", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         tool: "receituario",
-        
         data: {
           vetName,
           crmv: `${crmv}-${uf}`,
@@ -120,13 +131,14 @@ const Receituario = () => {
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      if (!res.data?.answer) {
+      const answer = extractAnswer(res.data);
+      if (!answer) {
         toast({
           title: "Resposta vazia",
           description: "O servidor não retornou dados. Tente novamente.",
@@ -135,7 +147,7 @@ const Receituario = () => {
         return;
       }
 
-      const cleanedResult = cleanPrescriptionText(res.data.answer);
+      const cleanedResult = cleanPrescriptionText(answer);
       setResult(cleanedResult);
       
       toast({
@@ -477,6 +489,7 @@ const Receituario = () => {
           </Card>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

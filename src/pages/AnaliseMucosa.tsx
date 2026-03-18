@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cleanTextForDisplay } from "@/lib/textUtils";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
-import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
 import { fileToCompressedDataUrl } from "@/lib/imageDataUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthDialog } from "@/components/AuthDialog";
@@ -130,6 +130,7 @@ const AnaliseMucosa = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[AnaliseMucosa] handleAnalyze TRIGGERED");
     if (!isProfessional) {
       toast({
         title: "Campo obrigatório",
@@ -168,7 +169,7 @@ const AnaliseMucosa = () => {
     setResult("");
 
     try {
-      const res = await invokeEdgeFunction<any>("vet-clinical-handler", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         tool: "analise-mucosa",
         isProfessional: isProfessional === "sim",
         crmv: isProfessional === "sim" ? `${crmv}-${uf}` : null,
@@ -182,13 +183,13 @@ const AnaliseMucosa = () => {
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      const cleanedResult = cleanTextForDisplay(res.data?.answer || res.data?.response);
+      const cleanedResult = cleanTextForDisplay(extractAnswer(res.data));
       setResult(cleanedResult);
 
       toast({

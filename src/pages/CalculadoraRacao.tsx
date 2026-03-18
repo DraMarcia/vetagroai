@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { Calculator, Loader2 } from "lucide-react";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +25,7 @@ import { UFS } from "@/hooks/useCrmvValidation";
 const CalculadoraRacao = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [isProfessional, setIsProfessional] = useState<string>("");
   const [result, setResult] = useState("");
 
@@ -66,6 +69,7 @@ const CalculadoraRacao = () => {
   ];
 
   const handleCalculate = async () => {
+    console.log("[CalculadoraRacao] handleCalculate TRIGGERED");
     if (!isProfessional) {
       toast({
         title: "Campo obrigatório",
@@ -101,6 +105,14 @@ const CalculadoraRacao = () => {
         description: "Preencha espécie, finalidade e peso do animal.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
       return;
     }
 
@@ -503,6 +515,7 @@ ANIMAL:
           </Card>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

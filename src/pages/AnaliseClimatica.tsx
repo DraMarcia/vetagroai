@@ -8,12 +8,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CloudRain, Loader2, HelpCircle, Sun, Thermometer, Droplets, Wind, Calendar, AlertTriangle, ExternalLink, MapPin, Lightbulb, Target, FileText, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 
 const AnaliseClimatica = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [scenario, setScenario] = useState("");
   const [result, setResult] = useState("");
   const [riskLevel, setRiskLevel] = useState<string | null>(null);
@@ -30,12 +33,21 @@ const AnaliseClimatica = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[AnaliseClimatica] handleAnalyze TRIGGERED");
     if (!scenario.trim()) {
       toast({
         title: "Campo obrigatório",
         description: "Descreva sua região, atividade e preocupações climáticas.",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
       return;
     }
 
@@ -494,6 +506,7 @@ ${scenario}`,
           )}
         </div>
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };

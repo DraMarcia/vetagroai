@@ -11,7 +11,9 @@ import { MarkdownTableRenderer } from "@/components/MarkdownTableRenderer";
 import { ResponseActionButtons } from "@/components/ResponseActionButtons";
 import { useCrmvValidation, UFS } from "@/hooks/useCrmvValidation";
 import { cleanTextForDisplay } from "@/lib/textUtils";
-import { invokeEdgeFunction } from "@/lib/edgeInvoke";
+import { resilientInvoke, extractAnswer } from "@/lib/resilientInvoke";
+import { supabase } from "@/integrations/supabase/client";
+import { AuthDialog } from "@/components/AuthDialog";
 
 // Pharmacological categories
 const PHARMACOLOGICAL_CATEGORIES = [
@@ -55,6 +57,7 @@ const Dicionario = () => {
   const { toast } = useToast();
   const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   // Professional identification
   const [isProfessional, setIsProfessional] = useState(false);
@@ -81,6 +84,7 @@ const Dicionario = () => {
   };
 
   const handleSearch = async () => {
+    console.log("[Dicionario] handleSearch TRIGGERED");
     // Validate medication field
     if (!medication.trim()) {
       toast({
@@ -95,6 +99,14 @@ const Dicionario = () => {
     if (isProfessional) {
       const validation = validateAndNotify(isProfessional, crmv, uf);
       if (!validation.isValid) return;
+    }
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
+      return;
     }
 
     if (loading) return;
@@ -147,7 +159,7 @@ REGRAS OBRIGATÓRIAS:
 – Jamais inventar informações — se não houver dados confiáveis, informar claramente
 – Resposta estruturada e organizada, fácil de consultar rapidamente`;
 
-      const res = await invokeEdgeFunction<{ answer: string }>("vet-clinical-handler", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         question: prompt,
         isProfessional: isProfessional,
         context: "Dicionário Veterinário",
@@ -157,14 +169,13 @@ REGRAS OBRIGATÓRIAS:
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      const cleanedResult = cleanTextForDisplay(res.data.answer)
-        // Correção pontual: evita quebra indevida no meio da palavra "EQUINOS"
+      const cleanedResult = cleanTextForDisplay(extractAnswer(res.data))
         .replace(/EQUI\s*\n\s*NOS/gi, "EQUINOS");
 
       setResult(cleanedResult);
@@ -422,6 +433,7 @@ REGRAS OBRIGATÓRIAS:
           </Card>
         )}
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </div>
   );
 };
