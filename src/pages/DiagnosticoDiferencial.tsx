@@ -21,6 +21,7 @@ const DiagnosticoDiferencial = () => {
   const { toast } = useToast();
   const { validateAndNotify } = useCrmvValidation();
   const [loading, setLoading] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [isProfessional, setIsProfessional] = useState("");
   const [crmv, setCrmv] = useState("");
   const [uf, setUf] = useState("");
