@@ -477,7 +477,7 @@ REGRAS OBRIGATÓRIAS:
         </Card>
 
         {/* Botão */}
-        <Button onClick={handleIdentify} disabled={loading || !isProfessional} size="lg" className="w-full">
+        <Button onClick={handleIdentify} disabled={loading} size="lg" className="w-full">
           {loading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />

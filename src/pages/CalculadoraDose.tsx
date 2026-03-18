@@ -612,7 +612,7 @@ Forneça a análise seguindo rigorosamente a estrutura definida.`;
         {/* Calculate Button */}
         <Button
           onClick={handleCalculate}
-          disabled={loading || !isProfessional}
+          disabled={loading}
           size="lg"
           className="w-full"
         >
