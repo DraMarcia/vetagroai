@@ -90,7 +90,17 @@ const DiagnosticoDiferencial = () => {
   };
 
   const handleAnalyze = async () => {
+    console.log("[DiagnosticoDiferencial] handleAnalyze TRIGGERED");
+
     if (!validateInputs()) return;
+
+    // Auth gatekeeper
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast({ title: "Faça login para continuar", description: "Entre ou crie uma conta para usar esta ferramenta.", variant: "destructive" });
+      setShowAuthDialog(true);
+      return;
+    }
 
     // Track feature usage
     trackFeatureUsed('diagnostico_diferencial');
@@ -206,7 +216,7 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
 • Nelson & Couto — Medicina Interna de Pequenos Animais
 • Literatura científica reconhecida`;
 
-      const res = await invokeEdgeFunction<{ answer: string }>("vet-clinical-handler", {
+      const res = await resilientInvoke("vet-clinical-handler", {
         question: prompt,
         isProfessional: isProfessional === "sim",
         context: "Diagnóstico diferencial veterinário",
@@ -215,13 +225,14 @@ O diagnóstico definitivo e o tratamento dependem de avaliação clínica presen
       if (!res.ok) {
         toast({
           title: "Atenção",
-          description: (res.error as any)?.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
+          description: res.friendlyError || "Ocorreu um problema temporário. Por favor, tente novamente.",
           variant: "destructive",
         });
         return;
       }
 
-      const cleanedResult = cleanTextForDisplay(res.data?.answer);
+      const answer = extractAnswer(res.data);
+      const cleanedResult = cleanTextForDisplay(answer);
       setResult(cleanedResult);
       
       toast({
