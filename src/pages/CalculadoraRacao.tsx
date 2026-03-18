@@ -69,6 +69,7 @@ const CalculadoraRacao = () => {
   ];
 
   const handleCalculate = async () => {
+    console.log("[CalculadoraRacao] handleCalculate TRIGGERED");
     if (!isProfessional) {
       toast({
         title: "Campo obrigatório",
