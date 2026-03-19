@@ -4,7 +4,7 @@ import { LogIn, Info, ArrowDown } from "lucide-react";
 import { AuthDialog } from "@/components/AuthDialog";
 import { AboutModal, useFirstVisitModal } from "@/components/AboutModal";
 
-import logoVeragro from "@/assets/logo-vetagro.jpeg";
+import logoVeragro from "@/assets/logo-vetagro.png";
 import bgFloresta from "@/assets/bg-floresta.jpeg";
 import chatbotLogo from "@/assets/chatbot-logo.jpeg";
 
