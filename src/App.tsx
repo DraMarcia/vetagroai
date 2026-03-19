@@ -9,6 +9,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ChatbotAssistant } from "@/components/ChatbotAssistant";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import DiagnosticoDiferencial from "./pages/DiagnosticoDiferencial";
 import CalculadoraDose from "./pages/CalculadoraDose";
@@ -36,7 +37,26 @@ import PoliticaPrivacidade from "./pages/PoliticaPrivacidade";
 import MonitoramentoTecnico from "./pages/MonitoramentoTecnico";
 import MonitoramentoCustos from "./pages/MonitoramentoCustos";
 import RankingFerramentas from "./pages/RankingFerramentas";
+
 const queryClient = new QueryClient();
+
+// Layout with sidebar for tool pages
+function ToolLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col">
+          <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background px-4">
+            <SidebarTrigger />
+          </header>
+          <main className="flex-1">{children}</main>
+        </div>
+      </div>
+      <ChatbotAssistant />
+    </SidebarProvider>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -46,50 +66,43 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AnalyticsProvider>
-            <SidebarProvider>
-              <div className="flex min-h-screen w-full">
-                <AppSidebar />
-                <div className="flex-1 flex flex-col">
-                  <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background px-4">
-                    <SidebarTrigger />
-                  </header>
-                  <main className="flex-1">
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/diagnostico-diferencial" element={<DiagnosticoDiferencial />} />
-                      <Route path="/calculadora-dose" element={<CalculadoraDose />} />
-                      <Route path="/analise-mucosa" element={<AnaliseMucosa />} />
-                      <Route path="/resenha-equinos" element={<ResenhaEquinos />} />
-                      <Route path="/receituario" element={<Receituario />} />
-                      <Route path="/dicionario" element={<Dicionario />} />
-                      <Route path="/calculadora-racao" element={<CalculadoraRacao />} />
-                      <Route path="/identificador-plantas" element={<IdentificadorPlantas />} />
-                      <Route path="/calculadora-gee" element={<CalculadoraGEE />} />
-                      <Route path="/consulta-geoespacial" element={<ConsultaGeoespacial />} />
-                      <Route path="/analise-sustentabilidade" element={<AnaliseSustentabilidade />} />
-                      <Route path="/analise-climatica" element={<AnaliseClimatica />} />
-                      <Route path="/interpretacao-exames" element={<InterpretacaoExames />} />
-                      <Route path="/escore-corporal" element={<EscoreCorporal />} />
-                      <Route path="/analise-produtiva" element={<AnaliseProdutiva />} />
-                      <Route path="/produtos-servicos" element={<ProdutosServicos />} />
-                      <Route path="/meu-perfil" element={<MeuPerfil />} />
-                      <Route path="/blog" element={<Blog />} />
-                      <Route path="/planos" element={<Planos />} />
-                      <Route path="/simulador-confinamento" element={<SimuladorConfinamento />} />
-                      <Route path="/modelador-carbono" element={<ModeladorCarbono />} />
-                      <Route path="/faq" element={<FAQ />} />
-                      <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
-                      <Route path="/monitoramento-tecnico" element={<MonitoramentoTecnico />} />
-                      <Route path="/monitoramento-custos" element={<MonitoramentoCustos />} />
-                      <Route path="/ranking-ferramentas" element={<RankingFerramentas />} />
-                      
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </main>
-                </div>
-              </div>
-              <ChatbotAssistant />
-            </SidebarProvider>
+            <Routes>
+              {/* Landing page - no sidebar */}
+              <Route path="/" element={<Index />} />
+              
+              {/* Dashboard - custom layout */}
+              <Route path="/dashboard" element={<Dashboard />} />
+
+              {/* Tool pages - with sidebar */}
+              <Route path="/diagnostico-diferencial" element={<ToolLayout><DiagnosticoDiferencial /></ToolLayout>} />
+              <Route path="/calculadora-dose" element={<ToolLayout><CalculadoraDose /></ToolLayout>} />
+              <Route path="/analise-mucosa" element={<ToolLayout><AnaliseMucosa /></ToolLayout>} />
+              <Route path="/resenha-equinos" element={<ToolLayout><ResenhaEquinos /></ToolLayout>} />
+              <Route path="/receituario" element={<ToolLayout><Receituario /></ToolLayout>} />
+              <Route path="/dicionario" element={<ToolLayout><Dicionario /></ToolLayout>} />
+              <Route path="/calculadora-racao" element={<ToolLayout><CalculadoraRacao /></ToolLayout>} />
+              <Route path="/identificador-plantas" element={<ToolLayout><IdentificadorPlantas /></ToolLayout>} />
+              <Route path="/calculadora-gee" element={<ToolLayout><CalculadoraGEE /></ToolLayout>} />
+              <Route path="/consulta-geoespacial" element={<ToolLayout><ConsultaGeoespacial /></ToolLayout>} />
+              <Route path="/analise-sustentabilidade" element={<ToolLayout><AnaliseSustentabilidade /></ToolLayout>} />
+              <Route path="/analise-climatica" element={<ToolLayout><AnaliseClimatica /></ToolLayout>} />
+              <Route path="/interpretacao-exames" element={<ToolLayout><InterpretacaoExames /></ToolLayout>} />
+              <Route path="/escore-corporal" element={<ToolLayout><EscoreCorporal /></ToolLayout>} />
+              <Route path="/analise-produtiva" element={<ToolLayout><AnaliseProdutiva /></ToolLayout>} />
+              <Route path="/produtos-servicos" element={<ToolLayout><ProdutosServicos /></ToolLayout>} />
+              <Route path="/meu-perfil" element={<ToolLayout><MeuPerfil /></ToolLayout>} />
+              <Route path="/blog" element={<ToolLayout><Blog /></ToolLayout>} />
+              <Route path="/planos" element={<ToolLayout><Planos /></ToolLayout>} />
+              <Route path="/simulador-confinamento" element={<ToolLayout><SimuladorConfinamento /></ToolLayout>} />
+              <Route path="/modelador-carbono" element={<ToolLayout><ModeladorCarbono /></ToolLayout>} />
+              <Route path="/faq" element={<ToolLayout><FAQ /></ToolLayout>} />
+              <Route path="/politica-de-privacidade" element={<ToolLayout><PoliticaPrivacidade /></ToolLayout>} />
+              <Route path="/monitoramento-tecnico" element={<ToolLayout><MonitoramentoTecnico /></ToolLayout>} />
+              <Route path="/monitoramento-custos" element={<ToolLayout><MonitoramentoCustos /></ToolLayout>} />
+              <Route path="/ranking-ferramentas" element={<ToolLayout><RankingFerramentas /></ToolLayout>} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </AnalyticsProvider>
         </BrowserRouter>
       </SubscriptionProvider>
