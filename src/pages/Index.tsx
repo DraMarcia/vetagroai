@@ -1,51 +1,50 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { 
-  Stethoscope, 
-  Wheat, 
-  Leaf, 
-  Brain,
-  ArrowRight,
-  LogIn,
-  Sparkles,
-  Crown,
-  Info
-} from "lucide-react";
-import logo from "@/assets/logo.jpg";
-import banner from "@/assets/banner.jpg";
+import { LogIn, Info, ArrowDown } from "lucide-react";
 import { AuthDialog } from "@/components/AuthDialog";
 import { AboutModal, useFirstVisitModal } from "@/components/AboutModal";
 
-const categories = [
+import logoVeragro from "@/assets/logo-vetagro.jpeg";
+import bgFloresta from "@/assets/bg-floresta.jpeg";
+import chatbotLogo from "@/assets/chatbot-logo.jpeg";
+
+import iconVeterinarios from "@/assets/icon-veterinarios.png";
+import iconZootecnistas from "@/assets/icon-zootecnistas.png";
+import iconAgronomos from "@/assets/icon-agronomos.png";
+import iconProdutorRural from "@/assets/icon-produtor-rural.png";
+import iconPesquisador from "@/assets/icon-pesquisador.png";
+import iconOutrosRecursos from "@/assets/icon-outros-recursos.png";
+
+const profiles = [
   {
-    title: "Medicina Veterinária e Saúde Animal",
-    description: "Diagnóstico, dosagem, análises clínicas e receituário",
-    icon: Stethoscope,
-    tools: 7,
-    color: "from-green-500 to-emerald-600",
+    title: "Veterinários",
+    description: "Otimize diagnósticos e protocolos de saúde",
+    icon: iconVeterinarios,
   },
   {
-    title: "Zootecnia, Nutrição e Produção Animal",
-    description: "Formulação de rações, análise produtiva e escore corporal",
-    icon: Wheat,
-    tools: 3,
-    color: "from-amber-500 to-orange-600",
+    title: "Zootecnistas",
+    description: "Gestão inteligente de rebanhos e nutrição",
+    icon: iconZootecnistas,
   },
   {
-    title: "Agronomia, Fitotecnia e Sustentabilidade",
-    description: "Identificação de plantas, emissões e consultas geoespaciais",
-    icon: Leaf,
-    tools: 6,
-    color: "from-green-600 to-teal-600",
+    title: "Agrônomos",
+    description: "Maximize a produção agrícola de forma sustentável",
+    icon: iconAgronomos,
   },
   {
-    title: "Modelagem e Análises Avançadas",
-    description: "Simuladores de confinamento e modelagem de carbono",
-    icon: Brain,
-    tools: 2,
-    color: "from-indigo-500 to-purple-600",
+    title: "Produtor Rural",
+    description: "Aumente a eficiência e rentabilidade da propriedade",
+    icon: iconProdutorRural,
+  },
+  {
+    title: "Pesquisador",
+    description: "Acesse dados e insights para inovação científica",
+    icon: iconPesquisador,
+  },
+  {
+    title: "Outros Recursos",
+    description: "Acesse planos, conteúdos e recursos complementares",
+    icon: iconOutrosRecursos,
   },
 ];
 
@@ -55,70 +54,55 @@ const Index = () => {
   const { showModal: firstVisitModal, setShowModal: setFirstVisitModal } = useFirstVisitModal();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       {/* First Visit Modal */}
-      <AboutModal 
-        open={firstVisitModal} 
-        onOpenChange={setFirstVisitModal} 
-      />
-      
-      {/* About Modal (triggered by button) */}
-      <AboutModal 
-        open={aboutModalOpen} 
-        onOpenChange={setAboutModalOpen} 
-      />
+      <AboutModal open={firstVisitModal} onOpenChange={setFirstVisitModal} />
+      <AboutModal open={aboutModalOpen} onOpenChange={setAboutModalOpen} />
 
-      {/* Hero Section - Full Screen on Mobile */}
-      <div className="relative min-h-[85vh] md:min-h-[70vh] flex flex-col">
-        {/* Background Image - Ultra HD without blur */}
+      {/* Hero Section */}
+      <div className="relative min-h-[75vh] md:min-h-[65vh] flex flex-col items-center justify-center">
+        {/* Background */}
         <div className="absolute inset-0">
-          <img 
-            src={banner} 
-            alt="Banner VetAgro Sustentável" 
+          <img
+            src={bgFloresta}
+            alt="Floresta amazônica"
             className="w-full h-full object-cover"
             loading="eager"
           />
-          {/* Soft overlay for text readability - maintains image sharpness */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/40 to-background/85" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/30 to-background/90" />
         </div>
-        
-        {/* Hero Content - Centered */}
-        <div className="relative flex-1 flex flex-col items-center justify-center text-center px-6 py-8">
-          {/* Logo */}
-          <div className="mb-5 md:mb-6 animate-[spin_20s_linear_infinite]">
-            <img 
-              src={logo} 
-              alt="VetAGro Sustentável AI Logo" 
-              className="w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 object-contain rounded-full shadow-xl border-4 border-background/30"
-            />
-          </div>
-          
-          {/* Title */}
-          <h1 className="mb-3 md:mb-4 text-4xl sm:text-5xl md:text-5xl font-bold text-foreground drop-shadow-lg">
+
+        {/* Content */}
+        <div className="relative flex flex-col items-center text-center px-6 py-10">
+          <img
+            src={logoVeragro}
+            alt="VetAgro IA Logo"
+            className="w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 object-contain mb-4 drop-shadow-lg"
+          />
+
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3 drop-shadow-md">
             VetAgro IA
           </h1>
-          
-          {/* Short Description */}
-          <p className="text-base sm:text-lg md:text-lg text-foreground/90 max-w-md md:max-w-xl mx-auto mb-6 md:mb-8 drop-shadow-md leading-relaxed">
-            Uma suíte inteligente para análise ambiental, sustentabilidade pecuária e suporte técnico veterinário. 
-            Acesse ferramentas práticas para eficiência, bem-estar animal e decisões baseadas em dados.
+
+          <p className="text-sm sm:text-base md:text-lg text-foreground/85 max-w-lg mx-auto mb-8 drop-shadow-sm leading-relaxed">
+            Uma suíte inteligente para análise ambiental, sustentabilidade pecuária e suporte técnico especializado
           </p>
-          
+
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-row gap-3 w-full max-w-xs sm:max-w-sm">
             <Button
               size="lg"
               onClick={() => setAuthDialogOpen(true)}
-              className="gap-2 shadow-xl text-base px-8 py-3 md:px-10 md:py-4"
+              className="flex-1 gap-2 text-base font-semibold shadow-lg"
             >
-              <LogIn className="h-5 w-5" />
+              <img src={logoVeragro} alt="" className="w-5 h-5 rounded-full" />
               Entrar
             </Button>
             <Button
               size="lg"
               variant="outline"
               onClick={() => setAboutModalOpen(true)}
-              className="gap-2 shadow-lg text-base px-6 py-3 bg-background/80 backdrop-blur-sm"
+              className="flex-1 gap-2 text-base font-semibold shadow-md bg-background/90 backdrop-blur-sm"
             >
               <Info className="h-5 w-5" />
               Sobre
@@ -126,77 +110,55 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Scroll Indicator - Peek of next section */}
-        <div className="relative bg-gradient-to-t from-background to-transparent py-6 md:py-8">
-          <div className="container mx-auto px-4 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-              <h2 className="text-base sm:text-lg md:text-xl font-semibold text-foreground">Explore as ferramentas</h2>
-              <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-            </div>
-            <p className="text-xs md:text-sm text-muted-foreground">Maximize seu potencial técnico com IA aplicada</p>
-            <div className="mt-3 animate-bounce">
-              <ArrowRight className="h-5 w-5 mx-auto text-primary rotate-90" />
-            </div>
+        {/* Scroll indicator */}
+        <div className="relative mt-auto pb-6">
+          <div className="animate-bounce">
+            <ArrowDown className="h-5 w-5 text-primary" />
           </div>
         </div>
       </div>
 
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
-      {/* Tools Section - Below the fold */}
-      <div className="container mx-auto px-4 py-8 md:py-12">
-        {/* Categories Grid */}
-        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8 md:mb-12">
-          {categories.map((category) => (
-            <Card 
-              key={category.title} 
-              className="hover:shadow-lg transition-shadow cursor-pointer group"
+      {/* Solutions Section */}
+      <div className="container mx-auto px-4 py-10 md:py-14 max-w-4xl">
+        <h2 className="text-xl sm:text-2xl font-semibold text-foreground text-center mb-8">
+          Explore as soluções
+        </h2>
+
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
+          {profiles.map((profile) => (
+            <button
+              key={profile.title}
+              onClick={() => setAuthDialogOpen(true)}
+              className="group flex flex-col items-center text-center p-5 md:p-6 rounded-xl bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200 hover:border-primary/30"
             >
-              <CardHeader className="pb-2 md:pb-4">
-                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center mb-3 md:mb-4`}>
-                  <category.icon className="h-5 w-5 md:h-6 md:w-6 text-white" />
-                </div>
-                <CardTitle className="text-base md:text-lg group-hover:text-primary transition-colors">
-                  {category.title}
-                </CardTitle>
-                <CardDescription className="text-xs md:text-sm">
-                  {category.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs md:text-sm text-muted-foreground">
-                    {category.tools} {category.tools === 1 ? 'ferramenta' : 'ferramentas'}
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-primary group-hover:translate-x-1 transition-transform" />
-                </div>
-              </CardContent>
-            </Card>
+              <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 mb-3 flex items-center justify-center">
+                <img
+                  src={profile.icon}
+                  alt={profile.title}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <h3 className="text-sm sm:text-base font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
+                {profile.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-muted-foreground leading-snug">
+                {profile.description}
+              </p>
+            </button>
           ))}
         </div>
+      </div>
 
-        {/* Subscription Block */}
-        <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-primary/20">
-          <CardContent className="py-6 md:py-8">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-3 md:mb-4">
-                <Crown className="h-5 w-5 md:h-6 md:w-6 text-amber-500" />
-                <h3 className="text-base md:text-xl font-semibold">Ferramentas avançadas</h3>
-              </div>
-              <p className="text-xs md:text-sm text-muted-foreground mb-4 max-w-xl mx-auto px-2">
-                A versão gratuita oferece simulações básicas. Os planos <strong>Pro</strong> e <strong>Enterprise</strong> liberam 
-                relatórios técnicos, exportação e análises aprofundadas.
-              </p>
-              <Link to="/planos">
-                <Button variant="default" size="sm" className="gap-2">
-                  <Crown className="h-4 w-4" />
-                  Ver Planos
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Floating chatbot button */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <button
+          className="w-14 h-14 rounded-full shadow-lg overflow-hidden hover:shadow-xl transition-shadow hover:scale-105"
+          aria-label="Assistente VetAgro"
+        >
+          <img src={chatbotLogo} alt="Assistente" className="w-full h-full object-cover" />
+        </button>
       </div>
     </div>
   );
