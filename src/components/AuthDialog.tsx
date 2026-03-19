@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +67,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           description: "Bem-vindo de volta!",
         });
         onOpenChange(false);
+        navigate("/dashboard");
       } else {
         // Track signup started
         trackSignupStarted('email');
