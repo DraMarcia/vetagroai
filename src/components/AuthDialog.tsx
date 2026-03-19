@@ -67,6 +67,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           description: "Bem-vindo de volta!",
         });
         onOpenChange(false);
+        navigate("/dashboard");
       } else {
         // Track signup started
         trackSignupStarted('email');
