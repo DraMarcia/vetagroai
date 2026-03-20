@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 import logoVeragro from "@/assets/logo-vetagro.png";
+import logoVeragroWhite from "@/assets/logo-vetagro-white.png";
 
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
