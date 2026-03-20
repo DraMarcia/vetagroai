@@ -67,8 +67,8 @@ const App = () => (
         <BrowserRouter>
           <AnalyticsProvider>
             <Routes>
-              {/* Landing page - no sidebar */}
-              <Route path="/" element={<Index />} />
+              {/* Landing page - with sidebar */}
+              <Route path="/" element={<ToolLayout><Index /></ToolLayout>} />
               
               {/* Dashboard - custom layout */}
               <Route path="/dashboard" element={<Dashboard />} />
