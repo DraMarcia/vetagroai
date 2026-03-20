@@ -124,7 +124,7 @@ export function AppSidebar() {
         {/* Logo + brand */}
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2 px-3 py-4">
-            <img src={logoVeragro} alt="VetAgro IA" className="w-8 h-8 object-contain" />
+            <img src={logoVeragroWhite} alt="VetAgro IA" className="w-8 h-8 object-contain" />
             {open && (
               <span className="text-lg font-bold text-white tracking-tight">VetAgro IA</span>
             )}
