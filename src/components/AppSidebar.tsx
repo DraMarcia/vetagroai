@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import {
-  Stethoscope, Calculator, Eye, FileText, Pill, BookOpen, Wheat, Leaf, Cloud, MapPin,
-  Sparkles, Brain, ShoppingBag, User, FileSearch, Activity, TrendingUp, Warehouse,
-  CreditCard, Lightbulb, Home, HelpCircle, Shield, LogOut, MonitorCheck, DollarSign,
-  Trophy, ChevronDown,
+  Stethoscope, Wheat, Leaf, Tractor, FlaskConical,
+  Sparkles, Home, HelpCircle, Shield, LogOut,
+  MonitorCheck, DollarSign, Trophy, ChevronDown,
+  User, CreditCard, ShoppingBag, BookOpen, Lightbulb,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -13,7 +13,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-import logoVeragro from "@/assets/logo-vetagro.png";
 import logoVeragroWhite from "@/assets/logo-vetagro-white.png";
 
 import {
@@ -21,48 +20,12 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 
-const mainCategories = [
-  {
-    title: "Medicina Veterinária",
-    icon: Stethoscope,
-    items: [
-      { title: "Diagnóstico Diferencial Inteligente", url: "/diagnostico-diferencial", icon: Stethoscope },
-      { title: "Interpretação de Exames", url: "/interpretacao-exames", icon: FileSearch },
-      { title: "Calculadora de Dose Veterinária", url: "/calculadora-dose", icon: Calculator },
-      { title: "Analisador de Mucosa Ocular", url: "/analise-mucosa", icon: Eye },
-      { title: "Resenha Técnica de Equinos", url: "/resenha-equinos", icon: FileText },
-      { title: "Receituário Veterinário", url: "/receituario", icon: Pill },
-      { title: "Dicionário Farmacológico", url: "/dicionario", icon: BookOpen },
-    ],
-  },
-  {
-    title: "Zootecnia e Nutrição",
-    icon: Wheat,
-    items: [
-      { title: "Calculadora de Ração Inteligente", url: "/calculadora-racao", icon: Calculator },
-      { title: "Painel de Inteligência Produtiva", url: "/analise-produtiva", icon: TrendingUp },
-      { title: "Escore de Condição Corporal", url: "/escore-corporal", icon: Activity },
-    ],
-  },
-  {
-    title: "Agronomia e Sustentabilidade",
-    icon: Leaf,
-    items: [
-      { title: "Identificador de Plantas", url: "/identificador-plantas", icon: Leaf },
-      { title: "Calculadora de Emissões de GEE", url: "/calculadora-gee", icon: Cloud },
-      { title: "Consulta Geoespacial", url: "/consulta-geoespacial", icon: MapPin },
-      { title: "Análise de Sustentabilidade", url: "/analise-sustentabilidade", icon: Leaf },
-      { title: "Análise Climática", url: "/analise-climatica", icon: Cloud },
-    ],
-  },
-  {
-    title: "Modelagem Avançada",
-    icon: Brain,
-    items: [
-      { title: "Simulador de Confinamento", url: "/simulador-confinamento", icon: Warehouse },
-      { title: "Modelador de Carbono", url: "/modelador-carbono", icon: Leaf },
-    ],
-  },
+const profileItems = [
+  { title: "Veterinários", url: "/chat/veterinario", icon: Stethoscope },
+  { title: "Zootecnistas", url: "/chat/zootecnista", icon: Wheat },
+  { title: "Agrônomos", url: "/chat/agronomo", icon: Leaf },
+  { title: "Produtor Rural", url: "/chat/produtor", icon: Tractor },
+  { title: "Pesquisador", url: "/chat/pesquisador", icon: FlaskConical },
 ];
 
 const outrosRecursosItems = [
@@ -95,11 +58,18 @@ export function AppSidebar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Auto-expand "Outros Recursos" if current route matches
   useEffect(() => {
     const isOutrosRoute = outrosRecursosItems.some((item) => location.pathname === item.url);
     if (isOutrosRoute) setOutrosOpen(true);
   }, [location.pathname]);
+
+  const handleProfileNav = (url: string) => {
+    if (!user) {
+      toast.error("Cadastre-se para acessar esta funcionalidade.");
+      return;
+    }
+    navigate(url);
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -148,33 +118,29 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Main categories */}
-        {mainCategories.map((category) => (
-          <SidebarGroup key={category.title}>
-            <SidebarGroupLabel className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-white/50 px-3">
-              <category.icon className="h-3.5 w-3.5" />
-              {open && category.title}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {category.items.map((item) => (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        className="text-white/70 hover:text-white hover:bg-white/10 text-sm"
-                        activeClassName="bg-white/15 text-white font-medium"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span className="truncate">{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {/* Profile navigation */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-white/50 px-3">
+            Perfis
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {profileItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton
+                    onClick={() => handleProfileNav(item.url)}
+                    className={`text-white/70 hover:text-white hover:bg-white/10 text-sm cursor-pointer ${
+                      location.pathname === item.url ? "bg-white/15 text-white font-medium" : ""
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span className="truncate">{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         {/* Outros Recursos — accordion */}
         <SidebarGroup>
