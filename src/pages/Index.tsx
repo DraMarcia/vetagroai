@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Info, ChevronRight } from "lucide-react";
+import { Info } from "lucide-react";
 import { AuthDialog } from "@/components/AuthDialog";
 import { AboutModal, useFirstVisitModal } from "@/components/AboutModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,75 +20,46 @@ import iconOutrosRecursos from "@/assets/icon-outros-recursos.png";
 
 const profiles = [
   {
-    id: "veterinarios",
+    id: "veterinario",
     title: "Veterinários",
     description: "Otimize diagnósticos e protocolos de saúde",
     icon: iconVeterinarios,
-    tools: [
-      { label: "Diagnóstico Diferencial Inteligente", route: "/diagnostico-diferencial" },
-      { label: "Interpretação de Exames", route: "/interpretacao-exames" },
-      { label: "Calculadora de Dose Veterinária", route: "/calculadora-dose" },
-      { label: "Analisador de Mucosa Ocular", route: "/analise-mucosa" },
-      { label: "Resenha Técnica de Equinos", route: "/resenha-equinos" },
-      { label: "Receituário Veterinário", route: "/receituario" },
-      { label: "Dicionário Farmacológico", route: "/dicionario" },
-    ],
+    route: "/chat/veterinario",
   },
   {
-    id: "zootecnistas",
+    id: "zootecnista",
     title: "Zootecnistas",
     description: "Gestão inteligente de rebanhos e nutrição",
     icon: iconZootecnistas,
-    tools: [
-      { label: "Calculadora de Ração Inteligente", route: "/calculadora-racao" },
-      { label: "Painel de Inteligência Produtiva", route: "/analise-produtiva" },
-      { label: "Escore de Condição Corporal (ECC)", route: "/escore-corporal" },
-    ],
+    route: "/chat/zootecnista",
   },
   {
-    id: "agronomos",
+    id: "agronomo",
     title: "Agrônomos",
     description: "Maximize a produção agrícola de forma sustentável",
     icon: iconAgronomos,
-    tools: [
-      { label: "Identificador de Plantas", route: "/identificador-plantas" },
-      { label: "Calculadora de Emissões de GEE", route: "/calculadora-gee" },
-      { label: "Consulta Geoespacial Sustentável", route: "/consulta-geoespacial" },
-      { label: "Análise de Sustentabilidade", route: "/analise-sustentabilidade" },
-      { label: "Análise Climática Inteligente", route: "/analise-climatica" },
-    ],
+    route: "/chat/agronomo",
   },
   {
     id: "produtor",
     title: "Produtor Rural",
     description: "Aumente a eficiência e rentabilidade da propriedade",
     icon: iconProdutorRural,
-    tools: [
-      { label: "Simulador de Confinamento", route: "/simulador-confinamento" },
-      { label: "Modelador de Carbono", route: "/modelador-carbono" },
-      { label: "Calculadora de Ração", route: "/calculadora-racao" },
-      { label: "Análise Produtiva", route: "/analise-produtiva" },
-    ],
+    route: "/chat/produtor",
   },
   {
     id: "pesquisador",
     title: "Pesquisador",
     description: "Acesse dados e insights para inovação científica",
     icon: iconPesquisador,
-    tools: [
-      { label: "Calculadora de GEE (IPCC)", route: "/calculadora-gee" },
-      { label: "Modelagem de Carbono", route: "/modelador-carbono" },
-      { label: "Análise de Sustentabilidade", route: "/analise-sustentabilidade" },
-      { label: "Simulador de Confinamento", route: "/simulador-confinamento" },
-    ],
+    route: "/chat/pesquisador",
   },
   {
     id: "outros",
     title: "Outros Recursos",
     description: "Acesse planos, conteúdos e recursos complementares",
     icon: iconOutrosRecursos,
-    tools: [],
-    isMenuOnly: true,
+    route: null,
   },
 ];
 
@@ -96,7 +67,6 @@ const Index = () => {
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [aboutModalOpen, setAboutModalOpen] = useState(false);
   const { showModal: firstVisitModal, setShowModal: setFirstVisitModal } = useFirstVisitModal();
-  const [expandedProfile, setExpandedProfile] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
@@ -110,22 +80,21 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleProfileClick = (profileId: string) => {
-    if (profileId === "outros") {
+  const handleProfileClick = (profile: typeof profiles[0]) => {
+    if (profile.id === "outros") {
       toast.info("Acesse pelo menu lateral", {
         description: "Os itens de Outros Recursos estão disponíveis na sidebar à esquerda.",
       });
       return;
     }
-    setExpandedProfile(expandedProfile === profileId ? null : profileId);
-  };
-
-  const handleToolClick = (route: string) => {
     if (!user) {
+      toast.error("Cadastre-se para acessar esta funcionalidade.");
       setAuthDialogOpen(true);
       return;
     }
-    navigate(route);
+    if (profile.route) {
+      navigate(profile.route);
+    }
   };
 
   return (
@@ -134,7 +103,8 @@ const Index = () => {
       <AboutModal open={aboutModalOpen} onOpenChange={setAboutModalOpen} />
 
       {/* Hero Section */}
-      <section className="relative flex-shrink-0 flex flex-col items-center justify-center"
+      <section
+        className="relative flex-shrink-0 flex flex-col items-center justify-center"
         style={{ height: "clamp(180px, 38vh, 340px)" }}
       >
         <div className="absolute inset-0">
@@ -176,7 +146,7 @@ const Index = () => {
             <Button
               size="default"
               onClick={() => {
-                if (user) navigate("/dashboard");
+                if (user) navigate("/chat/produtor");
                 else setAuthDialogOpen(true);
               }}
               className="flex-1 gap-2 text-sm font-semibold shadow-lg bg-[hsl(142,76%,26%)] hover:bg-[hsl(142,76%,22%)] text-white border-0"
@@ -199,80 +169,35 @@ const Index = () => {
 
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
-      {/* Solutions Section — fills remaining space */}
+      {/* Profiles Section */}
       <section className="flex-1 bg-muted/30 overflow-hidden flex flex-col">
         <div className="container mx-auto px-3 py-3 md:py-4 max-w-5xl flex-1 flex flex-col overflow-hidden">
           <h2
             className="text-lg sm:text-xl md:text-2xl font-bold text-foreground text-center mb-3 flex-shrink-0"
-            style={{ textWrap: "balance" }}
+            style={{ textWrap: "balance" } as any}
           >
             Explore as soluções
           </h2>
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 pb-2">
-              {profiles.map((profile) => {
-                const isExpanded = expandedProfile === profile.id;
-                const isOtherResources = profile.id === "outros";
-
-                return (
-                  <div
-                    key={profile.id}
-                    className={`
-                      rounded-2xl bg-card border border-border shadow-sm transition-all duration-300 ease-out
-                      ${isExpanded ? "col-span-2 lg:col-span-3 shadow-md border-primary/30" : "hover:shadow-md hover:border-primary/20"}
-                    `}
-                  >
-                    <button
-                      onClick={() => handleProfileClick(profile.id)}
-                      className="w-full flex flex-col items-center gap-1 p-3 md:p-4 text-center group"
-                    >
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center">
-                        <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain" />
-                      </div>
-                      <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
-                        {profile.title}
-                      </h3>
-                      <p className="text-xs text-muted-foreground leading-snug">
-                        {profile.description}
-                      </p>
-                    </button>
-
-                    {/* Expanded tools (not for "outros") */}
-                    {!isOtherResources && (
-                      <div
-                        className={`overflow-hidden transition-all duration-300 ease-out ${
-                          isExpanded ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
-                        }`}
-                      >
-                        <div className="px-3 pb-3 md:px-4 md:pb-4 pt-0">
-                          <div className="border-t border-border pt-3">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-                              {profile.tools.map((tool) => (
-                                <button
-                                  key={tool.route}
-                                  onClick={() => handleToolClick(tool.route)}
-                                  className="flex items-center gap-2 px-2 py-2 rounded-lg text-xs sm:text-sm text-left
-                                    hover:bg-primary/10 hover:text-primary transition-colors duration-150
-                                    active:scale-[0.97]"
-                                >
-                                  <ChevronRight className="h-3 w-3 flex-shrink-0 text-primary/60" />
-                                  <span className="truncate">{tool.label}</span>
-                                </button>
-                              ))}
-                            </div>
-                            {!user && (
-                              <p className="text-xs text-destructive mt-2 font-medium">
-                                Cadastre-se para acessar esta funcionalidade.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+              {profiles.map((profile) => (
+                <button
+                  key={profile.id}
+                  onClick={() => handleProfileClick(profile)}
+                  className="rounded-2xl bg-card border border-border shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-200 flex flex-col items-center gap-1 p-3 md:p-4 text-center group"
+                >
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center">
+                    <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain" />
                   </div>
-                );
-              })}
+                  <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+                    {profile.title}
+                  </h3>
+                  <p className="text-xs text-muted-foreground leading-snug">
+                    {profile.description}
+                  </p>
+                </button>
+              ))}
             </div>
           </div>
         </div>
