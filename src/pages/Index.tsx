@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
 import logoVeragro from "@/assets/logo-vetagro.png";
+import logoWhite from "@/assets/logo-vetagro-white.png";
 import bgFloresta from "@/assets/bg-floresta.jpeg";
 
 import iconVeterinarios from "@/assets/icon-veterinarios.png";
@@ -98,27 +99,27 @@ const Index = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-3rem)] flex flex-col overflow-hidden">
       <AboutModal open={firstVisitModal} onOpenChange={setFirstVisitModal} />
       <AboutModal open={aboutModalOpen} onOpenChange={setAboutModalOpen} />
 
-      {/* Hero Section */}
+      {/* Hero Section — continuous bg, no white bar */}
       <section
         className="relative flex-shrink-0 flex flex-col items-center justify-center"
-        style={{ height: "clamp(180px, 38vh, 340px)" }}
+        style={{ height: "clamp(200px, 40vh, 360px)" }}
       >
         <div className="absolute inset-0">
           <img
             src={bgFloresta}
             alt="Floresta amazônica"
             className="w-full h-full object-cover"
-            style={{ filter: "brightness(0.85) contrast(1.12) saturate(1.08)" }}
+            style={{ filter: "brightness(0.92) contrast(1.15) saturate(1.12)" }}
             loading="eager"
           />
           <div
             className="absolute inset-0"
             style={{
-              background: "linear-gradient(to bottom, rgba(0,40,25,0.45), rgba(0,40,25,0.55))",
+              background: "linear-gradient(to bottom, rgba(0,50,30,0.35), rgba(0,40,25,0.50))",
             }}
           />
         </div>
@@ -127,17 +128,17 @@ const Index = () => {
           <img
             src={logoVeragro}
             alt="VetAgro IA Logo"
-            className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-contain mb-2 drop-shadow-lg"
+            className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 object-contain mb-2 drop-shadow-xl"
           />
           <h1
-            className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1"
-            style={{ textShadow: "0 2px 8px rgba(0,0,0,0.35)", lineHeight: 1.1 }}
+            className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-1"
+            style={{ textShadow: "0 2px 12px rgba(0,0,0,0.4)", lineHeight: 1.1 }}
           >
             VetAgro IA
           </h1>
           <p
-            className="text-sm sm:text-base md:text-lg text-white/90 max-w-md mx-auto mb-3 leading-snug font-medium"
-            style={{ textShadow: "0 1px 4px rgba(0,0,0,0.45)" }}
+            className="text-base sm:text-lg md:text-xl text-white max-w-md mx-auto mb-4 leading-snug font-semibold"
+            style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
           >
             Uma suíte inteligente para análise ambiental, sustentabilidade pecuária e suporte técnico especializado
           </p>
@@ -149,16 +150,16 @@ const Index = () => {
                 if (user) navigate("/chat/produtor");
                 else setAuthDialogOpen(true);
               }}
-              className="flex-1 gap-2 text-sm font-semibold shadow-lg bg-[hsl(142,76%,26%)] hover:bg-[hsl(142,76%,22%)] text-white border-0"
+              className="flex-1 gap-2 text-sm font-bold shadow-lg bg-[hsl(142,76%,26%)] hover:bg-[hsl(142,76%,22%)] text-white border-0"
             >
-              <img src={logoVeragro} alt="" className="w-4 h-4 rounded-full" />
-              {user ? "Acessar" : "Entrar"}
+              <img src={logoWhite} alt="" className="w-5 h-5 object-contain" />
+              Entrar
             </Button>
             <Button
               size="default"
               variant="outline"
               onClick={() => setAboutModalOpen(true)}
-              className="flex-1 gap-2 text-sm font-semibold shadow-md bg-white/95 text-foreground hover:bg-white border-white/60"
+              className="flex-1 gap-2 text-sm font-bold shadow-md bg-white/95 text-foreground hover:bg-white border-white/60"
             >
               <Info className="h-4 w-4" />
               Sobre
@@ -171,34 +172,32 @@ const Index = () => {
 
       {/* Profiles Section */}
       <section className="flex-1 bg-muted/30 overflow-hidden flex flex-col">
-        <div className="container mx-auto px-3 py-3 md:py-4 max-w-5xl flex-1 flex flex-col overflow-hidden">
+        <div className="container mx-auto px-3 py-2 md:py-3 max-w-4xl flex-1 flex flex-col overflow-hidden">
           <h2
-            className="text-lg sm:text-xl md:text-2xl font-bold text-foreground text-center mb-3 flex-shrink-0"
+            className="text-base sm:text-lg md:text-xl font-bold text-foreground text-center mb-2 flex-shrink-0"
             style={{ textWrap: "balance" } as any}
           >
             Explore as soluções
           </h2>
 
-          <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 pb-2">
-              {profiles.map((profile) => (
-                <button
-                  key={profile.id}
-                  onClick={() => handleProfileClick(profile)}
-                  className="rounded-2xl bg-card border border-border shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-200 flex flex-col items-center gap-1 p-3 md:p-4 text-center group"
-                >
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 flex items-center justify-center">
-                    <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain" />
-                  </div>
-                  <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
-                    {profile.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground leading-snug">
-                    {profile.description}
-                  </p>
-                </button>
-              ))}
-            </div>
+          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 content-start pb-1">
+            {profiles.map((profile) => (
+              <button
+                key={profile.id}
+                onClick={() => handleProfileClick(profile)}
+                className="rounded-xl bg-card border border-border shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 flex flex-col items-center gap-0.5 p-2 md:p-3 text-center group"
+              >
+                <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center">
+                  <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain" />
+                </div>
+                <h3 className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+                  {profile.title}
+                </h3>
+                <p className="text-[10px] sm:text-xs text-muted-foreground leading-snug line-clamp-2">
+                  {profile.description}
+                </p>
+              </button>
+            ))}
           </div>
         </div>
       </section>

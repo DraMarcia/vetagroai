@@ -24,15 +24,15 @@ import ProdutosServicos from "./pages/ProdutosServicos";
 
 const queryClient = new QueryClient();
 
-// Layout with sidebar for all pages
 function ToolLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background px-4">
-            <SidebarTrigger />
+          {/* Minimal header — just the sidebar trigger, transparent on landing */}
+          <header className="sticky top-0 z-10 flex h-12 items-center px-3">
+            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
           </header>
           <main className="flex-1">{children}</main>
         </div>
@@ -51,16 +51,10 @@ const App = () => (
         <BrowserRouter>
           <AnalyticsProvider>
             <Routes>
-              {/* Landing page */}
               <Route path="/" element={<ToolLayout><Index /></ToolLayout>} />
-
-              {/* Chat-first profile routes */}
               <Route path="/chat/:profileId" element={<ToolLayout><ChatProfile /></ToolLayout>} />
 
-              {/* Dashboard (legacy) */}
-              <Route path="/dashboard" element={<Dashboard />} />
-
-              {/* Institutional / resource pages */}
+              {/* Resource pages */}
               <Route path="/meu-perfil" element={<ToolLayout><MeuPerfil /></ToolLayout>} />
               <Route path="/planos" element={<ToolLayout><Planos /></ToolLayout>} />
               <Route path="/faq" element={<ToolLayout><FAQ /></ToolLayout>} />
@@ -70,6 +64,9 @@ const App = () => (
               <Route path="/monitoramento-tecnico" element={<ToolLayout><MonitoramentoTecnico /></ToolLayout>} />
               <Route path="/monitoramento-custos" element={<ToolLayout><MonitoramentoCustos /></ToolLayout>} />
               <Route path="/ranking-ferramentas" element={<ToolLayout><RankingFerramentas /></ToolLayout>} />
+
+              {/* Legacy redirect */}
+              <Route path="/dashboard" element={<Dashboard />} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

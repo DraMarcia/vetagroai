@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Stethoscope, Wheat, Leaf, Tractor, FlaskConical,
   Sparkles, Home, HelpCircle, Shield, LogOut,
   MonitorCheck, DollarSign, Trophy, ChevronDown,
   User, CreditCard, ShoppingBag, BookOpen, Lightbulb,
@@ -13,7 +12,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-import logoVeragroWhite from "@/assets/logo-vetagro-white.png";
+import logoWhite from "@/assets/logo-vetagro-white.png";
+
+// Sidebar icons (white on green)
+import sidebarIconVet from "@/assets/sidebar-icon-veterinarios.png";
+import sidebarIconAgro from "@/assets/sidebar-icon-agronomos.png";
+import sidebarIconProdutor from "@/assets/sidebar-icon-produtor-rural.png";
+import sidebarIconOutros from "@/assets/sidebar-icon-outros-recursos.png";
 
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -21,11 +26,11 @@ import {
 } from "@/components/ui/sidebar";
 
 const profileItems = [
-  { title: "Veterinários", url: "/chat/veterinario", icon: Stethoscope },
-  { title: "Zootecnistas", url: "/chat/zootecnista", icon: Wheat },
-  { title: "Agrônomos", url: "/chat/agronomo", icon: Leaf },
-  { title: "Produtor Rural", url: "/chat/produtor", icon: Tractor },
-  { title: "Pesquisador", url: "/chat/pesquisador", icon: FlaskConical },
+  { title: "Veterinários", url: "/chat/veterinario", icon: sidebarIconVet },
+  { title: "Zootecnistas", url: "/chat/zootecnista", icon: sidebarIconVet },
+  { title: "Agrônomos", url: "/chat/agronomo", icon: sidebarIconAgro },
+  { title: "Produtor Rural", url: "/chat/produtor", icon: sidebarIconProdutor },
+  { title: "Pesquisador", url: "/chat/pesquisador", icon: sidebarIconVet },
 ];
 
 const outrosRecursosItems = [
@@ -87,14 +92,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={`${open ? "w-64" : "w-16"} bg-[hsl(142,50%,12%)] text-white`}
+      className={`${open ? "w-64" : "w-16"} bg-[hsl(142,50%,12%)] text-white sidebar-green-scroll`}
       collapsible="icon"
     >
       <SidebarContent className="bg-gradient-to-b from-[hsl(142,50%,14%)] to-[hsl(142,50%,10%)]">
         {/* Logo + brand */}
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2 px-3 py-4">
-            <img src={logoVeragroWhite} alt="VetAgro IA" className="w-8 h-8 object-contain" />
+            <img src={logoWhite} alt="VetAgro IA" className="w-8 h-8 object-contain" />
             {open && (
               <span className="text-lg font-bold text-white tracking-tight">VetAgro IA</span>
             )}
@@ -118,7 +123,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Profile navigation */}
+        {/* Profile navigation with custom icons */}
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-white/50 px-3">
             Perfis
@@ -133,7 +138,7 @@ export function AppSidebar() {
                       location.pathname === item.url ? "bg-white/15 text-white font-medium" : ""
                     }`}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <img src={item.icon} alt="" className="h-5 w-5 object-contain" />
                     <span className="truncate">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -148,7 +153,7 @@ export function AppSidebar() {
             onClick={() => setOutrosOpen(!outrosOpen)}
             className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-white/50 px-3 py-2 w-full hover:text-white/70 transition-colors"
           >
-            <Sparkles className="h-3.5 w-3.5" />
+            <img src={sidebarIconOutros} alt="" className="h-4 w-4 object-contain opacity-60" />
             {open && (
               <>
                 <span className="flex-1 text-left">Outros Recursos</span>
@@ -163,7 +168,7 @@ export function AppSidebar() {
               outrosOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
             }`}
           >
-            <div className="overflow-y-auto max-h-[280px] scrollbar-thin">
+            <div className="overflow-y-auto max-h-[280px] sidebar-green-scroll">
               <SidebarGroupContent>
                 <SidebarMenu>
                   {outrosRecursosItems.map((item) => (
