@@ -29,10 +29,10 @@ import {
 
 const profileItems = [
   { title: "Veterinários", url: "/chat/veterinario", icon: sidebarIconVet },
-  { title: "Zootecnistas", url: "/chat/zootecnista", icon: sidebarIconVet },
+  { title: "Zootecnistas", url: "/chat/zootecnista", icon: sidebarIconZoo },
   { title: "Agrônomos", url: "/chat/agronomo", icon: sidebarIconAgro },
   { title: "Produtor Rural", url: "/chat/produtor", icon: sidebarIconProdutor },
-  { title: "Pesquisador", url: "/chat/pesquisador", icon: sidebarIconVet },
+  { title: "Pesquisador", url: "/chat/pesquisador", icon: sidebarIconPesq },
 ];
 
 const outrosRecursosItems = [
