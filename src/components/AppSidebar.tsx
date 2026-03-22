@@ -14,8 +14,10 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 import logoWhite from "@/assets/logo-vetagro-white.png";
 
-// Sidebar icons (white on green)
+// Sidebar icons (light outline for green bg)
 import sidebarIconVet from "@/assets/sidebar-icon-veterinarios.png";
+import sidebarIconZoo from "@/assets/sidebar-icon-zootecnistas.png";
+import sidebarIconPesq from "@/assets/sidebar-icon-pesquisador.png";
 import sidebarIconAgro from "@/assets/sidebar-icon-agronomos.png";
 import sidebarIconProdutor from "@/assets/sidebar-icon-produtor-rural.png";
 import sidebarIconOutros from "@/assets/sidebar-icon-outros-recursos.png";
