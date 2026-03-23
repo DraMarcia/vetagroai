@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, authenticateRequest, checkRateLimit } from "../_shared/edgeFunctionUtils.ts";
 
 const SYSTEM_PROMPTS: Record<string, string> = {
@@ -99,6 +98,95 @@ REGRAS:
 - Responda SEMPRE em português brasileiro`,
 };
 
+// ── Perplexity AI call with retry + fallback ──
+
+async function callPerplexity(
+  systemPrompt: string,
+  messages: { role: string; content: string }[],
+  apiKey: string,
+): Promise<Response> {
+  const body = JSON.stringify({
+    model: "sonar-pro",
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...messages.slice(-20),
+    ],
+    stream: true,
+  });
+
+  // Attempt with retry (max 2 tries)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 55000);
+
+      const resp = await fetch("https://api.perplexity.ai/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (resp.ok) return resp;
+
+      // Non-retryable errors
+      if (resp.status === 401 || resp.status === 402 || resp.status === 400) {
+        console.error(`[Perplexity] Non-retryable error: ${resp.status}`);
+        throw new Error(`perplexity_${resp.status}`);
+      }
+
+      // Retryable (429, 500, 503)
+      console.warn(`[Perplexity] Attempt ${attempt + 1} failed: ${resp.status}`);
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 2000));
+    } catch (err) {
+      if ((err as Error).message?.startsWith("perplexity_")) throw err;
+      console.warn(`[Perplexity] Attempt ${attempt + 1} exception:`, err);
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+
+  throw new Error("perplexity_exhausted");
+}
+
+async function callLovableFallback(
+  systemPrompt: string,
+  messages: { role: string; content: string }[],
+  apiKey: string,
+): Promise<Response> {
+  console.info("[profile-chat] Falling back to Lovable AI");
+
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages.slice(-20),
+      ],
+      stream: true,
+    }),
+  });
+
+  if (!resp.ok) {
+    const t = await resp.text();
+    console.error("[Lovable fallback] error:", resp.status, t.slice(0, 300));
+    throw new Error(`lovable_${resp.status}`);
+  }
+
+  return resp;
+}
+
+// ── Main handler ──
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -122,10 +210,10 @@ serve(async (req) => {
     // Rate limit
     const rateResult = await checkRateLimit(userId, plan);
     if (!rateResult.allowed) {
-      return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em breve.", retryAfter: rateResult.resetIn }), {
-        status: 429,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em breve.", retryAfter: rateResult.resetIn }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const { messages, profileId } = await req.json();
@@ -139,50 +227,54 @@ serve(async (req) => {
 
     const systemPrompt = SYSTEM_PROMPTS[profileId] || SYSTEM_PROMPTS.produtor;
 
+    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages.slice(-20), // Keep last 20 messages for context
-        ],
-        stream: true,
-      }),
-    });
+    let aiResponse: Response;
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de uso excedido. Tente novamente em alguns minutos." }), {
-          status: 429,
+    if (PERPLEXITY_API_KEY) {
+      // Primary: Perplexity sonar-pro (web-grounded)
+      try {
+        aiResponse = await callPerplexity(systemPrompt, messages, PERPLEXITY_API_KEY);
+        console.info("[profile-chat] Using Perplexity sonar-pro");
+      } catch (err) {
+        console.warn("[profile-chat] Perplexity failed, trying fallback:", (err as Error).message);
+
+        if (!LOVABLE_API_KEY) {
+          return new Response(JSON.stringify({ error: "Serviço de IA temporariamente indisponível." }), {
+            status: 503,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        try {
+          aiResponse = await callLovableFallback(systemPrompt, messages, LOVABLE_API_KEY);
+        } catch {
+          return new Response(JSON.stringify({ error: "Erro ao processar sua solicitação." }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    } else if (LOVABLE_API_KEY) {
+      // Fallback only: Lovable AI
+      try {
+        aiResponse = await callLovableFallback(systemPrompt, messages, LOVABLE_API_KEY);
+      } catch {
+        return new Response(JSON.stringify({ error: "Erro ao processar sua solicitação." }), {
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes. Entre em contato com o suporte." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const errorText = await response.text();
-      console.error("[profile-chat] AI gateway error:", response.status, errorText.slice(0, 500));
-      return new Response(JSON.stringify({ error: "Erro ao processar sua solicitação." }), {
+    } else {
+      return new Response(JSON.stringify({ error: "Nenhuma chave de IA configurada." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Stream the response back
-    return new Response(response.body, {
+    return new Response(aiResponse.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
