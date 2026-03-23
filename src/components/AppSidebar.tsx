@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Sparkles, Home, HelpCircle, Shield, LogOut,
+  Home, HelpCircle, Shield, LogOut,
   MonitorCheck, DollarSign, Trophy, ChevronDown,
   User, CreditCard, ShoppingBag, BookOpen, Lightbulb,
 } from "lucide-react";
@@ -14,7 +14,6 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 import logoWhite from "@/assets/logo-vetagro-white.png";
 
-// Sidebar icons (light outline for green bg)
 import sidebarIconVet from "@/assets/sidebar-icon-veterinarios.png";
 import sidebarIconZoo from "@/assets/sidebar-icon-zootecnistas.png";
 import sidebarIconPesq from "@/assets/sidebar-icon-pesquisador.png";
@@ -52,15 +51,26 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [userName, setUserName] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [outrosOpen, setOutrosOpen] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        const meta = session.user.user_metadata;
+        setUserName(meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "");
+      } else {
+        setUserName("");
+      }
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        const meta = session.user.user_metadata;
+        setUserName(meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "");
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -98,24 +108,17 @@ export function AppSidebar() {
       collapsible="icon"
     >
       <SidebarContent className="bg-gradient-to-b from-[hsl(142,50%,14%)] to-[hsl(142,50%,10%)]">
-        {/* Logo + brand */}
+        {/* Logo */}
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2 px-3 py-4">
             <img src={logoWhite} alt="VetAgro IA" className="w-8 h-8 object-contain" />
-            {open && (
-              <span className="text-lg font-bold text-white tracking-tight">VetAgro IA</span>
-            )}
+            {open && <span className="text-lg font-bold text-white tracking-tight">VetAgro IA</span>}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <NavLink
-                    to="/"
-                    end
-                    className="text-white/80 hover:text-white hover:bg-white/10"
-                    activeClassName="bg-white/15 text-white font-medium"
-                  >
+                  <NavLink to="/" end className="text-white/80 hover:text-white hover:bg-white/10" activeClassName="bg-white/15 text-white font-medium">
                     <Home className="h-5 w-5" />
                     <span>Início</span>
                   </NavLink>
@@ -125,7 +128,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Profile navigation with custom icons */}
+        {/* Profiles */}
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-white/50 px-3">
             Perfis
@@ -136,9 +139,7 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     onClick={() => handleProfileNav(item.url)}
-                    className={`text-white/70 hover:text-white hover:bg-white/10 text-sm cursor-pointer ${
-                      location.pathname === item.url ? "bg-white/15 text-white font-medium" : ""
-                    }`}
+                    className={`text-white/70 hover:text-white hover:bg-white/10 text-sm cursor-pointer ${location.pathname === item.url ? "bg-white/15 text-white font-medium" : ""}`}
                   >
                     <img src={item.icon} alt="" className="h-5 w-5 object-contain" />
                     <span className="truncate">{item.title}</span>
@@ -149,7 +150,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Outros Recursos — accordion */}
+        {/* Outros Recursos */}
         <SidebarGroup>
           <button
             onClick={() => setOutrosOpen(!outrosOpen)}
@@ -159,28 +160,18 @@ export function AppSidebar() {
             {open && (
               <>
                 <span className="flex-1 text-left">Outros Recursos</span>
-                <ChevronDown
-                  className={`h-3.5 w-3.5 transition-transform duration-200 ${outrosOpen ? "rotate-180" : ""}`}
-                />
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${outrosOpen ? "rotate-180" : ""}`} />
               </>
             )}
           </button>
-          <div
-            className={`overflow-hidden transition-all duration-200 ease-out ${
-              outrosOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"
-            }`}
-          >
+          <div className={`overflow-hidden transition-all duration-200 ease-out ${outrosOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}>
             <div className="overflow-y-auto max-h-[280px] sidebar-green-scroll">
               <SidebarGroupContent>
                 <SidebarMenu>
                   {outrosRecursosItems.map((item) => (
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton asChild>
-                        <NavLink
-                          to={item.url}
-                          className="text-white/70 hover:text-white hover:bg-white/10 text-sm"
-                          activeClassName="bg-white/15 text-white font-medium"
-                        >
+                        <NavLink to={item.url} className="text-white/70 hover:text-white hover:bg-white/10 text-sm" activeClassName="bg-white/15 text-white font-medium">
                           <item.icon className="h-4 w-4" />
                           <span className="truncate">{item.title}</span>
                         </NavLink>
@@ -198,9 +189,14 @@ export function AppSidebar() {
         {user && (
           <div className="flex flex-col gap-1">
             {open && (
-              <span className="text-xs text-white/50 truncate px-1">
-                {user.email}
-              </span>
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <User className="h-3.5 w-3.5 text-white" />
+                </div>
+                <span className="text-xs text-white/70 truncate font-medium">
+                  {userName || user.email}
+                </span>
+              </div>
             )}
             <Button
               variant="ghost"
