@@ -68,7 +68,7 @@ const Index = () => {
       {/* Hero — full bleed, NO white bar */}
       <section
         className="relative flex-shrink-0 flex flex-col items-center justify-center"
-        style={{ height: "clamp(260px, 52vh, 460px)" }}
+        style={{ height: "clamp(280px, 56vh, 500px)" }}
       >
         <div className="absolute inset-0">
           <img
@@ -84,7 +84,7 @@ const Index = () => {
         </div>
 
         {/* Central content — pushed down slightly, everything inside image */}
-        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-2xl mx-auto" style={{ marginTop: "clamp(8px, 2vh, 32px)" }}>
+        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-2xl mx-auto" style={{ marginTop: "clamp(-8px, 0vh, 8px)" }}>
           {/* Logo with glow — BIGGER */}
           <div className="relative mb-2">
             <div className="absolute inset-0 blur-3xl opacity-40 bg-white/30 rounded-full scale-150" />
