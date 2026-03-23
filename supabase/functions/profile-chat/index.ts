@@ -270,7 +270,8 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = SYSTEM_PROMPTS[profileId] || SYSTEM_PROMPTS.produtor;
+    const profilePrompt = SYSTEM_PROMPTS[profileId] || SYSTEM_PROMPTS.produtor;
+    const systemPrompt = `${MASTER_PROMPT}\n\n---\n\nPERFIL ATIVO:\n${profilePrompt}`;
 
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
