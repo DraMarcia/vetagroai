@@ -104,6 +104,139 @@ export type Database = {
         }
         Relationships: []
       }
+      conversation_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_reports: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          profile_id: string
+          report_type: string
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          report_type?: string
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          report_type?: string
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_reports_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          is_favorite: boolean
+          profile_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          profile_id: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          profile_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profile_memory: {
+        Row: {
+          created_at: string
+          id: string
+          memory_key: string
+          memory_value: string
+          profile_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          memory_key: string
+          memory_value: string
+          profile_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          memory_key?: string
+          memory_value?: string
+          profile_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
