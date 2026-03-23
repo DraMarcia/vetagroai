@@ -20,48 +20,12 @@ import iconPesquisador from "@/assets/icon-pesquisador.png";
 import iconOutrosRecursos from "@/assets/icon-outros-recursos.png";
 
 const profiles = [
-  {
-    id: "veterinario",
-    title: "Veterinários",
-    description: "Otimize diagnósticos e protocolos de saúde",
-    icon: iconVeterinarios,
-    route: "/chat/veterinario",
-  },
-  {
-    id: "zootecnista",
-    title: "Zootecnistas",
-    description: "Gestão inteligente de rebanhos e nutrição",
-    icon: iconZootecnistas,
-    route: "/chat/zootecnista",
-  },
-  {
-    id: "agronomo",
-    title: "Agrônomos",
-    description: "Maximize a produção agrícola de forma sustentável",
-    icon: iconAgronomos,
-    route: "/chat/agronomo",
-  },
-  {
-    id: "produtor",
-    title: "Produtor Rural",
-    description: "Aumente a eficiência e rentabilidade da propriedade",
-    icon: iconProdutorRural,
-    route: "/chat/produtor",
-  },
-  {
-    id: "pesquisador",
-    title: "Pesquisador",
-    description: "Acesse dados e insights para inovação científica",
-    icon: iconPesquisador,
-    route: "/chat/pesquisador",
-  },
-  {
-    id: "outros",
-    title: "Outros Recursos",
-    description: "Acesse planos, conteúdos e recursos complementares",
-    icon: iconOutrosRecursos,
-    route: null,
-  },
+  { id: "veterinario", title: "Veterinários", description: "Otimize diagnósticos e protocolos de saúde", icon: iconVeterinarios, route: "/chat/veterinario" },
+  { id: "zootecnista", title: "Zootecnistas", description: "Gestão inteligente de rebanhos e nutrição", icon: iconZootecnistas, route: "/chat/zootecnista" },
+  { id: "agronomo", title: "Agrônomos", description: "Maximize a produção agrícola de forma sustentável", icon: iconAgronomos, route: "/chat/agronomo" },
+  { id: "produtor", title: "Produtor Rural", description: "Aumente a eficiência e rentabilidade da propriedade", icon: iconProdutorRural, route: "/chat/produtor" },
+  { id: "pesquisador", title: "Pesquisador", description: "Acesse dados e insights para inovação científica", icon: iconPesquisador, route: "/chat/pesquisador" },
+  { id: "outros", title: "Outros Recursos", description: "Acesse planos, conteúdos e recursos complementares", icon: iconOutrosRecursos, route: null },
 ];
 
 const Index = () => {
@@ -72,10 +36,10 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
     return () => subscription.unsubscribe();
@@ -93,9 +57,7 @@ const Index = () => {
       setAuthDialogOpen(true);
       return;
     }
-    if (profile.route) {
-      navigate(profile.route);
-    }
+    if (profile.route) navigate(profile.route);
   };
 
   return (
@@ -103,53 +65,25 @@ const Index = () => {
       <AboutModal open={firstVisitModal} onOpenChange={setFirstVisitModal} />
       <AboutModal open={aboutModalOpen} onOpenChange={setAboutModalOpen} />
 
-      {/* Hero Section — continuous bg, no white bar */}
-      <section
-        className="relative flex-shrink-0 flex flex-col items-center justify-center"
-        style={{ height: "clamp(200px, 40vh, 360px)" }}
-      >
+      {/* Hero — full bleed, no white bar */}
+      <section className="relative flex-shrink-0 flex flex-col items-center justify-center" style={{ height: "clamp(180px, 38vh, 340px)" }}>
         <div className="absolute inset-0">
-          <img
-            src={bgFloresta}
-            alt="Floresta amazônica"
-            className="w-full h-full object-cover"
-            style={{ filter: "brightness(0.92) contrast(1.15) saturate(1.12)" }}
-            loading="eager"
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "linear-gradient(to bottom, rgba(0,50,30,0.35), rgba(0,40,25,0.50))",
-            }}
-          />
+          <img src={bgFloresta} alt="Floresta amazônica" className="w-full h-full object-cover" style={{ filter: "brightness(0.88) contrast(1.18) saturate(1.15)" }} loading="eager" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,45,25,0.30), rgba(0,40,20,0.55))" }} />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-4 py-4 max-w-xl mx-auto">
-          <img
-            src={logoVeragro}
-            alt="VetAgro IA Logo"
-            className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 object-contain mb-2 drop-shadow-xl"
-          />
-          <h1
-            className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-1"
-            style={{ textShadow: "0 2px 12px rgba(0,0,0,0.4)", lineHeight: 1.1 }}
-          >
+        <div className="relative z-10 flex flex-col items-center text-center px-4 py-3 max-w-xl mx-auto">
+          <img src={logoVeragro} alt="VetAgro IA Logo" className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain mb-2 drop-shadow-xl" />
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-1" style={{ textShadow: "0 2px 12px rgba(0,0,0,0.45)", lineHeight: 1.1 }}>
             VetAgro IA
           </h1>
-          <p
-            className="text-base sm:text-lg md:text-xl text-white max-w-md mx-auto mb-4 leading-snug font-semibold"
-            style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
-          >
-            Uma suíte inteligente para análise ambiental, sustentabilidade pecuária e suporte técnico especializado
+          <p className="text-sm sm:text-base md:text-lg text-white/90 max-w-md mx-auto mb-3 leading-snug font-medium" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>
+            Suíte inteligente para análise ambiental, sustentabilidade pecuária e suporte técnico especializado
           </p>
-
           <div className="flex flex-row gap-3 w-full max-w-xs">
             <Button
               size="default"
-              onClick={() => {
-                if (user) navigate("/chat/produtor");
-                else setAuthDialogOpen(true);
-              }}
+              onClick={() => { if (user) navigate("/chat/produtor"); else setAuthDialogOpen(true); }}
               className="flex-1 gap-2 text-sm font-bold shadow-lg bg-[hsl(142,76%,26%)] hover:bg-[hsl(142,76%,22%)] text-white border-0"
             >
               <img src={logoWhite} alt="" className="w-5 h-5 object-contain" />
@@ -170,16 +104,12 @@ const Index = () => {
 
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
-      {/* Profiles Section */}
+      {/* Profiles — compact grid, no scroll */}
       <section className="flex-1 bg-muted/30 overflow-hidden flex flex-col">
         <div className="container mx-auto px-3 py-2 md:py-3 max-w-4xl flex-1 flex flex-col overflow-hidden">
-          <h2
-            className="text-base sm:text-lg md:text-xl font-bold text-foreground text-center mb-2 flex-shrink-0"
-            style={{ textWrap: "balance" } as any}
-          >
+          <h2 className="text-sm sm:text-base md:text-lg font-bold text-foreground text-center mb-2 flex-shrink-0">
             Explore as soluções
           </h2>
-
           <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 content-start pb-1">
             {profiles.map((profile) => (
               <button
