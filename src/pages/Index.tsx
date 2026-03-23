@@ -101,7 +101,7 @@ const Index = () => {
             VetAgro IA
           </h1>
           <p
-            className="text-xs sm:text-sm text-white/90 max-w-xs mx-auto mb-3 leading-snug font-medium"
+            className="text-xs sm:text-sm text-white/90 max-w-full whitespace-nowrap mx-auto mb-3 leading-snug font-medium"
             style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}
           >
             Suíte inteligente para análise ambiental, sustentabilidade e suporte técnico
