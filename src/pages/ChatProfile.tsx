@@ -206,7 +206,8 @@ function ChipsRow({ chips, chipColor, onChipClick }: { chips: string[]; chipColo
     checkScroll();
     const el = containerRef.current;
     if (el) el.addEventListener("scroll", checkScroll, { passive: true });
-    return () => el?.removeEventListener("scroll", checkScroll);
+    window.addEventListener("resize", checkScroll);
+    return () => { el?.removeEventListener("scroll", checkScroll); window.removeEventListener("resize", checkScroll); };
   }, [checkScroll]);
 
   const scroll = (dir: "left" | "right") => {
@@ -264,8 +265,8 @@ export default function ChatProfile() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { navigate("/"); return; }
       const meta = session.user.user_metadata;
-      const name = meta?.full_name || meta?.name || session.user.email?.split("@")[0] || "";
-      setUserName(name);
+      const firstName = (meta?.full_name || meta?.name || "").split(" ")[0];
+      setUserName(firstName || "");
     });
   }, [navigate]);
 
@@ -313,7 +314,6 @@ export default function ChatProfile() {
   const handleFileBtn = () => {
     handleFileUpload((file) => {
       toast.success(`Arquivo "${file.name}" selecionado.`);
-      // Future: upload to storage and attach to message
     });
   };
 
@@ -337,9 +337,6 @@ export default function ChatProfile() {
               <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-1">
                 {personalGreeting}
               </h1>
-              <p className="text-xs text-muted-foreground">
-                {data.subtitle}
-              </p>
             </div>
 
             {/* Input */}
@@ -417,9 +414,6 @@ export default function ChatProfile() {
               textareaRef={textareaRef}
               onFileUpload={handleFileBtn}
             />
-            <p className="text-[9px] text-muted-foreground text-center mt-1.5 leading-relaxed">
-              {data.disclaimer}
-            </p>
           </div>
         </div>
       )}

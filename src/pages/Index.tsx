@@ -65,42 +65,54 @@ const Index = () => {
       <AboutModal open={firstVisitModal} onOpenChange={setFirstVisitModal} />
       <AboutModal open={aboutModalOpen} onOpenChange={setAboutModalOpen} />
 
-      {/* Hero — full bleed, no white bar */}
-      <section className="relative flex-shrink-0 flex flex-col items-center justify-center" style={{ height: "clamp(220px, 45vh, 400px)" }}>
+      {/* Hero — full bleed, NO white bar */}
+      <section
+        className="relative flex-shrink-0 flex flex-col items-center justify-center"
+        style={{ height: "clamp(240px, 48vh, 420px)" }}
+      >
         <div className="absolute inset-0">
           <img
             src={bgFloresta}
             alt="Floresta amazônica"
             className="w-full h-full object-cover"
-            style={{ filter: "brightness(0.88) contrast(1.15) saturate(1.15)" }}
             loading="eager"
           />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,40,22,0.20), rgba(0,35,18,0.50))" }} />
+          <div
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(to bottom, rgba(0,40,22,0.15), rgba(0,35,18,0.45))" }}
+          />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-4 py-4 max-w-xl mx-auto">
-          {/* Logo with glow — positioned lower */}
-          <div className="relative mb-3 mt-2">
-            <div className="absolute inset-0 blur-2xl opacity-35 bg-white/25 rounded-full scale-125" />
+        {/* Central content — pushed down slightly, everything inside image */}
+        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-xl mx-auto" style={{ marginTop: "clamp(16px, 4vh, 48px)" }}>
+          {/* Logo with glow — BIGGER */}
+          <div className="relative mb-2">
+            <div className="absolute inset-0 blur-3xl opacity-40 bg-white/30 rounded-full scale-150" />
             <img
               src={logoVeragro}
               alt="VetAgro IA Logo"
-              className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain drop-shadow-xl"
+              className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 object-contain drop-shadow-xl"
             />
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.5)", lineHeight: 1.1 }}>
+          <h1
+            className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-0.5"
+            style={{ textShadow: "0 2px 16px rgba(0,0,0,0.5)", lineHeight: 1.1 }}
+          >
             VetAgro IA
           </h1>
-          <p className="text-xs sm:text-sm md:text-base text-white/90 max-w-sm mx-auto mb-3 leading-snug font-medium" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>
-            Suíte inteligente para análise ambiental, sustentabilidade pecuária e suporte técnico especializado
+          <p
+            className="text-xs sm:text-sm text-white/90 max-w-xs mx-auto mb-3 leading-snug font-medium"
+            style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}
+          >
+            Suíte inteligente para análise ambiental, sustentabilidade e suporte técnico
           </p>
           <div className="flex flex-row gap-3 w-full max-w-xs">
             <Button
               size="default"
               onClick={() => { if (user) navigate("/chat/produtor"); else setAuthDialogOpen(true); }}
-              className="flex-1 gap-2 text-sm font-bold shadow-lg bg-[hsl(142,76%,26%)] hover:bg-[hsl(142,76%,22%)] text-white border-0"
+              className="flex-1 gap-2 text-sm font-bold shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground border-0"
             >
-              <img src={logoWhite} alt="" className="w-6 h-6 object-contain" />
+              <img src={logoWhite} alt="" className="w-7 h-7 object-contain" />
               Entrar
             </Button>
             <Button
