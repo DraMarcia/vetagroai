@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight } from "lucide-react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthDialog } from "@/components/AuthDialog";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { useConversations } from "@/hooks/useConversations";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -135,7 +136,6 @@ async function streamChat({ messages, profileId, onDelta, onDone, onError }: {
   onDone();
 }
 
-/* ──── File upload handler ──── */
 function handleFileUpload(onFileSelected: (file: File) => void) {
   const input = document.createElement("input");
   input.type = "file";
@@ -147,19 +147,12 @@ function handleFileUpload(onFileSelected: (file: File) => void) {
   input.click();
 }
 
-/* ──── ChatInput component ──── */
 function ChatInput({ inputValue, setInputValue, isLoading, onSend, placeholder, textareaRef, onFileUpload }: {
   inputValue: string; setInputValue: (v: string) => void; isLoading: boolean; onSend: (text: string) => void; placeholder: string; textareaRef: React.RefObject<HTMLTextAreaElement>; onFileUpload: () => void;
 }) {
   return (
     <div className="relative flex items-end gap-1.5 rounded-2xl border border-border bg-card p-2 shadow-md focus-within:border-primary/40 focus-within:shadow-lg transition-all">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0"
-        title="Anexar arquivo"
-        onClick={onFileUpload}
-      >
+      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0" title="Anexar arquivo" onClick={onFileUpload}>
         <Plus className="w-5 h-5" />
       </Button>
       <textarea
@@ -173,13 +166,7 @@ function ChatInput({ inputValue, setInputValue, isLoading, onSend, placeholder, 
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(inputValue); } }}
         disabled={isLoading}
       />
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0"
-        title="Gravar áudio"
-        onClick={() => toast.info("Gravação de áudio em breve!")}
-      >
+      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0" title="Gravar áudio" onClick={() => toast.info("Gravação de áudio em breve!")}>
         <Mic className="w-4 h-4" />
       </Button>
       <Button size="icon" className="h-9 w-9 flex-shrink-0" disabled={!inputValue.trim() || isLoading} onClick={() => onSend(inputValue)} title="Enviar">
@@ -189,7 +176,6 @@ function ChatInput({ inputValue, setInputValue, isLoading, onSend, placeholder, 
   );
 }
 
-/* ──── Horizontal chips with arrows ──── */
 function ChipsRow({ chips, chipColor, onChipClick }: { chips: string[]; chipColor: string; onChipClick: (chip: string) => void }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -217,29 +203,19 @@ function ChipsRow({ chips, chipColor, onChipClick }: { chips: string[]; chipColo
   return (
     <div className="relative w-full">
       {canScrollLeft && (
-        <button
-          onClick={() => scroll("left")}
-          className="absolute left-0 top-0 bottom-2 z-10 w-8 flex items-center justify-center bg-gradient-to-r from-background to-transparent"
-        >
+        <button onClick={() => scroll("left")} className="absolute left-0 top-0 bottom-2 z-10 w-8 flex items-center justify-center bg-gradient-to-r from-background to-transparent">
           <ChevronLeft className="w-4 h-4 text-muted-foreground" />
         </button>
       )}
       <div ref={containerRef} className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide px-1">
         {chips.map((chip, i) => (
-          <button
-            key={i}
-            onClick={() => onChipClick(chip)}
-            className={`flex-shrink-0 px-3 py-2 rounded-full border text-xs font-semibold transition-all whitespace-nowrap active:scale-95 ${chipColor}`}
-          >
+          <button key={i} onClick={() => onChipClick(chip)} className={`flex-shrink-0 px-3 py-2 rounded-full border text-xs font-semibold transition-all whitespace-nowrap active:scale-95 ${chipColor}`}>
             {chip}
           </button>
         ))}
       </div>
       {canScrollRight && (
-        <button
-          onClick={() => scroll("right")}
-          className="absolute right-0 top-0 bottom-2 z-10 w-8 flex items-center justify-center bg-gradient-to-l from-background to-transparent"
-        >
+        <button onClick={() => scroll("right")} className="absolute right-0 top-0 bottom-2 z-10 w-8 flex items-center justify-center bg-gradient-to-l from-background to-transparent">
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </button>
       )}
@@ -247,19 +223,34 @@ function ChipsRow({ chips, chipColor, onChipClick }: { chips: string[]; chipColo
   );
 }
 
+/* ── Auto-generate title from first user message ── */
+function generateTitle(firstMessage: string): string {
+  const cleaned = firstMessage.replace(/\n/g, " ").trim();
+  if (cleaned.length <= 50) return cleaned;
+  return cleaned.slice(0, 47) + "...";
+}
+
 /* ──── Main page ──── */
 export default function ChatProfile() {
   const { profileId } = useParams<{ profileId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [userName, setUserName] = useState("");
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [titleGenerated, setTitleGenerated] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const { createConversation, updateTitle, saveMessage, loadMessages, toggleFavorite } = useConversations(profileId);
+
   const data = profileId ? profilesChatData[profileId] : null;
+
+  // Load conversation from URL param
+  const conversationIdFromUrl = searchParams.get("conv");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -269,6 +260,17 @@ export default function ChatProfile() {
       setUserName(firstName || "");
     });
   }, [navigate]);
+
+  // Load existing conversation
+  useEffect(() => {
+    if (conversationIdFromUrl && conversationIdFromUrl !== activeConversationId) {
+      setActiveConversationId(conversationIdFromUrl);
+      setTitleGenerated(true);
+      loadMessages(conversationIdFromUrl).then((msgs) => {
+        setMessages(msgs.map(m => ({ role: m.role as "user" | "assistant", content: m.content })));
+      });
+    }
+  }, [conversationIdFromUrl, activeConversationId, loadMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -288,6 +290,23 @@ export default function ChatProfile() {
     setInputValue("");
     setIsLoading(true);
 
+    // Create conversation if needed
+    let convId = activeConversationId;
+    if (!convId) {
+      convId = await createConversation(generateTitle(text.trim()));
+      if (!convId) {
+        toast.error("Erro ao criar conversa");
+        setIsLoading(false);
+        return;
+      }
+      setActiveConversationId(convId);
+      setTitleGenerated(true);
+      setSearchParams({ conv: convId }, { replace: true });
+    }
+
+    // Save user message
+    await saveMessage(convId, "user", text.trim());
+
     let assistantSoFar = "";
     const upsertAssistant = (chunk: string) => {
       assistantSoFar += chunk;
@@ -298,10 +317,21 @@ export default function ChatProfile() {
       });
     };
 
+    const finalConvId = convId;
     await streamChat({
       messages: updatedMessages, profileId: profileId!,
       onDelta: (chunk) => upsertAssistant(chunk),
-      onDone: () => setIsLoading(false),
+      onDone: async () => {
+        setIsLoading(false);
+        // Save assistant message
+        if (assistantSoFar) {
+          await saveMessage(finalConvId, "assistant", assistantSoFar);
+        }
+        // Update title after first exchange if not yet done
+        if (updatedMessages.length === 1) {
+          await updateTitle(finalConvId, generateTitle(text.trim()));
+        }
+      },
       onError: (err) => { toast.error(err); setIsLoading(false); },
     });
   };
@@ -315,6 +345,13 @@ export default function ChatProfile() {
     handleFileUpload((file) => {
       toast.success(`Arquivo "${file.name}" selecionado.`);
     });
+  };
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setActiveConversationId(null);
+    setTitleGenerated(false);
+    setSearchParams({}, { replace: true });
   };
 
   const hasMessages = messages.length > 0;
@@ -339,20 +376,10 @@ export default function ChatProfile() {
               </h1>
             </div>
 
-            {/* Input */}
             <div className="max-w-2xl w-full mb-3">
-              <ChatInput
-                inputValue={inputValue}
-                setInputValue={setInputValue}
-                isLoading={isLoading}
-                onSend={sendMessage}
-                placeholder={data.placeholder}
-                textareaRef={textareaRef}
-                onFileUpload={handleFileBtn}
-              />
+              <ChatInput inputValue={inputValue} setInputValue={setInputValue} isLoading={isLoading} onSend={sendMessage} placeholder={data.placeholder} textareaRef={textareaRef} onFileUpload={handleFileBtn} />
             </div>
 
-            {/* Horizontal chips with arrows */}
             <div className="max-w-2xl w-full">
               <ChipsRow chips={data.chips} chipColor={data.chipColor} onChipClick={handleChipClick} />
             </div>
@@ -405,15 +432,7 @@ export default function ChatProfile() {
       {hasMessages && (
         <div className="border-t border-border bg-background px-3 sm:px-4 py-2">
           <div className="max-w-3xl mx-auto">
-            <ChatInput
-              inputValue={inputValue}
-              setInputValue={setInputValue}
-              isLoading={isLoading}
-              onSend={sendMessage}
-              placeholder={data.placeholder}
-              textareaRef={textareaRef}
-              onFileUpload={handleFileBtn}
-            />
+            <ChatInput inputValue={inputValue} setInputValue={setInputValue} isLoading={isLoading} onSend={sendMessage} placeholder={data.placeholder} textareaRef={textareaRef} onFileUpload={handleFileBtn} />
           </div>
         </div>
       )}
