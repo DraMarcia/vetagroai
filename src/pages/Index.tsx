@@ -68,7 +68,7 @@ const Index = () => {
       {/* Hero — full bleed, NO white bar */}
       <section
         className="relative flex-shrink-0 flex flex-col items-center justify-center"
-        style={{ height: "clamp(240px, 48vh, 420px)" }}
+        style={{ height: "clamp(260px, 52vh, 460px)" }}
       >
         <div className="absolute inset-0">
           <img
@@ -84,7 +84,7 @@ const Index = () => {
         </div>
 
         {/* Central content — pushed down slightly, everything inside image */}
-        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-xl mx-auto" style={{ marginTop: "clamp(16px, 4vh, 48px)" }}>
+        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-2xl mx-auto" style={{ marginTop: "clamp(8px, 2vh, 32px)" }}>
           {/* Logo with glow — BIGGER */}
           <div className="relative mb-2">
             <div className="absolute inset-0 blur-3xl opacity-40 bg-white/30 rounded-full scale-150" />
@@ -101,7 +101,7 @@ const Index = () => {
             VetAgro IA
           </h1>
           <p
-            className="text-xs sm:text-sm text-white/90 max-w-xs mx-auto mb-3 leading-snug font-medium"
+            className="text-xs sm:text-sm text-white/90 max-w-full whitespace-nowrap mx-auto mb-3 leading-snug font-medium"
             style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}
           >
             Suíte inteligente para análise ambiental, sustentabilidade e suporte técnico
