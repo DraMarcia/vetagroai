@@ -107,10 +107,10 @@ export function AppSidebar() {
       collapsible="icon"
     >
       <SidebarContent className="bg-gradient-to-b from-[hsl(142,50%,14%)] to-[hsl(142,50%,10%)]">
-        {/* Logo — bigger, centered */}
+        {/* Logo */}
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center justify-center gap-3 px-3 py-5">
-            <img src={sidebarLogo} alt="VetAgro IA" className={`${open ? "w-10 h-10" : "w-8 h-8"} object-contain transition-all`} />
+            <img src={sidebarLogo} alt="VetAgro IA" className={`${open ? "w-12 h-12" : "w-9 h-9"} object-contain transition-all`} />
             {open && <span className="text-xl font-bold text-white tracking-tight">VetAgro IA</span>}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -140,7 +140,7 @@ export function AppSidebar() {
                     onClick={() => handleProfileNav(item.url)}
                     className={`text-white/70 hover:text-white hover:bg-white/10 text-sm cursor-pointer ${location.pathname === item.url ? "bg-white/15 text-white font-medium" : ""}`}
                   >
-                    <img src={item.icon} alt="" className="h-5 w-5 object-contain" />
+                    <img src={item.icon} alt="" className="h-7 w-7 object-contain flex-shrink-0" />
                     <span className="truncate">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -155,7 +155,7 @@ export function AppSidebar() {
             onClick={() => setOutrosOpen(!outrosOpen)}
             className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-white/50 px-3 py-2 w-full hover:text-white/70 transition-colors"
           >
-            <img src={sidebarIconOutros} alt="" className="h-4 w-4 object-contain opacity-60" />
+            <img src={sidebarIconOutros} alt="" className="h-6 w-6 object-contain opacity-60" />
             {open && (
               <>
                 <span className="flex-1 text-left">Outros Recursos</span>
@@ -171,7 +171,7 @@ export function AppSidebar() {
                     <SidebarMenuItem key={item.url}>
                       <SidebarMenuButton asChild>
                         <NavLink to={item.url} className="text-white/70 hover:text-white hover:bg-white/10 text-sm" activeClassName="bg-white/15 text-white font-medium">
-                          <item.icon className="h-4 w-4" />
+                          <item.icon className="h-5 w-5" />
                           <span className="truncate">{item.title}</span>
                         </NavLink>
                       </SidebarMenuButton>

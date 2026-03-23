@@ -29,13 +29,13 @@ const queryClient = new QueryClient();
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <header className="sticky top-0 z-10 flex h-12 items-center px-3 bg-transparent">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <header className="sticky top-0 z-10 flex h-10 items-center px-3 bg-background/80 backdrop-blur-sm border-b border-border/40">
             <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
           </header>
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 overflow-hidden">{children}</main>
         </div>
       </div>
       <ChatbotAssistant />
@@ -46,8 +46,8 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 function VisitorLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
-    <div className="relative min-h-screen w-full">
-      {/* Hamburger button overlaid */}
+    <div className="relative h-screen w-full overflow-hidden">
+      {/* Hamburger button overlaid on hero */}
       <button
         onClick={() => setSidebarOpen(true)}
         className="fixed top-3 left-3 z-50 p-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-colors"
@@ -68,7 +68,7 @@ function VisitorLayout({ children }: { children: React.ReactNode }) {
         </>
       )}
 
-      <main className="w-full">{children}</main>
+      <main className="w-full h-full overflow-hidden">{children}</main>
       <ChatbotAssistant />
     </div>
   );
@@ -90,14 +90,12 @@ function SmartLayout({ children, isHome }: { children: React.ReactNode; isHome?:
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) return <div className="min-h-screen bg-background" />;
+  if (loading) return <div className="h-screen bg-background" />;
 
-  // Visitors on home → clean layout with hamburger menu
   if (!user && isHome) {
     return <VisitorLayout>{children}</VisitorLayout>;
   }
 
-  // Logged-in users or internal pages → full sidebar
   return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
 }
 

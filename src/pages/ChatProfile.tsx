@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronRight } from "lucide-react";
+import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -135,12 +135,31 @@ async function streamChat({ messages, profileId, onDelta, onDone, onError }: {
   onDone();
 }
 
-function ChatInput({ inputValue, setInputValue, isLoading, onSend, placeholder, textareaRef }: {
-  inputValue: string; setInputValue: (v: string) => void; isLoading: boolean; onSend: (text: string) => void; placeholder: string; textareaRef: React.RefObject<HTMLTextAreaElement>;
+/* ──── File upload handler ──── */
+function handleFileUpload(onFileSelected: (file: File) => void) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt";
+  input.onchange = (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) onFileSelected(file);
+  };
+  input.click();
+}
+
+/* ──── ChatInput component ──── */
+function ChatInput({ inputValue, setInputValue, isLoading, onSend, placeholder, textareaRef, onFileUpload }: {
+  inputValue: string; setInputValue: (v: string) => void; isLoading: boolean; onSend: (text: string) => void; placeholder: string; textareaRef: React.RefObject<HTMLTextAreaElement>; onFileUpload: () => void;
 }) {
   return (
-    <div className="relative flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-md focus-within:border-primary/40 focus-within:shadow-lg transition-all">
-      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0" title="Anexar arquivo">
+    <div className="relative flex items-end gap-1.5 rounded-2xl border border-border bg-card p-2 shadow-md focus-within:border-primary/40 focus-within:shadow-lg transition-all">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0"
+        title="Anexar arquivo"
+        onClick={onFileUpload}
+      >
         <Plus className="w-5 h-5" />
       </Button>
       <textarea
@@ -154,7 +173,13 @@ function ChatInput({ inputValue, setInputValue, isLoading, onSend, placeholder, 
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(inputValue); } }}
         disabled={isLoading}
       />
-      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0" title="Gravar áudio">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0"
+        title="Gravar áudio"
+        onClick={() => toast.info("Gravação de áudio em breve!")}
+      >
         <Mic className="w-4 h-4" />
       </Button>
       <Button size="icon" className="h-9 w-9 flex-shrink-0" disabled={!inputValue.trim() || isLoading} onClick={() => onSend(inputValue)} title="Enviar">
@@ -164,6 +189,64 @@ function ChatInput({ inputValue, setInputValue, isLoading, onSend, placeholder, 
   );
 }
 
+/* ──── Horizontal chips with arrows ──── */
+function ChipsRow({ chips, chipColor, onChipClick }: { chips: string[]; chipColor: string; onChipClick: (chip: string) => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = containerRef.current;
+    if (el) el.addEventListener("scroll", checkScroll, { passive: true });
+    return () => el?.removeEventListener("scroll", checkScroll);
+  }, [checkScroll]);
+
+  const scroll = (dir: "left" | "right") => {
+    containerRef.current?.scrollBy({ left: dir === "left" ? -160 : 160, behavior: "smooth" });
+  };
+
+  return (
+    <div className="relative w-full">
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-0 top-0 bottom-2 z-10 w-8 flex items-center justify-center bg-gradient-to-r from-background to-transparent"
+        >
+          <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+        </button>
+      )}
+      <div ref={containerRef} className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide px-1">
+        {chips.map((chip, i) => (
+          <button
+            key={i}
+            onClick={() => onChipClick(chip)}
+            className={`flex-shrink-0 px-3 py-2 rounded-full border text-xs font-semibold transition-all whitespace-nowrap active:scale-95 ${chipColor}`}
+          >
+            {chip}
+          </button>
+        ))}
+      </div>
+      {canScrollRight && (
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-0 top-0 bottom-2 z-10 w-8 flex items-center justify-center bg-gradient-to-l from-background to-transparent"
+        >
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ──── Main page ──── */
 export default function ChatProfile() {
   const { profileId } = useParams<{ profileId: string }>();
   const navigate = useNavigate();
@@ -174,8 +257,6 @@ export default function ChatProfile() {
   const [userName, setUserName] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const chipsContainerRef = useRef<HTMLDivElement>(null);
-  const [showChipsArrow, setShowChipsArrow] = useState(false);
 
   const data = profileId ? profilesChatData[profileId] : null;
 
@@ -191,14 +272,6 @@ export default function ChatProfile() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // Check if chips overflow for scroll indicator
-  useEffect(() => {
-    const el = chipsContainerRef.current;
-    if (el) {
-      setShowChipsArrow(el.scrollWidth > el.clientWidth);
-    }
-  }, [data]);
 
   if (!data) { navigate("/"); return null; }
 
@@ -237,14 +310,21 @@ export default function ChatProfile() {
     textareaRef.current?.focus();
   };
 
+  const handleFileBtn = () => {
+    handleFileUpload((file) => {
+      toast.success(`Arquivo "${file.name}" selecionado.`);
+      // Future: upload to storage and attach to message
+    });
+  };
+
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-3rem)]">
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6">
+      {/* Messages / Welcome area */}
+      <div className="flex-1 overflow-y-auto px-3 sm:px-6">
         {!hasMessages ? (
           <div className="flex flex-col items-center justify-center h-full py-4">
             <div className="max-w-2xl w-full text-center mb-4">
@@ -271,27 +351,13 @@ export default function ChatProfile() {
                 onSend={sendMessage}
                 placeholder={data.placeholder}
                 textareaRef={textareaRef}
+                onFileUpload={handleFileBtn}
               />
             </div>
 
-            {/* Horizontal chips with scroll indicator */}
-            <div className="max-w-2xl w-full relative">
-              <div ref={chipsContainerRef} className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {data.chips.map((chip, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleChipClick(chip)}
-                    className={`flex-shrink-0 px-3 py-2 rounded-full border text-xs font-semibold transition-all whitespace-nowrap active:scale-95 ${data.chipColor}`}
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-              {showChipsArrow && (
-                <div className="absolute right-0 top-0 bottom-2 w-8 flex items-center justify-center bg-gradient-to-l from-background to-transparent pointer-events-none">
-                  <ChevronRight className="w-4 h-4 text-muted-foreground animate-pulse" />
-                </div>
-              )}
+            {/* Horizontal chips with arrows */}
+            <div className="max-w-2xl w-full">
+              <ChipsRow chips={data.chips} chipColor={data.chipColor} onChipClick={handleChipClick} />
             </div>
 
             <p className="text-[10px] text-muted-foreground text-center mt-2 max-w-md leading-relaxed">
@@ -307,7 +373,7 @@ export default function ChatProfile() {
                     <Bot className="w-3.5 h-3.5 text-primary" />
                   </div>
                 )}
-                <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <div className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -338,9 +404,9 @@ export default function ChatProfile() {
         )}
       </div>
 
-      {/* Bottom input when conversation active */}
+      {/* Bottom input when conversation is active */}
       {hasMessages && (
-        <div className="border-t border-border bg-background px-4 py-2">
+        <div className="border-t border-border bg-background px-3 sm:px-4 py-2">
           <div className="max-w-3xl mx-auto">
             <ChatInput
               inputValue={inputValue}
@@ -349,6 +415,7 @@ export default function ChatProfile() {
               onSend={sendMessage}
               placeholder={data.placeholder}
               textareaRef={textareaRef}
+              onFileUpload={handleFileBtn}
             />
             <p className="text-[9px] text-muted-foreground text-center mt-1.5 leading-relaxed">
               {data.disclaimer}

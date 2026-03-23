@@ -61,37 +61,37 @@ const Index = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden">
       <AboutModal open={firstVisitModal} onOpenChange={setFirstVisitModal} />
       <AboutModal open={aboutModalOpen} onOpenChange={setAboutModalOpen} />
 
-      {/* Hero — full bleed, NO white bar */}
-      <section className="relative flex-shrink-0 flex flex-col items-center justify-center" style={{ height: "clamp(200px, 42vh, 380px)" }}>
+      {/* Hero — full bleed, no white bar */}
+      <section className="relative flex-shrink-0 flex flex-col items-center justify-center" style={{ height: "clamp(220px, 45vh, 400px)" }}>
         <div className="absolute inset-0">
           <img
             src={bgFloresta}
             alt="Floresta amazônica"
             className="w-full h-full object-cover"
-            style={{ filter: "brightness(0.92) contrast(1.12) saturate(1.12)" }}
+            style={{ filter: "brightness(0.88) contrast(1.15) saturate(1.15)" }}
             loading="eager"
           />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,40,22,0.25), rgba(0,35,18,0.45))" }} />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,40,22,0.20), rgba(0,35,18,0.50))" }} />
         </div>
 
-        <div className="relative z-10 flex flex-col items-center text-center px-4 py-3 max-w-xl mx-auto">
-          {/* Logo with glow effect */}
-          <div className="relative mb-2">
-            <div className="absolute inset-0 blur-2xl opacity-40 bg-white/30 rounded-full scale-125" />
+        <div className="relative z-10 flex flex-col items-center text-center px-4 py-4 max-w-xl mx-auto">
+          {/* Logo with glow — positioned lower */}
+          <div className="relative mb-3 mt-2">
+            <div className="absolute inset-0 blur-2xl opacity-35 bg-white/25 rounded-full scale-125" />
             <img
               src={logoVeragro}
               alt="VetAgro IA Logo"
-              className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 object-contain drop-shadow-xl"
+              className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-contain drop-shadow-xl"
             />
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-1" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.5)", lineHeight: 1.1 }}>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-1" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.5)", lineHeight: 1.1 }}>
             VetAgro IA
           </h1>
-          <p className="text-sm sm:text-base md:text-lg text-white/90 max-w-md mx-auto mb-3 leading-snug font-medium" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>
+          <p className="text-xs sm:text-sm md:text-base text-white/90 max-w-sm mx-auto mb-3 leading-snug font-medium" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>
             Suíte inteligente para análise ambiental, sustentabilidade pecuária e suporte técnico especializado
           </p>
           <div className="flex flex-row gap-3 w-full max-w-xs">
@@ -100,7 +100,7 @@ const Index = () => {
               onClick={() => { if (user) navigate("/chat/produtor"); else setAuthDialogOpen(true); }}
               className="flex-1 gap-2 text-sm font-bold shadow-lg bg-[hsl(142,76%,26%)] hover:bg-[hsl(142,76%,22%)] text-white border-0"
             >
-              <img src={logoWhite} alt="" className="w-5 h-5 object-contain" />
+              <img src={logoWhite} alt="" className="w-6 h-6 object-contain" />
               Entrar
             </Button>
             <Button
@@ -118,20 +118,20 @@ const Index = () => {
 
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
-      {/* Profiles — compact grid */}
+      {/* Profiles grid */}
       <section className="flex-1 bg-muted/30 overflow-hidden flex flex-col">
-        <div className="container mx-auto px-3 py-2 md:py-3 max-w-4xl flex-1 flex flex-col overflow-hidden">
-          <h2 className="text-sm sm:text-base md:text-lg font-bold text-foreground text-center mb-2 flex-shrink-0">
+        <div className="container mx-auto px-3 py-2 max-w-4xl flex-1 flex flex-col overflow-hidden">
+          <h2 className="text-sm sm:text-base font-bold text-foreground text-center mb-2 flex-shrink-0">
             Explore as soluções
           </h2>
-          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 content-start pb-1">
+          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-2 content-start pb-1">
             {profiles.map((profile) => (
               <button
                 key={profile.id}
                 onClick={() => handleProfileClick(profile)}
-                className="rounded-xl bg-card border-2 border-[hsl(142,30%,75%)] shadow-sm hover:shadow-lg hover:border-primary/50 active:scale-[0.97] transition-all duration-200 flex flex-col items-center gap-0.5 p-2 md:p-3 text-center group cursor-pointer"
+                className="rounded-xl bg-card border-2 border-[hsl(142,30%,75%)] shadow-sm hover:shadow-lg hover:border-primary/50 active:scale-[0.97] transition-all duration-200 flex flex-col items-center gap-0.5 p-2 text-center group cursor-pointer"
               >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0 flex items-center justify-center">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 flex-shrink-0 flex items-center justify-center">
                   <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain" />
                 </div>
                 <h3 className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
