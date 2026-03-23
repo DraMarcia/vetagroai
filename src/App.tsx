@@ -32,9 +32,10 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <header className="sticky top-0 z-10 flex h-10 items-center px-3 bg-background/80 backdrop-blur-sm border-b border-border/40">
-            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-          </header>
+          {/* No white bar — sidebar trigger is overlaid */}
+          <div className="absolute top-2 left-2 z-30">
+            <SidebarTrigger className="text-muted-foreground hover:text-foreground bg-background/60 backdrop-blur-sm rounded-lg p-1.5 shadow-sm" />
+          </div>
           <main className="flex-1 overflow-hidden">{children}</main>
         </div>
       </div>
@@ -47,13 +48,14 @@ function VisitorLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
     <div className="relative h-screen w-full overflow-hidden">
-      {/* Hamburger button overlaid on hero */}
+      {/* Green hamburger overlaid on hero image */}
       <button
         onClick={() => setSidebarOpen(true)}
-        className="fixed top-3 left-3 z-50 p-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-colors"
+        className="fixed top-3 left-3 z-50 p-2 rounded-lg transition-colors"
+        style={{ color: "hsl(142,76%,36%)" }}
         aria-label="Menu"
       >
-        <Menu className="h-6 w-6" />
+        <Menu className="h-6 w-6 drop-shadow-md" />
       </button>
 
       {/* Overlay sidebar drawer */}
