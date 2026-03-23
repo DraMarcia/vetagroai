@@ -84,7 +84,7 @@ const Index = () => {
         </div>
 
         {/* Central content — pushed down slightly, everything inside image */}
-        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-xl mx-auto" style={{ marginTop: "clamp(16px, 4vh, 48px)" }}>
+        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-2xl mx-auto" style={{ marginTop: "clamp(8px, 2vh, 32px)" }}>
           {/* Logo with glow — BIGGER */}
           <div className="relative mb-2">
             <div className="absolute inset-0 blur-3xl opacity-40 bg-white/30 rounded-full scale-150" />
