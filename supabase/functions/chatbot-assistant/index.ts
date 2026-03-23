@@ -1,71 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders, authenticateRequest, checkRateLimit } from "../_shared/edgeFunctionUtils.ts";
 import { validateAndSanitizeInput, validateMessageHistory } from "../_shared/inputValidation.ts";
-import { checkRateLimit } from "../_shared/edgeFunctionUtils.ts";
-
-// Allowed origins for CORS (production + development)
-const allowedOrigins = [
-  'https://vetagro.ai',
-  'https://www.vetagro.ai',
-  'https://vetagroai.lovable.app',
-  'https://id-preview--3dd84b8e-5245-406b-9a7f-df349f142adc.lovable.app',
-  'https://3dd84b8e-5245-406b-9a7f-df349f142adc.lovableproject.com',
-  'https://app.vetagroai.com.br',
-  'https://vetagro-sustentavel.lovable.app',
-  'http://localhost:5173',
-  'http://localhost:8080',
-];
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || '';
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Credentials': 'true',
-  };
-}
-
-// ===== AUTHENTICATION HELPER =====
-interface AuthResult {
-  user: { id: string; email?: string } | null;
-  plan: string;
-  isAdmin: boolean;
-  error: string | null;
-}
-
-async function authenticateRequest(req: Request): Promise<AuthResult> {
-  const authHeader = req.headers.get('Authorization');
-  
-  if (!authHeader?.startsWith('Bearer ')) {
-    return { user: null, plan: 'free', isAdmin: false, error: 'Authentication required' };
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    { global: { headers: { Authorization: authHeader } } }
-  );
-
-  const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-  
-  if (authError || !user) {
-    return { user: null, plan: 'free', isAdmin: false, error: 'Invalid or expired token' };
-  }
-
-  // Retrieve actual plan from profiles table
-  const { data: profile } = await supabaseClient
-    .from('profiles')
-    .select('current_plan')
-    .eq('user_id', user.id)
-    .single();
-
-  const actualPlan = profile?.current_plan || 'free';
-
-  return { user, plan: actualPlan, isAdmin: false, error: null };
-}
-// ===== END AUTHENTICATION HELPER =====
 
 const SYSTEM_PROMPT = `Você é o assistente virtual do VetAgro Sustentável AI, um aplicativo de ferramentas de inteligência artificial para profissionais veterinários, zootecnistas, agrônomos e tutores de pets.
 
@@ -117,9 +52,59 @@ DICAS DE PROMPTS:
 
 Responda de forma amigável, clara e objetiva. Use emojis moderadamente para tornar a conversa mais agradável. Sempre em português brasileiro.`;
 
+async function callPerplexity(messages: any[], apiKey: string): Promise<{ response: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const resp = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "sonar-pro",
+        messages,
+        max_tokens: 1000,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!resp.ok) throw new Error(`perplexity_${resp.status}`);
+
+    const data = await resp.json();
+    return { response: data.choices?.[0]?.message?.content || "" };
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+}
+
+async function callLovable(messages: any[], apiKey: string): Promise<{ response: string }> {
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages,
+      max_tokens: 1000,
+    }),
+  });
+
+  if (!resp.ok) throw new Error(`lovable_${resp.status}`);
+
+  const data = await resp.json();
+  return { response: data.choices?.[0]?.message?.content || "" };
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
-  
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -127,11 +112,10 @@ serve(async (req) => {
   try {
     // Authenticate user
     const authResult = await authenticateRequest(req);
-    
     if (authResult.error) {
       return new Response(
         JSON.stringify({ error: authResult.error }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -139,82 +123,67 @@ serve(async (req) => {
     const rateLimitResult = await checkRateLimit(authResult.user!.id, authResult.plan);
     if (!rateLimitResult.allowed) {
       return new Response(
-        JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente mais tarde.', retryAfter: rateLimitResult.resetIn }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(rateLimitResult.resetIn) } }
+        JSON.stringify({ error: "Limite de requisições excedido. Tente novamente mais tarde.", retryAfter: rateLimitResult.resetIn }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(rateLimitResult.resetIn) } },
       );
     }
 
     const requestBody = await req.json();
     const { message, history } = requestBody;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
 
-    // Validate and sanitize user message
-    const messageValidation = validateAndSanitizeInput(message, 'mensagem', 5000);
+    // Validate
+    const messageValidation = validateAndSanitizeInput(message, "mensagem", 5000);
     if (!messageValidation.valid) {
       return new Response(
-        JSON.stringify({ error: messageValidation.error || 'Mensagem inválida' }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: messageValidation.error || "Mensagem inválida" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Log warnings for monitoring (don't block)
     if (messageValidation.warnings.length > 0) {
-      console.warn('[INPUT_VALIDATION]', messageValidation.warnings.join(', '));
+      console.warn("[INPUT_VALIDATION]", messageValidation.warnings.join(", "));
     }
 
-    // Validate and sanitize message history
     const sanitizedHistory = validateMessageHistory(history || [], 10, 5000);
-
     const messages = [
       { role: "system", content: SYSTEM_PROMPT },
       ...sanitizedHistory,
       { role: "user", content: messageValidation.sanitized },
     ];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-        max_tokens: 1000,
-      }),
-    });
+    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    let result: { response: string };
+
+    // Try Perplexity first, fallback to Lovable AI
+    if (PERPLEXITY_API_KEY) {
+      try {
+        result = await callPerplexity(messages, PERPLEXITY_API_KEY);
+        console.info("[chatbot-assistant] Using Perplexity sonar-pro");
+      } catch (err) {
+        console.warn("[chatbot-assistant] Perplexity failed:", (err as Error).message);
+        if (!LOVABLE_API_KEY) throw new Error("AI service unavailable");
+        result = await callLovable(messages, LOVABLE_API_KEY);
+        console.info("[chatbot-assistant] Fallback to Lovable AI");
       }
-      
-      throw new Error(`AI gateway error: ${response.status}`);
+    } else if (LOVABLE_API_KEY) {
+      result = await callLovable(messages, LOVABLE_API_KEY);
+    } else {
+      throw new Error("No AI key configured");
     }
 
-    const data = await response.json();
-    const assistantMessage = data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
+    const assistantMessage = result.response || "Desculpe, não consegui processar sua mensagem.";
 
     return new Response(
       JSON.stringify({ response: assistantMessage }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Chatbot error:", error);
-    const corsHeaders = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ error: "Erro interno do servidor. Tente novamente." }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } },
     );
   }
 });
