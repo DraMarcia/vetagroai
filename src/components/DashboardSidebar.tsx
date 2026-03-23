@@ -1,36 +1,23 @@
 import { useState, useEffect } from "react";
 import {
-  Search,
-  Plus,
-  Settings,
-  CreditCard,
-  LogOut,
-  MessageSquare,
-  ChevronDown,
-  ChevronRight,
-  Stethoscope,
-  Wheat,
-  Leaf,
-  Home as HomeIcon,
-  FlaskConical,
-  MoreHorizontal,
+  Search, Plus, Settings, CreditCard, LogOut,
+  MessageSquare, ChevronDown, ChevronRight,
+  MoreHorizontal, Star, Trash2, FileText, BookmarkCheck,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProfile, type UserProfile } from "@/contexts/ProfileContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import logoVeragro from "@/assets/logo-vetagro.png";
+import { useConversations, type Conversation } from "@/hooks/useConversations";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
+import logoVeragro from "@/assets/logo-vetagro.png";
 import iconVeterinarios from "@/assets/icon-veterinarios.png";
 import iconZootecnistas from "@/assets/icon-zootecnistas.png";
 import iconAgronomos from "@/assets/icon-agronomos.png";
@@ -53,21 +40,7 @@ const outrosRecursosItems = [
   { label: "Política de Privacidade", url: "/politica-de-privacidade" },
 ];
 
-const mockHistory = {
-  hoje: [
-    "Diagnóstico bovino com febre",
-    "Cálculo de ração para confinamento",
-  ],
-  semana: [
-    "Emissões de GEE do lote 3",
-    "Interpretação de hemograma",
-    "Análise climática Roraima",
-  ],
-  anteriores: [
-    "Plano alimentar para vacas em lactação",
-    "Receituário anti-parasitário",
-  ],
-};
+type SidebarView = "history" | "favorites" | "reports" | "search";
 
 interface DashboardSidebarProps {
   collapsed: boolean;
@@ -76,11 +49,23 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [, setSearchParams] = useSearchParams();
   const { activeProfile, setActiveProfile } = useProfile();
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Conversation[] | null>(null);
   const [outrosOpen, setOutrosOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [activeView, setActiveView] = useState<SidebarView>("history");
+  const [expandedProfile, setExpandedProfile] = useState<UserProfile | null>(activeProfile);
+
+  const {
+    conversations, groupedConversations, createConversation,
+    toggleFavorite, deleteConversation, searchConversations,
+  } = useConversations(activeProfile);
+
+  const favorites = conversations.filter(c => c.is_favorite);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -91,6 +76,15 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Sync profile from URL
+  useEffect(() => {
+    const match = location.pathname.match(/\/chat\/(\w+)/);
+    if (match && match[1] !== activeProfile) {
+      setActiveProfile(match[1] as UserProfile);
+      setExpandedProfile(match[1] as UserProfile);
+    }
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -103,6 +97,33 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
     } finally {
       setIsLoggingOut(false);
     }
+  };
+
+  const handleProfileClick = (id: UserProfile) => {
+    setActiveProfile(id);
+    setExpandedProfile(expandedProfile === id ? null : id);
+    navigate(`/chat/${id}`);
+  };
+
+  const handleNewChat = async () => {
+    navigate(`/chat/${activeProfile}`);
+    // Clear conv param to start fresh
+    window.history.replaceState({}, "", `/chat/${activeProfile}`);
+    window.location.reload();
+  };
+
+  const handleOpenConversation = (conv: Conversation) => {
+    navigate(`/chat/${conv.profile_id}?conv=${conv.id}`);
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults(null);
+      return;
+    }
+    const results = await searchConversations(searchQuery);
+    setSearchResults(results);
+    setActiveView("search");
   };
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
@@ -118,11 +139,9 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
           {profileMenuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveProfile(item.id)}
+              onClick={() => handleProfileClick(item.id)}
               className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                activeProfile === item.id
-                  ? "bg-white/20 ring-1 ring-white/30"
-                  : "hover:bg-white/10"
+                activeProfile === item.id ? "bg-white/20 ring-1 ring-white/30" : "hover:bg-white/10"
               }`}
               title={item.label}
             >
@@ -134,6 +153,8 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
     );
   }
 
+  const grouped = groupedConversations();
+
   return (
     <div className="w-72 h-full bg-gradient-to-b from-[hsl(142,40%,22%)] to-[hsl(142,45%,15%)] flex flex-col text-white">
       {/* Logo */}
@@ -144,24 +165,67 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
         <span className="text-lg font-bold tracking-tight text-white">VetAgro IA</span>
       </div>
 
-      {/* Profile Menu */}
+      {/* Profiles with workspace items */}
       <nav className="px-3 space-y-0.5">
         {profileMenuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveProfile(item.id)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              activeProfile === item.id
-                ? "bg-white/15 text-white shadow-sm"
-                : "text-white/75 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            <img src={item.icon} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
-            <span>{item.label}</span>
-          </button>
+          <div key={item.id}>
+            <button
+              onClick={() => handleProfileClick(item.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeProfile === item.id
+                  ? "bg-white/15 text-white shadow-sm"
+                  : "text-white/75 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <img src={item.icon} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+              <span className="flex-1 text-left">{item.label}</span>
+              {activeProfile === item.id && (
+                expandedProfile === item.id
+                  ? <ChevronDown className="w-3.5 h-3.5 text-white/50" />
+                  : <ChevronRight className="w-3.5 h-3.5 text-white/50" />
+              )}
+            </button>
+
+            {/* Workspace items for active profile */}
+            {expandedProfile === item.id && activeProfile === item.id && (
+              <div className="ml-6 mt-1 space-y-0.5">
+                <button
+                  onClick={handleNewChat}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Novo Chat VetAgro</span>
+                </button>
+                <button
+                  onClick={() => setActiveView("history")}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${activeView === "history" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>Histórico</span>
+                </button>
+                <button
+                  onClick={() => setActiveView("favorites")}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${activeView === "favorites" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                >
+                  <Star className="w-3.5 h-3.5" />
+                  <span>Favoritos</span>
+                  {favorites.length > 0 && (
+                    <span className="ml-auto text-[10px] bg-white/20 px-1.5 rounded-full">{favorites.length}</span>
+                  )}
+                </button>
+                <button
+                  onClick={() => setActiveView("reports")}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${activeView === "reports" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Relatórios</span>
+                </button>
+              </div>
+            )}
+          </div>
         ))}
 
-        {/* Outros Recursos - colapsável */}
+        {/* Outros Recursos */}
         <div>
           <button
             onClick={() => setOutrosOpen(!outrosOpen)}
@@ -169,11 +233,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
           >
             <img src={iconOutrosRecursos} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
             <span className="flex-1 text-left">Outros Recursos</span>
-            {outrosOpen ? (
-              <ChevronDown className="w-4 h-4 text-white/50" />
-            ) : (
-              <ChevronRight className="w-4 h-4 text-white/50" />
-            )}
+            {outrosOpen ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
           </button>
           {outrosOpen && (
             <div className="ml-8 mt-1 space-y-0.5">
@@ -199,66 +259,74 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
           <Input
-            placeholder="Buscar conversas..."
+            placeholder="Buscar no histórico..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              if (!e.target.value.trim()) setSearchResults(null);
+            }}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
             className="pl-9 bg-white/10 border-white/15 text-white placeholder:text-white/40 text-sm h-9 focus-visible:ring-white/30"
           />
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="px-3 mt-2 flex gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          className="flex-1 gap-1.5 text-xs bg-white/10 border-white/15 text-white hover:bg-white/20 hover:text-white"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Novo Chat
-        </Button>
-      </div>
-
-      {/* Chat History */}
+      {/* Content area based on active view */}
       <ScrollArea className="flex-1 px-3 mt-3">
-        <div className="space-y-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40 px-3 mb-1.5 font-medium">Hoje</p>
-            {mockHistory.hoje.map((item, i) => (
-              <button
-                key={i}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-              >
-                <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-white/40" />
-                <span className="truncate">{item}</span>
-              </button>
-            ))}
+        {activeView === "search" && searchResults !== null ? (
+          <div className="space-y-1">
+            <p className="text-[10px] uppercase tracking-wider text-white/40 px-3 mb-2 font-medium">
+              {searchResults.length} resultado{searchResults.length !== 1 ? "s" : ""}
+            </p>
+            {searchResults.length === 0 ? (
+              <p className="text-xs text-white/50 px-3 py-4 text-center">Nenhuma conversa encontrada</p>
+            ) : (
+              searchResults.map((conv) => (
+                <ConversationItem key={conv.id} conv={conv} onClick={handleOpenConversation} onToggleFavorite={toggleFavorite} onDelete={deleteConversation} />
+              ))
+            )}
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40 px-3 mb-1.5 font-medium">Últimos 7 dias</p>
-            {mockHistory.semana.map((item, i) => (
-              <button
-                key={i}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-              >
-                <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-white/40" />
-                <span className="truncate">{item}</span>
-              </button>
-            ))}
+        ) : activeView === "favorites" ? (
+          <div className="space-y-1">
+            <p className="text-[10px] uppercase tracking-wider text-white/40 px-3 mb-2 font-medium">Favoritos</p>
+            {favorites.length === 0 ? (
+              <p className="text-xs text-white/50 px-3 py-4 text-center">Nenhuma conversa favorita</p>
+            ) : (
+              favorites.map((conv) => (
+                <ConversationItem key={conv.id} conv={conv} onClick={handleOpenConversation} onToggleFavorite={toggleFavorite} onDelete={deleteConversation} />
+              ))
+            )}
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40 px-3 mb-1.5 font-medium">Anteriores</p>
-            {mockHistory.anteriores.map((item, i) => (
-              <button
-                key={i}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-white/70 hover:bg-white/10 hover:text-white transition-colors"
-              >
-                <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-white/40" />
-                <span className="truncate">{item}</span>
-              </button>
-            ))}
+        ) : activeView === "reports" ? (
+          <div className="space-y-1">
+            <p className="text-[10px] uppercase tracking-wider text-white/40 px-3 mb-2 font-medium">Relatórios</p>
+            <div className="px-3 py-6 text-center">
+              <FileText className="w-8 h-8 text-white/20 mx-auto mb-2" />
+              <p className="text-xs text-white/50">Relatórios técnicos serão gerados aqui</p>
+              <p className="text-[10px] text-white/30 mt-1">Em breve: exportação em PDF</p>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* History view */
+          <div className="space-y-4">
+            {grouped.length === 0 ? (
+              <div className="px-3 py-6 text-center">
+                <MessageSquare className="w-8 h-8 text-white/20 mx-auto mb-2" />
+                <p className="text-xs text-white/50">Nenhuma conversa ainda</p>
+                <p className="text-[10px] text-white/30 mt-1">Inicie um novo chat acima</p>
+              </div>
+            ) : (
+              grouped.map((group) => (
+                <div key={group.label}>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 px-3 mb-1.5 font-medium">{group.label}</p>
+                  {group.items.map((conv) => (
+                    <ConversationItem key={conv.id} conv={conv} onClick={handleOpenConversation} onToggleFavorite={toggleFavorite} onDelete={deleteConversation} />
+                  ))}
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </ScrollArea>
 
       {/* User Footer */}
@@ -271,9 +339,6 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
               </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-sm font-medium text-white truncate">{userName}</p>
-                {userEmail && (
-                  <p className="text-[10px] text-white/50 truncate">{userEmail}</p>
-                )}
               </div>
               <MoreHorizontal className="w-4 h-4 text-white/50" />
             </button>
@@ -288,16 +353,49 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
               Plano
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className="text-destructive focus:text-destructive"
-            >
+            <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut} className="text-destructive focus:text-destructive">
               <LogOut className="w-4 h-4 mr-2" />
               {isLoggingOut ? "Saindo..." : "Sair"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+/* ── Conversation list item ── */
+function ConversationItem({ conv, onClick, onToggleFavorite, onDelete }: {
+  conv: Conversation;
+  onClick: (conv: Conversation) => void;
+  onToggleFavorite: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const date = new Date(conv.updated_at);
+  const dateStr = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+
+  return (
+    <div className="group w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs hover:bg-white/10 transition-colors cursor-pointer">
+      <button onClick={() => onClick(conv)} className="flex-1 flex items-center gap-2 min-w-0 text-left">
+        <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-white/40" />
+        <span className="truncate text-white/70 group-hover:text-white">{conv.title}</span>
+      </button>
+      <span className="text-[10px] text-white/30 flex-shrink-0">{dateStr}</span>
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(conv.id); }}
+          className="p-1 rounded hover:bg-white/10"
+          title={conv.is_favorite ? "Remover favorito" : "Favoritar"}
+        >
+          <Star className={`w-3 h-3 ${conv.is_favorite ? "text-yellow-400 fill-yellow-400" : "text-white/40"}`} />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
+          className="p-1 rounded hover:bg-red-500/20"
+          title="Excluir"
+        >
+          <Trash2 className="w-3 h-3 text-white/40 hover:text-red-300" />
+        </button>
       </div>
     </div>
   );
