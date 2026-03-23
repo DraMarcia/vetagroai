@@ -8,6 +8,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ChatbotAssistant } from "@/components/ChatbotAssistant";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Menu } from "lucide-react";
 import Index from "./pages/Index";
 import ChatProfile from "./pages/ChatProfile";
 import NotFound from "./pages/NotFound";
@@ -23,7 +26,7 @@ import ProdutosServicos from "./pages/ProdutosServicos";
 
 const queryClient = new QueryClient();
 
-function AppLayout({ children }: { children: React.ReactNode }) {
+function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -40,6 +43,64 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function VisitorLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  return (
+    <div className="relative min-h-screen w-full">
+      {/* Hamburger button overlaid */}
+      <button
+        onClick={() => setSidebarOpen(true)}
+        className="fixed top-3 left-3 z-50 p-2 rounded-lg text-white/90 hover:text-white hover:bg-white/10 transition-colors"
+        aria-label="Menu"
+      >
+        <Menu className="h-6 w-6" />
+      </button>
+
+      {/* Overlay sidebar drawer */}
+      {sidebarOpen && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-y-0 left-0 z-50 w-64 animate-in slide-in-from-left duration-200">
+            <SidebarProvider defaultOpen={true}>
+              <AppSidebar />
+            </SidebarProvider>
+          </div>
+        </>
+      )}
+
+      <main className="w-full">{children}</main>
+      <ChatbotAssistant />
+    </div>
+  );
+}
+
+function SmartLayout({ children, isHome }: { children: React.ReactNode; isHome?: boolean }) {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) return <div className="min-h-screen bg-background" />;
+
+  // Visitors on home → clean layout with hamburger menu
+  if (!user && isHome) {
+    return <VisitorLayout>{children}</VisitorLayout>;
+  }
+
+  // Logged-in users or internal pages → full sidebar
+  return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -49,19 +110,18 @@ const App = () => (
         <BrowserRouter>
           <AnalyticsProvider>
             <Routes>
-              <Route path="/" element={<AppLayout><Index /></AppLayout>} />
-              <Route path="/chat/:profileId" element={<AppLayout><ChatProfile /></AppLayout>} />
-              <Route path="/meu-perfil" element={<AppLayout><MeuPerfil /></AppLayout>} />
-              <Route path="/planos" element={<AppLayout><Planos /></AppLayout>} />
-              <Route path="/faq" element={<AppLayout><FAQ /></AppLayout>} />
-              <Route path="/produtos-servicos" element={<AppLayout><ProdutosServicos /></AppLayout>} />
-              <Route path="/blog" element={<AppLayout><Blog /></AppLayout>} />
-              <Route path="/politica-de-privacidade" element={<AppLayout><PoliticaPrivacidade /></AppLayout>} />
-              <Route path="/monitoramento-tecnico" element={<AppLayout><MonitoramentoTecnico /></AppLayout>} />
-              <Route path="/monitoramento-custos" element={<AppLayout><MonitoramentoCustos /></AppLayout>} />
-              <Route path="/ranking-ferramentas" element={<AppLayout><RankingFerramentas /></AppLayout>} />
-              {/* Legacy redirects — all go to home */}
-              <Route path="/dashboard" element={<AppLayout><Index /></AppLayout>} />
+              <Route path="/" element={<SmartLayout isHome><Index /></SmartLayout>} />
+              <Route path="/chat/:profileId" element={<AuthenticatedLayout><ChatProfile /></AuthenticatedLayout>} />
+              <Route path="/meu-perfil" element={<AuthenticatedLayout><MeuPerfil /></AuthenticatedLayout>} />
+              <Route path="/planos" element={<AuthenticatedLayout><Planos /></AuthenticatedLayout>} />
+              <Route path="/faq" element={<AuthenticatedLayout><FAQ /></AuthenticatedLayout>} />
+              <Route path="/produtos-servicos" element={<AuthenticatedLayout><ProdutosServicos /></AuthenticatedLayout>} />
+              <Route path="/blog" element={<AuthenticatedLayout><Blog /></AuthenticatedLayout>} />
+              <Route path="/politica-de-privacidade" element={<AuthenticatedLayout><PoliticaPrivacidade /></AuthenticatedLayout>} />
+              <Route path="/monitoramento-tecnico" element={<AuthenticatedLayout><MonitoramentoTecnico /></AuthenticatedLayout>} />
+              <Route path="/monitoramento-custos" element={<AuthenticatedLayout><MonitoramentoCustos /></AuthenticatedLayout>} />
+              <Route path="/ranking-ferramentas" element={<AuthenticatedLayout><RankingFerramentas /></AuthenticatedLayout>} />
+              <Route path="/dashboard" element={<SmartLayout isHome><Index /></SmartLayout>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AnalyticsProvider>

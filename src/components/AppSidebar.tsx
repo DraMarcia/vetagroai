@@ -12,8 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-import logoWhite from "@/assets/logo-vetagro-white.png";
-
+import sidebarLogo from "@/assets/sidebar-icon-logo.png";
 import sidebarIconVet from "@/assets/sidebar-icon-veterinarios.png";
 import sidebarIconZoo from "@/assets/sidebar-icon-zootecnistas.png";
 import sidebarIconPesq from "@/assets/sidebar-icon-pesquisador.png";
@@ -108,11 +107,11 @@ export function AppSidebar() {
       collapsible="icon"
     >
       <SidebarContent className="bg-gradient-to-b from-[hsl(142,50%,14%)] to-[hsl(142,50%,10%)]">
-        {/* Logo */}
+        {/* Logo — bigger, centered */}
         <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-2 px-3 py-4">
-            <img src={logoWhite} alt="VetAgro IA" className="w-8 h-8 object-contain" />
-            {open && <span className="text-lg font-bold text-white tracking-tight">VetAgro IA</span>}
+          <SidebarGroupLabel className="flex items-center justify-center gap-3 px-3 py-5">
+            <img src={sidebarLogo} alt="VetAgro IA" className={`${open ? "w-10 h-10" : "w-8 h-8"} object-contain transition-all`} />
+            {open && <span className="text-xl font-bold text-white tracking-tight">VetAgro IA</span>}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -190,11 +189,11 @@ export function AppSidebar() {
           <div className="flex flex-col gap-1">
             {open && (
               <div className="flex items-center gap-2 px-1">
-                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                  <User className="h-3.5 w-3.5 text-white" />
+                <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <User className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-xs text-white/70 truncate font-medium">
-                  {userName || user.email}
+                <span className="text-xs text-white/80 truncate font-medium">
+                  {userName || "Usuário"}
                 </span>
               </div>
             )}

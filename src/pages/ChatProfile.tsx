@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Send, Plus, Sparkles, Loader2, User, Bot } from "lucide-react";
+import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -135,6 +135,35 @@ async function streamChat({ messages, profileId, onDelta, onDone, onError }: {
   onDone();
 }
 
+function ChatInput({ inputValue, setInputValue, isLoading, onSend, placeholder, textareaRef }: {
+  inputValue: string; setInputValue: (v: string) => void; isLoading: boolean; onSend: (text: string) => void; placeholder: string; textareaRef: React.RefObject<HTMLTextAreaElement>;
+}) {
+  return (
+    <div className="relative flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-md focus-within:border-primary/40 focus-within:shadow-lg transition-all">
+      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0" title="Anexar arquivo">
+        <Plus className="w-5 h-5" />
+      </Button>
+      <textarea
+        ref={textareaRef}
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        placeholder={placeholder}
+        rows={1}
+        className="flex-1 resize-none bg-transparent border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none min-h-[36px] max-h-[100px] py-2"
+        style={{ fieldSizing: "content" } as any}
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(inputValue); } }}
+        disabled={isLoading}
+      />
+      <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0" title="Gravar áudio">
+        <Mic className="w-4 h-4" />
+      </Button>
+      <Button size="icon" className="h-9 w-9 flex-shrink-0" disabled={!inputValue.trim() || isLoading} onClick={() => onSend(inputValue)} title="Enviar">
+        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+      </Button>
+    </div>
+  );
+}
+
 export default function ChatProfile() {
   const { profileId } = useParams<{ profileId: string }>();
   const navigate = useNavigate();
@@ -145,6 +174,8 @@ export default function ChatProfile() {
   const [userName, setUserName] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const chipsContainerRef = useRef<HTMLDivElement>(null);
+  const [showChipsArrow, setShowChipsArrow] = useState(false);
 
   const data = profileId ? profilesChatData[profileId] : null;
 
@@ -160,6 +191,14 @@ export default function ChatProfile() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Check if chips overflow for scroll indicator
+  useEffect(() => {
+    const el = chipsContainerRef.current;
+    if (el) {
+      setShowChipsArrow(el.scrollWidth > el.clientWidth);
+    }
+  }, [data]);
 
   if (!data) { navigate("/"); return null; }
 
@@ -204,18 +243,18 @@ export default function ChatProfile() {
     <div className="flex-1 flex flex-col h-[calc(100vh-3rem)]">
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
 
-      {/* Messages / Welcome area */}
+      {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-6">
         {!hasMessages ? (
           <div className="flex flex-col items-center justify-center h-full py-4">
-            <div className="max-w-2xl w-full text-center mb-3">
+            <div className="max-w-2xl w-full text-center mb-4">
               <div className="inline-flex items-center gap-2 mb-1">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <Badge variant="secondary" className="text-[10px] font-semibold uppercase tracking-wide">
                   {data.chipLabel}
                 </Badge>
               </div>
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-0.5">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-1">
                 {personalGreeting}
               </h1>
               <p className="text-xs text-muted-foreground">
@@ -223,42 +262,36 @@ export default function ChatProfile() {
               </p>
             </div>
 
-            {/* Input area */}
+            {/* Input */}
             <div className="max-w-2xl w-full mb-3">
-              <div className="relative flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-md focus-within:border-primary/40 focus-within:shadow-lg transition-all">
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground flex-shrink-0" title="Anexar arquivo">
-                  <Plus className="w-5 h-5" />
-                </Button>
-                <textarea
-                  ref={textareaRef}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder={data.placeholder}
-                  rows={1}
-                  className="flex-1 resize-none bg-transparent border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none min-h-[36px] max-h-[100px] py-2"
-                  style={{ fieldSizing: "content" } as any}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(inputValue); } }}
-                  disabled={isLoading}
-                />
-                <Button size="icon" className="h-9 w-9 flex-shrink-0" disabled={!inputValue.trim() || isLoading} onClick={() => sendMessage(inputValue)} title="Enviar">
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </Button>
-              </div>
+              <ChatInput
+                inputValue={inputValue}
+                setInputValue={setInputValue}
+                isLoading={isLoading}
+                onSend={sendMessage}
+                placeholder={data.placeholder}
+                textareaRef={textareaRef}
+              />
             </div>
 
-            {/* Horizontal scrollable chips */}
-            <div className="max-w-2xl w-full">
-              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {/* Horizontal chips with scroll indicator */}
+            <div className="max-w-2xl w-full relative">
+              <div ref={chipsContainerRef} className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {data.chips.map((chip, i) => (
                   <button
                     key={i}
                     onClick={() => handleChipClick(chip)}
-                    className={`flex-shrink-0 px-3 py-2 rounded-full border text-xs font-semibold transition-all whitespace-nowrap ${data.chipColor}`}
+                    className={`flex-shrink-0 px-3 py-2 rounded-full border text-xs font-semibold transition-all whitespace-nowrap active:scale-95 ${data.chipColor}`}
                   >
                     {chip}
                   </button>
                 ))}
               </div>
+              {showChipsArrow && (
+                <div className="absolute right-0 top-0 bottom-2 w-8 flex items-center justify-center bg-gradient-to-l from-background to-transparent pointer-events-none">
+                  <ChevronRight className="w-4 h-4 text-muted-foreground animate-pulse" />
+                </div>
+              )}
             </div>
 
             <p className="text-[10px] text-muted-foreground text-center mt-2 max-w-md leading-relaxed">
@@ -305,29 +338,18 @@ export default function ChatProfile() {
         )}
       </div>
 
-      {/* Input when conversation active */}
+      {/* Bottom input when conversation active */}
       {hasMessages && (
         <div className="border-t border-border bg-background px-4 py-2">
           <div className="max-w-3xl mx-auto">
-            <div className="relative flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm focus-within:border-primary/40 focus-within:shadow-md transition-all">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground flex-shrink-0" title="Anexar arquivo">
-                <Plus className="w-4 h-4" />
-              </Button>
-              <textarea
-                ref={hasMessages ? textareaRef : undefined}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={data.placeholder}
-                rows={1}
-                className="flex-1 resize-none bg-transparent border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none min-h-[32px] max-h-[100px] py-1.5"
-                style={{ fieldSizing: "content" } as any}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(inputValue); } }}
-                disabled={isLoading}
-              />
-              <Button size="icon" className="h-8 w-8 flex-shrink-0" disabled={!inputValue.trim() || isLoading} onClick={() => sendMessage(inputValue)} title="Enviar">
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </Button>
-            </div>
+            <ChatInput
+              inputValue={inputValue}
+              setInputValue={setInputValue}
+              isLoading={isLoading}
+              onSend={sendMessage}
+              placeholder={data.placeholder}
+              textareaRef={textareaRef}
+            />
             <p className="text-[9px] text-muted-foreground text-center mt-1.5 leading-relaxed">
               {data.disclaimer}
             </p>
