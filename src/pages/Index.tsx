@@ -136,14 +136,14 @@ const Index = () => {
           <h2 className="text-sm sm:text-base font-bold text-foreground text-center mb-2 flex-shrink-0">
             Explore as soluções
           </h2>
-          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-2 content-start pb-1">
+          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-2.5 content-start pb-1">
             {profiles.map((profile) => (
               <button
                 key={profile.id}
                 onClick={() => handleProfileClick(profile)}
-                className="rounded-xl bg-card border-2 border-[hsl(142,30%,75%)] shadow-sm hover:shadow-lg hover:border-primary/50 active:scale-[0.97] transition-all duration-200 flex flex-col items-center gap-0.5 p-2 text-center group cursor-pointer"
+                className="rounded-xl bg-card border-2 border-[hsl(142,30%,75%)] shadow-sm hover:shadow-lg hover:border-primary/50 active:scale-[0.97] transition-all duration-200 flex flex-col items-center gap-1 p-3 text-center group cursor-pointer"
               >
-                <div className="w-9 h-9 sm:w-11 sm:h-11 flex-shrink-0 flex items-center justify-center">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center">
                   <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain" />
                 </div>
                 <h3 className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
