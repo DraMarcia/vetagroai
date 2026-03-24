@@ -36,9 +36,14 @@ const profileMenuItems: { id: UserProfile; label: string; icon: string }[] = [
 
 const outrosRecursosItems = [
   { label: "Planos e Assinaturas", url: "/planos" },
-  { label: "FAQ", url: "/faq" },
+  { label: "FAQ – Perguntas Frequentes", url: "/faq" },
+  { label: "Produtos e Serviços", url: "/produtos-servicos" },
+  { label: "Meu Espaço Inteligente", url: "/meu-perfil" },
   { label: "Blog", url: "/blog" },
   { label: "Política de Privacidade", url: "/politica-de-privacidade" },
+  { label: "Monitoramento Técnico", url: "/monitoramento-tecnico" },
+  { label: "Custos de IA", url: "/monitoramento-custos" },
+  { label: "Ranking de Ferramentas", url: "/ranking-ferramentas" },
 ];
 
 type SidebarView = "history" | "favorites" | "reports" | "search";
