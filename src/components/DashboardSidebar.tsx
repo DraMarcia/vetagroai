@@ -12,6 +12,8 @@ import { useProfile, type UserProfile } from "@/contexts/ProfileContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useProfilePhoto } from "@/hooks/useProfilePhoto";
 import { useConversations, type Conversation } from "@/hooks/useConversations";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
