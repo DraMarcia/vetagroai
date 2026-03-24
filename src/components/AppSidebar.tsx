@@ -117,9 +117,9 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <NavLink to="/" end className="text-white/80 hover:text-white hover:bg-white/10" activeClassName="bg-white/15 text-white font-medium">
+                  <NavLink to="/" end translate="no" className="notranslate text-white/80 hover:text-white hover:bg-white/10 overflow-hidden" activeClassName="bg-white/15 text-white font-medium">
                     <Home className="h-5 w-5" />
-                    <span>Início</span>
+                     <span className="block flex-1 min-w-0 truncate">Início</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
