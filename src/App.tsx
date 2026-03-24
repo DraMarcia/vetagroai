@@ -3,14 +3,16 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
+import { ProfileProvider } from "@/contexts/ProfileContext";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { ChatbotAssistant } from "@/components/ChatbotAssistant";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Menu } from "lucide-react";
+import { AppSidebar } from "@/components/AppSidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import Index from "./pages/Index";
 import ChatProfile from "./pages/ChatProfile";
 import NotFound from "./pages/NotFound";
@@ -27,20 +29,21 @@ import ProdutosServicos from "./pages/ProdutosServicos";
 const queryClient = new QueryClient();
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
-    <SidebarProvider>
+    <ProfileProvider>
       <div className="flex h-screen w-full overflow-hidden">
-        <AppSidebar />
+        <DashboardSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* No white bar — sidebar trigger is overlaid */}
-          <div className="absolute top-2 left-2 z-30">
-            <SidebarTrigger className="text-muted-foreground hover:text-foreground bg-background/60 backdrop-blur-sm rounded-lg p-1.5 shadow-sm" />
-          </div>
           <main className="flex-1 overflow-hidden">{children}</main>
         </div>
       </div>
       <ChatbotAssistant />
-    </SidebarProvider>
+    </ProfileProvider>
   );
 }
 
