@@ -7,10 +7,10 @@ import { useState } from "react";
 import { AuthDialog } from "@/components/AuthDialog";
 import { trackSubscriptionClick } from "@/lib/analytics";
 
-const MERCADO_PAGO_CREDITS_LINK = "https://mpago.la/12xcSRW";
+const MERCADO_PAGO_CREDITS_LINK = "https://mpago.li/2RGcL8M";
 const MERCADO_PAGO_LINKS = {
-  pro: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=71757e967b5049e5bfa5e88c022b357c",
-  enterprise: "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=8662444c7a604ea196aca59c150313f1",
+  pro: "https://mpago.li/25uChSe",
+  enterprise: "https://mpago.la/1mA7f1V",
 };
 const WHATSAPP_ENTERPRISE = "https://wa.me/5500000000000?text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20o%20plano%20Empresarial%20do%20VetAgro%20IA";
 
