@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Menu } from "lucide-react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Index from "./pages/Index";
 import ChatProfile from "./pages/ChatProfile";
 import NotFound from "./pages/NotFound";
