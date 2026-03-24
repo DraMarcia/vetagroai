@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitizeClinicalData, MAX_INPUT_LENGTH } from "../_shared/inputValidation.ts";
+import { checkRateLimit } from "../_shared/edgeFunctionUtils.ts";
 
 // Allowed origins for CORS (production + development)
 const allowedOrigins = [
@@ -149,6 +150,15 @@ serve(async (req) => {
     }
 
     const plan = authResult.plan; // Server-validated plan
+
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit(authResult.user!.id, plan);
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ error: 'Limite de requisições excedido.', retryAfter: rateLimitResult.resetIn }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': String(rateLimitResult.resetIn) } }
+      );
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
