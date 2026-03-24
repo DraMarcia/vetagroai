@@ -63,163 +63,116 @@ export async function exportToPDF(data: ReportData): Promise<void> {
   const caseId = data.caseId || `VET-${Date.now().toString(36).toUpperCase()}`;
   const dateStr = (data.date || new Date()).toLocaleDateString("pt-BR", {
     day: "2-digit",
-    month: "long",
+    month: "2-digit",
     year: "numeric"
   });
   
-  // Helper: Check page break
+  // ===== HELPERS =====
+  
   const checkPageBreak = (requiredSpace: number = 15): boolean => {
-    if (yPosition + requiredSpace > pageHeight - 35) {
+    if (yPosition + requiredSpace > pageHeight - 30) {
       doc.addPage();
       currentPage++;
-      yPosition = margin;
+      addCompactHeader();
+      yPosition = 22;
       return true;
     }
     return false;
   };
 
-  // ===== COVER PAGE =====
-  
-  // Header background
-  doc.setFillColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-  doc.rect(0, 0, pageWidth, 60, "F");
-  
-  // Brand name
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
-  doc.text("VetAgro Sustentável AI", pageWidth / 2, 28, { align: "center" });
-  
-  // Tagline
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-  doc.text("Inteligência aplicada à saúde, produção e bem-estar animal", pageWidth / 2, 40, { align: "center" });
-  
-  // Decorative line
-  doc.setDrawColor(255, 255, 255);
-  doc.setLineWidth(0.5);
-  doc.line(60, 50, pageWidth - 60, 50);
-  
-  doc.setTextColor(0, 0, 0);
-  
-  // Tool name box
-  yPosition = 80;
-  doc.setFillColor(235, 250, 240); // Light green background
-  doc.roundedRect(margin, yPosition, maxWidth, 25, 3, 3, "F");
-  
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-  doc.text(data.toolName || "Relatório Técnico", pageWidth / 2, yPosition + 15, { align: "center" });
-  
-  // Report title
-  yPosition = 125;
-  doc.setFontSize(18);
-  doc.setTextColor(0, 0, 0);
-  const titleLines = doc.splitTextToSize(data.title, maxWidth - 20);
-  for (const line of titleLines) {
-    doc.text(line, pageWidth / 2, yPosition, { align: "center" });
-    yPosition += 10;
-  }
-  
-  // Case info box
-  yPosition = 165;
-  doc.setFillColor(250, 250, 250);
-  doc.roundedRect(margin + 20, yPosition, maxWidth - 40, 35, 3, 3, "F");
-  doc.setDrawColor(220, 220, 220);
-  doc.roundedRect(margin + 20, yPosition, maxWidth - 40, 35, 3, 3, "S");
-  
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Data de Emissão: ${dateStr}`, pageWidth / 2, yPosition + 14, { align: "center" });
-  doc.text(`ID do Caso: ${caseId}`, pageWidth / 2, yPosition + 26, { align: "center" });
-  
-  // Disclaimer box
-  yPosition = 220;
-  doc.setFillColor(255, 250, 240);
-  doc.setDrawColor(255, 200, 100);
-  doc.roundedRect(margin, yPosition, maxWidth, 25, 3, 3, "FD");
-  
-  doc.setFontSize(9);
-  doc.setTextColor(150, 100, 50);
-  doc.setFont("helvetica", "bold");
-  doc.text("AVISO IMPORTANTE", pageWidth / 2, yPosition + 10, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.text(DISCLAIMER, pageWidth / 2, yPosition + 18, { align: "center" });
-  
-  // Footer on cover
-  doc.setTextColor(150, 150, 150);
-  doc.setFontSize(9);
-  doc.text(WEBSITE_URL, pageWidth / 2, pageHeight - 25, { align: "center" });
-  doc.text(`© VetAgro Sustentável AI - ${new Date().getFullYear()}`, pageWidth / 2, pageHeight - 18, { align: "center" });
-  
-  // ===== CONTENT PAGES =====
-  doc.addPage();
-  currentPage = 2;
-  yPosition = margin;
-  
-  // Page header
-  const addPageHeader = () => {
+  // Compact header for every page
+  const addCompactHeader = () => {
+    // Thin green line at top
     doc.setFillColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-    doc.rect(0, 0, pageWidth, 15, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.text("VetAgro Sustentável AI", 15, 10);
-    doc.setFont("helvetica", "normal");
-    doc.text(data.toolName || "Relatório", pageWidth - 15, 10, { align: "right" });
-    doc.setTextColor(0, 0, 0);
-  };
-  
-  addPageHeader();
-  yPosition = 25;
-  
-  // User inputs section
-  if (data.userInputs && Object.keys(data.userInputs).length > 0) {
-    doc.setFillColor(240, 250, 245); // Light green background
-    doc.roundedRect(margin, yPosition, maxWidth, 8 + Object.keys(data.userInputs).length * 6, 2, 2, "F");
+    doc.rect(0, 0, pageWidth, 3, "F");
     
-    doc.setFontSize(11);
+    // Brand name left, date + case ID right
+    doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-    doc.text("IDENTIFICAÇÃO DO CASO", margin + 5, yPosition + 6);
-    yPosition += 12;
+    doc.text("VetAgro IA", margin, 10);
     
-    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(7);
+    doc.setTextColor(LIGHT_GRAY.r, LIGHT_GRAY.g, LIGHT_GRAY.b);
+    doc.text(`${dateStr}  |  ${caseId}`, pageWidth - margin, 10, { align: "right" });
     
-    for (const [key, value] of Object.entries(data.userInputs)) {
-      const text = `• ${key}: ${value}`;
-      const lines = doc.splitTextToSize(text, maxWidth - 10);
-      for (const line of lines) {
-        doc.text(line, margin + 5, yPosition);
-        yPosition += 5;
-      }
-    }
+    // Separator line
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.line(margin, 14, pageWidth - margin, 14);
+    
+    doc.setTextColor(BODY_COLOR.r, BODY_COLOR.g, BODY_COLOR.b);
+  };
+
+  // ===== PAGE 1 — HEADER + CONTENT START =====
+  addCompactHeader();
+  yPosition = 22;
+  
+  // Report title - large and bold
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(BODY_COLOR.r, BODY_COLOR.g, BODY_COLOR.b);
+  const titleLines = doc.splitTextToSize(data.title, maxWidth);
+  for (const line of titleLines) {
+    doc.text(line, margin, yPosition);
     yPosition += 8;
   }
   
-  // Main content - REBUILD FROM CLEAN TEXT (never use interface text directly)
-  // Step 1: Extract tables before cleaning (so we can render them properly)
-  const { tables, contentWithPlaceholders } = extractTablesFromContent(data.content);
+  // Tool name subtitle
+  if (data.toolName) {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(SUBTITLE_COLOR.r, SUBTITLE_COLOR.g, SUBTITLE_COLOR.b);
+    doc.text(data.toolName, margin, yPosition);
+    yPosition += 6;
+  }
   
-  // Step 2: Deep clean the content MULTIPLE TIMES to ensure no artifacts remain
+  // Thin separator after title
+  doc.setDrawColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+  doc.setLineWidth(0.8);
+  doc.line(margin, yPosition, margin + 40, yPosition);
+  yPosition += 10;
+  
+  // User inputs block (compact)
+  if (data.userInputs && Object.keys(data.userInputs).length > 0) {
+    doc.setFillColor(248, 250, 248);
+    const inputHeight = 8 + Object.keys(data.userInputs).length * 5;
+    doc.roundedRect(margin, yPosition - 2, maxWidth, inputHeight, 2, 2, "F");
+    
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+    doc.text("DADOS DO CASO", margin + 4, yPosition + 4);
+    yPosition += 8;
+    
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(BODY_COLOR.r, BODY_COLOR.g, BODY_COLOR.b);
+    doc.setFontSize(8);
+    
+    for (const [key, value] of Object.entries(data.userInputs)) {
+      doc.setFont("helvetica", "bold");
+      doc.text(`${key}: `, margin + 4, yPosition);
+      const keyWidth = doc.getTextWidth(`${key}: `);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(value), margin + 4 + keyWidth, yPosition);
+      yPosition += 5;
+    }
+    yPosition += 6;
+  }
+  
+  // ===== MAIN CONTENT =====
+  const { tables, contentWithPlaceholders } = extractTablesFromContent(data.content);
   let cleanedContent = cleanTextForPDF(contentWithPlaceholders);
   cleanedContent = cleanTextForPDF(cleanedContent);
-  
-  // Step 3: Parse into structured sections (also removes duplicates)
   const sections = parseReportSections(cleanedContent);
   
-  // Track processed content to avoid duplicates - normalize titles for comparison
   const processedTitles = new Set<string>();
   
-  // Helper: Render a table using autoTable
+  // Helper: Render table
   const renderTable = (tableData: TableData) => {
     if (checkPageBreak(40)) {
-      addPageHeader();
-      yPosition = 25;
+      yPosition = 22;
     }
     
     const tableBody = tableData.rows.length > 0 
@@ -239,78 +192,54 @@ export async function exportToPDF(data: ReportData): Promise<void> {
       margin: { left: margin, right: margin },
       styles: {
         fontSize: 8,
-        cellPadding: 2,
-        lineColor: [0, 0, 0],
-        lineWidth: 0.1,
-        textColor: [31, 31, 31],
+        cellPadding: 3,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.2,
+        textColor: [BODY_COLOR.r, BODY_COLOR.g, BODY_COLOR.b],
         overflow: 'linebreak',
       },
       headStyles: {
-        fillColor: [230, 230, 230],
-        textColor: [31, 31, 31],
+        fillColor: [BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b],
+        textColor: [255, 255, 255],
         fontStyle: 'bold',
         halign: 'center',
       },
-      bodyStyles: {
-        halign: 'left',
-      },
-      alternateRowStyles: {
-        fillColor: [250, 250, 250],
-      },
-      columnStyles: {
-        0: { fontStyle: 'bold', cellWidth: 'auto' },
-      },
+      bodyStyles: { halign: 'left' },
+      alternateRowStyles: { fillColor: [248, 250, 248] },
       didDrawPage: () => {
         currentPage = doc.getNumberOfPages();
       },
     });
     
-    // Update yPosition after table
     yPosition = (doc as any).lastAutoTable.finalY + 8;
   };
   
+  // Render sections
   for (const section of sections) {
-    // Skip duplicate sections - normalize for comparison
     const normalizedTitle = section.title?.replace(/[\s:]+/g, '').toUpperCase() || '';
-    if (normalizedTitle && processedTitles.has(normalizedTitle)) {
-      continue;
-    }
-    if (normalizedTitle) {
-      processedTitles.add(normalizedTitle);
-    }
+    if (normalizedTitle && processedTitles.has(normalizedTitle)) continue;
+    if (normalizedTitle) processedTitles.add(normalizedTitle);
     
     // Section title
     if (section.title) {
-      // Page break before major sections (References, Legal)
-      const isPageBreakSection = section.title.includes("REFERENCIA") || 
-                                  section.title.includes("AVISO") ||
-                                  section.title.includes("LEGAL");
-      
-      if (isPageBreakSection || checkPageBreak(25)) {
-        if (isPageBreakSection) {
-          doc.addPage();
-          currentPage++;
-        }
-        addPageHeader();
-        yPosition = 25;
+      if (checkPageBreak(20)) {
+        yPosition = 22;
       }
       
-      yPosition += 5;
+      yPosition += 6;
+      
+      // Green accent bar + title
       doc.setFillColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-      doc.rect(margin, yPosition - 4, 3, 10, "F");
+      doc.rect(margin, yPosition - 4, 2.5, 8, "F");
       
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
       
-      // Clean the title one more time
-      const cleanTitle = section.title
-        .replace(/%+/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      doc.text(cleanTitle, margin + 6, yPosition + 3);
-      doc.setTextColor(0, 0, 0);
-      yPosition += 12;
+      const cleanTitle = section.title.replace(/%+/g, '').replace(/\s+/g, ' ').trim();
+      doc.text(cleanTitle, margin + 5, yPosition + 2);
+      doc.setTextColor(BODY_COLOR.r, BODY_COLOR.g, BODY_COLOR.b);
+      yPosition += 10;
     }
     
     // Section body
@@ -321,227 +250,137 @@ export async function exportToPDF(data: ReportData): Promise<void> {
       const paragraphs = section.body.split("\n").filter(p => p.trim());
       
       for (const para of paragraphs) {
-        // Clean each paragraph individually
-        let trimmedPara = para.trim()
-          .replace(/%+/g, '')
-          .replace(/\s+/g, ' ');
-        
+        let trimmedPara = para.trim().replace(/%+/g, '').replace(/\s+/g, ' ');
         if (!trimmedPara) continue;
         
-        // Check for table placeholder
+        // Table placeholder
         const tablePlaceholderMatch = trimmedPara.match(/\[\[TABLE_(\d+)\]\]/);
         if (tablePlaceholderMatch) {
           const tableIndex = parseInt(tablePlaceholderMatch[1], 10);
-          if (tables[tableIndex]) {
-            renderTable(tables[tableIndex]);
-          }
+          if (tables[tableIndex]) renderTable(tables[tableIndex]);
           continue;
         }
         
-        // Check if this is a subsection title (like "2.1. Dimensão Ambiental")
+        // Subsection title detection
         const isSubsectionTitle = trimmedPara.match(/^\d+\.\d+\.?\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/);
         const isSubsectionHeader = trimmedPara.match(/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]+\s+(Ambiental|Produtiv|de Gestão|imediatas|de médio|estruturantes)/i);
         
         if (isSubsectionTitle || isSubsectionHeader) {
-          if (checkPageBreak(15)) {
-            addPageHeader();
-            yPosition = 25;
-          }
-          
-          yPosition += 6;
+          if (checkPageBreak(12)) yPosition = 22;
+          yPosition += 4;
           doc.setFontSize(10);
           doc.setFont("helvetica", "bold");
           doc.setTextColor(SUBTITLE_COLOR.r, SUBTITLE_COLOR.g, SUBTITLE_COLOR.b);
           doc.text(trimmedPara, margin + 3, yPosition);
-          doc.setTextColor(0, 0, 0);
+          doc.setTextColor(BODY_COLOR.r, BODY_COLOR.g, BODY_COLOR.b);
           doc.setFont("helvetica", "normal");
           doc.setFontSize(9);
-          yPosition += 8;
+          yPosition += 7;
           continue;
         }
         
-        if (checkPageBreak(8)) {
-          addPageHeader();
-          yPosition = 25;
-        }
+        if (checkPageBreak(8)) yPosition = 22;
         
-        // Handle bullet points
+        // Bullet points
         if (trimmedPara.startsWith("•") || trimmedPara.startsWith("-") || trimmedPara.startsWith("–")) {
           const bulletText = trimmedPara.replace(/^[•\-–]\s*/, '');
-          
-          // Check if this is a "Benefício" subitem
-          const isBeneficioItem = bulletText.match(/^Benef[ií]cio\s+(ambiental|produtivo|econ[oô]mico)/i);
-          
-          if (isBeneficioItem) {
-            // Indent benefício items more and use smaller font
-            doc.setFontSize(8);
-            const lines = doc.splitTextToSize(`  • ${bulletText}`, maxWidth - 15);
-            for (let i = 0; i < lines.length; i++) {
-              if (checkPageBreak(5)) {
-                addPageHeader();
-                yPosition = 25;
-              }
-              doc.text(lines[i], margin + 8, yPosition);
-              yPosition += 4.5;
-            }
-            doc.setFontSize(9);
-          } else {
-            const lines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 8);
-            for (let i = 0; i < lines.length; i++) {
-              if (checkPageBreak(6)) {
-                addPageHeader();
-                yPosition = 25;
-              }
-              doc.text(lines[i], margin + (i === 0 ? 3 : 6), yPosition);
-              yPosition += 5;
-            }
+          const lines = doc.splitTextToSize(`• ${bulletText}`, maxWidth - 8);
+          for (let i = 0; i < lines.length; i++) {
+            if (checkPageBreak(6)) yPosition = 22;
+            doc.text(lines[i], margin + (i === 0 ? 3 : 6), yPosition);
+            yPosition += lineHeight;
           }
         }
-        // Handle numbered items (like "5.1. Ações imediatas")
+        // Numbered items
         else if (trimmedPara.match(/^\d+\.\d*\.?\s/)) {
-          yPosition += 4;
+          yPosition += 3;
           doc.setFont("helvetica", "bold");
           const lines = doc.splitTextToSize(trimmedPara, maxWidth - 8);
           for (let i = 0; i < lines.length; i++) {
-            if (checkPageBreak(6)) {
-              addPageHeader();
-              yPosition = 25;
-            }
+            if (checkPageBreak(6)) yPosition = 22;
             doc.text(lines[i], margin + (i === 0 ? 0 : 8), yPosition);
-            yPosition += 5;
+            yPosition += lineHeight;
           }
           doc.setFont("helvetica", "normal");
-          yPosition += 3;
+          yPosition += 2;
         }
-        // Handle arrows
-        else if (trimmedPara.startsWith("->") || trimmedPara.includes("->")) {
-          const arrowText = trimmedPara.replace(/^->\s*/, '');
-          const lines = doc.splitTextToSize(`-> ${arrowText}`, maxWidth - 8);
-          for (let i = 0; i < lines.length; i++) {
-            if (checkPageBreak(6)) {
-              addPageHeader();
-              yPosition = 25;
-            }
-            doc.text(lines[i], margin + (i === 0 ? 5 : 8), yPosition);
-            yPosition += 5;
-          }
-        }
-        // Regular paragraph - clean left-aligned text with proper spacing
+        // Regular paragraph
         else {
           const lines = doc.splitTextToSize(trimmedPara, maxWidth);
           for (const line of lines) {
-            if (checkPageBreak(6)) {
-              addPageHeader();
-              yPosition = 25;
-            }
+            if (checkPageBreak(6)) yPosition = 22;
             doc.text(line, margin, yPosition);
-            yPosition += 5;
+            yPosition += lineHeight;
           }
-          // Add extra spacing after paragraphs for better readability
-          yPosition += 3;
+          yPosition += 2;
         }
       }
-      yPosition += 5;
+      yPosition += 4;
     }
   }
   
-  // References section
+  // ===== REFERENCES SECTION =====
   if (data.references && data.references.length > 0) {
-    if (checkPageBreak(50)) {
-      addPageHeader();
-      yPosition = 25;
-    }
+    if (checkPageBreak(40)) yPosition = 22;
     
-    yPosition += 10;
+    yPosition += 8;
     doc.setDrawColor(200, 200, 200);
     doc.line(margin, yPosition, pageWidth - margin, yPosition);
-    yPosition += 10;
+    yPosition += 8;
     
+    // Section title
+    doc.setFillColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
+    doc.rect(margin, yPosition - 4, 2.5, 8, "F");
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-    doc.text("REFERÊNCIAS CONSULTADAS", margin, yPosition);
-    doc.setTextColor(0, 0, 0);
-    yPosition += 8;
+    doc.text("REFERENCIAS TECNICAS", margin + 5, yPosition + 2);
+    doc.setTextColor(BODY_COLOR.r, BODY_COLOR.g, BODY_COLOR.b);
+    yPosition += 10;
     
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     
-    for (const ref of data.references) {
-      if (checkPageBreak(6)) {
-        addPageHeader();
-        yPosition = 25;
-      }
-      const cleanRef = ref.replace(/^[•\-–]\s*/, "").trim();
-      const lines = doc.splitTextToSize(`• ${cleanRef}`, maxWidth - 5);
+    for (let i = 0; i < data.references.length; i++) {
+      if (checkPageBreak(6)) yPosition = 22;
+      const cleanRef = data.references[i].replace(/^[•\-–]\s*/, "").trim();
+      const refText = `[${i + 1}] ${cleanRef}`;
+      const lines = doc.splitTextToSize(refText, maxWidth - 5);
       for (const line of lines) {
         doc.text(line, margin + 3, yPosition);
         yPosition += 4;
       }
+      yPosition += 1;
     }
   }
   
-  // Legal Disclaimer Section
-  if (checkPageBreak(45)) {
-    addPageHeader();
-    yPosition = 25;
-  }
-  yPosition += 10;
-  
-  doc.setFillColor(255, 248, 230);
-  doc.setDrawColor(200, 150, 50);
-  doc.roundedRect(margin, yPosition, maxWidth, 28, 3, 3, "FD");
-  
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(150, 100, 50);
-  doc.text("AVISO LEGAL", margin + 5, yPosition + 8);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  const legalLines = doc.splitTextToSize(LEGAL_DISCLAIMER, maxWidth - 10);
-  for (let i = 0; i < legalLines.length; i++) {
-    doc.text(legalLines[i], margin + 5, yPosition + 14 + (i * 4));
-  }
-  yPosition += 35;
-
-  // CTA Section
-  if (checkPageBreak(25)) {
-    addPageHeader();
-    yPosition = 25;
-  }
-  
-  doc.setFillColor(235, 250, 240); // Light green background
-  doc.setDrawColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-  doc.roundedRect(margin, yPosition, maxWidth, 18, 3, 3, "FD");
-  
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-  doc.text(CTA_TEXT, pageWidth / 2, yPosition + 11, { align: "center" });
-  
-  // Footer on all pages
+  // ===== FOOTER ON ALL PAGES =====
   const totalPages = doc.getNumberOfPages();
-  for (let i = 2; i <= totalPages; i++) {
+  for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    // Footer background
-    doc.setFillColor(250, 250, 250);
-    doc.rect(0, pageHeight - 22, pageWidth, 22, "F");
+    // Thin line
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(margin, pageHeight - 18, pageWidth - margin, pageHeight - 18);
     
-    // Footer line
-    doc.setDrawColor(BRAND_COLOR.r, BRAND_COLOR.g, BRAND_COLOR.b);
-    doc.setLineWidth(0.5);
-    doc.line(margin, pageHeight - 22, pageWidth - margin, pageHeight - 22);
+    // Left: copyright
+    doc.setFontSize(6.5);
+    doc.setTextColor(LIGHT_GRAY.r, LIGHT_GRAY.g, LIGHT_GRAY.b);
+    doc.text(`VetAgro IA (C) ${new Date().getFullYear()}  |  ${WEBSITE_URL}`, margin, pageHeight - 12);
     
-    // Footer text
-    doc.setFontSize(7);
-    doc.setTextColor(100, 100, 100);
-    doc.text(FOOTER_TEXT, pageWidth / 2, pageHeight - 14, { align: "center" });
+    // Right: page number
+    doc.text(`Pagina ${i} de ${totalPages}`, pageWidth - margin, pageHeight - 12, { align: "right" });
     
-    // Copyright and page number
-    doc.setFontSize(7);
-    doc.text(`© VetAgro Sustentável AI — ${new Date().getFullYear()}`, margin, pageHeight - 6);
-    doc.text(`Página ${i - 1} de ${totalPages - 1}`, pageWidth - margin, pageHeight - 6, { align: "right" });
+    // Legal disclaimer ONLY on last page, small
+    if (i === totalPages) {
+      doc.setFontSize(5.5);
+      doc.setTextColor(170, 170, 170);
+      const legalLines = doc.splitTextToSize(LEGAL_DISCLAIMER, maxWidth);
+      for (let j = 0; j < legalLines.length; j++) {
+        doc.text(legalLines[j], margin, pageHeight - 7 + (j * 3));
+      }
+    }
   }
   
   // Save
