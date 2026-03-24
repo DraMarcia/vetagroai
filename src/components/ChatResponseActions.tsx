@@ -314,8 +314,8 @@ export function ChatResponseActions({ content, profileTitle }: ChatResponseActio
           </div>
 
           {/* Legal disclaimer */}
-          <div className="px-4 py-2 bg-amber-50/50 dark:bg-amber-950/20 border-t border-amber-200/30">
-            <p className="text-[9px] text-amber-700/70 dark:text-amber-400/60 leading-tight">
+          <div className="px-4 py-2 bg-muted/30 border-t border-border/30">
+            <p className="text-[9px] text-muted-foreground leading-tight">
               Esta analise e um apoio tecnico-consultivo. O julgamento profissional in loco e indispensavel.
             </p>
           </div>
