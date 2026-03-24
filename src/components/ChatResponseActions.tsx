@@ -68,16 +68,16 @@ export function ChatResponseActions({ content, profileTitle, userQuestion }: Cha
   };
 
   const handleDownloadPDF = async () => {
-    if (generatingPdf) return;
+    if (generatingPdf || !report) return;
     setGeneratingPdf(true);
     try {
-      const references = report?.references || buildFallbackReport(content, profileTitle).references;
+      const reportContent = report.sections.map(s => `${s.section}\n\n${s.body}`).join("\n\n");
       await exportToPDF({
         title: `Relatorio ${profileTitle} - VetAgro IA`,
-        content,
+        content: reportContent,
         toolName: profileTitle,
         date: new Date(),
-        references,
+        references: report.references,
       });
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
@@ -123,7 +123,13 @@ export function ChatResponseActions({ content, profileTitle, userQuestion }: Cha
           {generatingReport ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
           {generatingReport ? "Gerando..." : report ? (reportExpanded ? "Ocultar relatório" : "Ver relatório") : "Gerar relatório"}
         </Button>
-        <Button variant="outline" size="sm" onClick={handleDownloadPDF} disabled={generatingPdf} className="text-xs gap-1.5 h-8">
+        <Button variant="outline" size="sm" onClick={() => {
+          if (!report) {
+            toast.info("Para baixar o PDF completo, gere o relatório técnico primeiro.", { duration: 4000 });
+            return;
+          }
+          handleDownloadPDF();
+        }} disabled={generatingPdf} className="text-xs gap-1.5 h-8">
           {generatingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
           Baixar PDF
         </Button>
