@@ -67,6 +67,8 @@ const MeuPerfil = () => {
   const [toolHistory, setToolHistory] = useState<ToolHistory[]>([]);
   const [farmMetrics, setFarmMetrics] = useState<FarmMetric[]>([]);
   const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { photoUrl, uploading, uploadPhoto } = useProfilePhoto(user?.id);
 
   useEffect(() => {
     if (user) {
