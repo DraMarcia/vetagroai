@@ -29,20 +29,21 @@ import ProdutosServicos from "./pages/ProdutosServicos";
 const queryClient = new QueryClient();
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
-    <SidebarProvider>
+    <ProfileProvider>
       <div className="flex h-screen w-full overflow-hidden">
-        <AppSidebar />
+        <DashboardSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* No white bar — sidebar trigger is overlaid */}
-          <div className="absolute top-2 left-2 z-30">
-            <SidebarTrigger className="text-muted-foreground hover:text-foreground bg-background/60 backdrop-blur-sm rounded-lg p-1.5 shadow-sm" />
-          </div>
           <main className="flex-1 overflow-hidden">{children}</main>
         </div>
       </div>
       <ChatbotAssistant />
-    </SidebarProvider>
+    </ProfileProvider>
   );
 }
 
