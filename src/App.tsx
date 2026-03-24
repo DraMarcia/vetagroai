@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Menu } from "lucide-react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Index from "./pages/Index";
 import ChatProfile from "./pages/ChatProfile";
 import NotFound from "./pages/NotFound";
@@ -30,14 +31,44 @@ const queryClient = new QueryClient();
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
     <ProfileProvider>
-      <div className="flex h-screen w-full overflow-hidden">
-        <DashboardSidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+      <div className="flex h-screen w-full overflow-hidden relative">
+        {/* Mobile: hamburger button always visible */}
+        {isMobile && !mobileSidebarOpen && (
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="fixed top-3 left-3 z-50 p-2 rounded-lg bg-background/80 backdrop-blur-sm shadow-md border border-border"
+            aria-label="Menu"
+          >
+            <Menu className="h-5 w-5 text-foreground" />
+          </button>
+        )}
+
+        {/* Mobile: overlay sidebar */}
+        {isMobile && mobileSidebarOpen && (
+          <>
+            <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setMobileSidebarOpen(false)} />
+            <div className="fixed inset-y-0 left-0 z-50 w-72 animate-in slide-in-from-left duration-200">
+              <DashboardSidebar
+                collapsed={false}
+                onToggle={() => setMobileSidebarOpen(false)}
+              />
+            </div>
+          </>
+        )}
+
+        {/* Desktop: normal sidebar */}
+        {!isMobile && (
+          <DashboardSidebar
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        )}
+
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <main className="flex-1 overflow-hidden">{children}</main>
         </div>
