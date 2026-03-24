@@ -2,10 +2,12 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChatResponseActions } from "@/components/ChatResponseActions";
+import { LowCreditBanner, ZeroCreditBlock } from "@/components/CreditAlerts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthDialog } from "@/components/AuthDialog";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useConversations } from "@/hooks/useConversations";
@@ -236,6 +238,7 @@ export default function ChatProfile() {
   const { profileId } = useParams<{ profileId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { credits, hasUnlimited } = useSubscription();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -247,6 +250,8 @@ export default function ChatProfile() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { createConversation, updateTitle, saveMessage, loadMessages, toggleFavorite } = useConversations(profileId);
+
+  const isOutOfCredits = !hasUnlimited && credits <= 0;
 
   const data = profileId ? profilesChatData[profileId] : null;
 
@@ -318,7 +323,7 @@ export default function ChatProfile() {
       });
     };
 
-    const REPORT_CTA = `\n\n---\n\nSe você quiser uma análise mais aprofundada e estruturada deste caso, posso gerar um **relatório técnico completo** com:\n\n• Diagnóstico detalhado e causas prováveis\n• Estratégias recomendadas com base científica\n• Protocolo de ação passo a passo\n• Avaliação de riscos e impacto produtivo\n• Referências técnicas confiáveis\n\nBasta clicar em **"Gerar relatório"**.\n\nApós isso, você poderá baixar um PDF profissional ou compartilhar o conteúdo.`;
+    const REPORT_CTA = `\n\n---\n\nSe você quiser uma análise mais aprofundada e estruturada deste caso, posso gerar um **relatório técnico completo** com:\n\n• Diagnóstico detalhado e causas prováveis\n• Estratégias recomendadas com base científica\n• Protocolo de ação passo a passo\n• Avaliação de riscos e impacto produtivo\n• Referências técnicas confiáveis\n\nBasta clicar em **"Gerar relatório"**.\n\nApós isso, você poderá baixar um PDF profissional ou compartilhar o conteúdo.\n\nCaso seus créditos acabem, você pode adquirir mais créditos para continuar utilizando a plataforma.`;
 
     const finalConvId = convId;
     await streamChat({
@@ -461,9 +466,14 @@ export default function ChatProfile() {
 
       {/* Bottom input when conversation is active */}
       {hasMessages && (
-        <div className="border-t border-border bg-background px-3 sm:px-4 py-2">
-          <div className="max-w-3xl mx-auto">
-            <ChatInput inputValue={inputValue} setInputValue={setInputValue} isLoading={isLoading} onSend={sendMessage} placeholder={data.placeholder} textareaRef={textareaRef} onFileUpload={handleFileBtn} />
+        <div className="border-t border-border bg-background px-3 sm:px-4 py-2 space-y-2">
+          <div className="max-w-3xl mx-auto space-y-2">
+            {!hasUnlimited && <LowCreditBanner credits={credits} />}
+            {isOutOfCredits ? (
+              <ZeroCreditBlock />
+            ) : (
+              <ChatInput inputValue={inputValue} setInputValue={setInputValue} isLoading={isLoading} onSend={sendMessage} placeholder={data.placeholder} textareaRef={textareaRef} onFileUpload={handleFileBtn} />
+            )}
           </div>
         </div>
       )}
