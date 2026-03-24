@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import {
   User, Linkedin, Instagram, Youtube, Facebook, 
   Sparkles, History, BarChart3, Lightbulb, 
   Settings, Clock, ChevronRight, Save, Crown,
-  Leaf, Heart, Target
+  Leaf, Heart, Target, Camera
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { ToolSuggestionDialog } from "@/components/ToolSuggestionDialog";
 import { CreatorSection } from "@/components/CreatorSection";
 import { Link } from "react-router-dom";
-import creatorPhoto from "@/assets/creator-photo.jpeg";
+import { useProfilePhoto } from "@/hooks/useProfilePhoto";
 
 interface UserPreferences {
   farm_name: string | null;
