@@ -318,16 +318,22 @@ export default function ChatProfile() {
       });
     };
 
+    const REPORT_CTA = `\n\n---\n\nSe você quiser uma análise mais aprofundada e estruturada deste caso, posso gerar um **relatório técnico completo** com:\n\n• Diagnóstico detalhado e causas prováveis\n• Estratégias recomendadas com base científica\n• Protocolo de ação passo a passo\n• Avaliação de riscos e impacto produtivo\n• Referências técnicas confiáveis\n\nBasta clicar em **"Gerar relatório"**.\n\nApós isso, você poderá baixar um PDF profissional ou compartilhar o conteúdo.`;
+
     const finalConvId = convId;
     await streamChat({
       messages: updatedMessages, profileId: profileId!,
       onDelta: (chunk) => upsertAssistant(chunk),
       onDone: async () => {
-        setIsLoading(false);
-        // Save assistant message
+        // Append report CTA to the final message
         if (assistantSoFar) {
+          assistantSoFar += REPORT_CTA;
+          setMessages((prev) =>
+            prev.map((m, i) => i === prev.length - 1 && m.role === "assistant" ? { ...m, content: assistantSoFar } : m)
+          );
           await saveMessage(finalConvId, "assistant", assistantSoFar);
         }
+        setIsLoading(false);
         // Update title after first exchange if not yet done
         if (updatedMessages.length === 1) {
           await updateTitle(finalConvId, generateTitle(text.trim()));
