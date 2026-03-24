@@ -35,16 +35,14 @@ export interface ReportData {
 
 // ============= Constants =============
 
-// GREEN institutional color scheme - VetAgro Sustentável AI
+// GREEN institutional color scheme - VetAgro IA
 const BRAND_COLOR = { r: 14, g: 138, b: 71 }; // Green institucional #0E8A47
 const BRAND_HEX = "0E8A47";
 const SUBTITLE_COLOR = { r: 74, g: 74, b: 74 }; // Gray #4A4A4A
 const BODY_COLOR = { r: 31, g: 31, b: 31 }; // Black #1F1F1F
+const LIGHT_GRAY = { r: 150, g: 150, b: 150 };
 const WEBSITE_URL = "www.vetagroai.com.br";
-const DISCLAIMER = "Este relatorio e informativo e nao substitui avaliacao clinica por medico veterinario habilitado.";
-const FOOTER_TEXT = "Documento gerado pela suite VetAgro Sustentavel AI - inteligencia aplicada a saude, producao e bem-estar animal.";
-const LEGAL_DISCLAIMER = "Este documento foi gerado por inteligencia artificial para fins de apoio. A validade oficial depende da assinatura do medico veterinario responsavel, conforme legislacao profissional vigente (Lei 5.517/1968 e Resolucoes CFMV).";
-const CTA_TEXT = "Deseja analise complementar? Envie novos dados ou imagens pelo app.";
+const LEGAL_DISCLAIMER = "Este documento foi gerado por inteligencia artificial para fins de apoio tecnico. A validade oficial depende da assinatura do medico veterinario responsavel, conforme legislacao profissional vigente (Lei 5.517/1968 e Resolucoes CFMV).";
 
 // ============= PDF Export =============
 
