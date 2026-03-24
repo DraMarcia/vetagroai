@@ -177,7 +177,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
                   : "text-white/75 hover:bg-white/10 hover:text-white"
               }`}
             >
-              <img src={item.icon} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+              <img src={item.icon} alt="" className="w-8 h-8 object-contain flex-shrink-0" />
               <span className="flex-1 text-left">{item.label}</span>
               {activeProfile === item.id && (
                 expandedProfile === item.id
