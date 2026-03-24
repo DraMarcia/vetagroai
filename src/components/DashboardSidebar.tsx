@@ -17,13 +17,13 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import logoVeragro from "@/assets/logo-vetagro.png";
-import iconVeterinarios from "@/assets/icon-veterinarios.png";
-import iconZootecnistas from "@/assets/icon-zootecnistas.png";
-import iconAgronomos from "@/assets/icon-agronomos.png";
-import iconProdutorRural from "@/assets/icon-produtor-rural.png";
-import iconPesquisador from "@/assets/icon-pesquisador.png";
-import iconOutrosRecursos from "@/assets/icon-outros-recursos.png";
+import logoVeragro from "@/assets/sidebar-icon-logo.png";
+import iconVeterinarios from "@/assets/sidebar-icon-veterinarios.png";
+import iconZootecnistas from "@/assets/sidebar-icon-zootecnistas.png";
+import iconAgronomos from "@/assets/sidebar-icon-agronomos.png";
+import iconProdutorRural from "@/assets/sidebar-icon-produtor-rural.png";
+import iconPesquisador from "@/assets/sidebar-icon-pesquisador.png";
+import iconOutrosRecursos from "@/assets/sidebar-icon-outros-recursos.png";
 
 const profileMenuItems: { id: UserProfile; label: string; icon: string }[] = [
   { id: "veterinario", label: "Veterinários", icon: iconVeterinarios },
