@@ -231,7 +231,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
             onClick={() => setOutrosOpen(!outrosOpen)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition-all"
           >
-            <img src={iconOutrosRecursos} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+            <img src={iconOutrosRecursos} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
             <span className="flex-1 text-left">Outros Recursos</span>
             {outrosOpen ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
           </button>
