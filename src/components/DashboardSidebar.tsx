@@ -141,6 +141,14 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
 
   const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
   const userEmail = user?.email || "";
+  const { photoUrl, uploading, uploadPhoto } = useProfilePhoto(user?.id);
+
+  const handleAvatarClick = () => fileInputRef.current?.click();
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadPhoto(file);
+    e.target.value = "";
+  };
 
   if (collapsed) {
     return (
