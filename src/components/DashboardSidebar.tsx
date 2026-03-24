@@ -140,7 +140,14 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
         <button onClick={onToggle} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
           <img src={logoVeragro} alt="VetAgro IA" className="w-10 h-10 object-contain" />
         </button>
-        <div className="flex-1 flex flex-col items-center gap-2 mt-4">
+        <button
+          onClick={() => navigate("/")}
+          className="w-12 h-12 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+          title="Início"
+        >
+          <Home className="w-5 h-5 text-white/80" />
+        </button>
+        <div className="flex-1 flex flex-col items-center gap-2 mt-2">
           {profileMenuItems.map((item) => (
             <button
               key={item.id}
