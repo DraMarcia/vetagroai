@@ -323,7 +323,7 @@ export default function ChatProfile() {
       });
     };
 
-    const REPORT_CTA = `\n\n---\n\nSe você quiser uma análise mais aprofundada e estruturada deste caso, posso gerar um **relatório técnico completo** com:\n\n• Diagnóstico detalhado e causas prováveis\n• Estratégias recomendadas com base científica\n• Protocolo de ação passo a passo\n• Avaliação de riscos e impacto produtivo\n• Referências técnicas confiáveis\n\nBasta clicar em **"Gerar relatório"**.\n\nApós isso, você poderá baixar um PDF profissional ou compartilhar o conteúdo.`;
+    const REPORT_CTA = `\n\n---\n\nSe você quiser uma análise mais aprofundada e estruturada deste caso, posso gerar um **relatório técnico completo** com:\n\n• Diagnóstico detalhado e causas prováveis\n• Estratégias recomendadas com base científica\n• Protocolo de ação passo a passo\n• Avaliação de riscos e impacto produtivo\n• Referências técnicas confiáveis\n\nBasta clicar em **"Gerar relatório"**.\n\nApós isso, você poderá baixar um PDF profissional ou compartilhar o conteúdo.\n\nCaso seus créditos acabem, você pode adquirir mais créditos para continuar utilizando a plataforma.`;
 
     const finalConvId = convId;
     await streamChat({
@@ -466,9 +466,14 @@ export default function ChatProfile() {
 
       {/* Bottom input when conversation is active */}
       {hasMessages && (
-        <div className="border-t border-border bg-background px-3 sm:px-4 py-2">
-          <div className="max-w-3xl mx-auto">
-            <ChatInput inputValue={inputValue} setInputValue={setInputValue} isLoading={isLoading} onSend={sendMessage} placeholder={data.placeholder} textareaRef={textareaRef} onFileUpload={handleFileBtn} />
+        <div className="border-t border-border bg-background px-3 sm:px-4 py-2 space-y-2">
+          <div className="max-w-3xl mx-auto space-y-2">
+            {!hasUnlimited && <LowCreditBanner credits={credits} />}
+            {isOutOfCredits ? (
+              <ZeroCreditBlock />
+            ) : (
+              <ChatInput inputValue={inputValue} setInputValue={setInputValue} isLoading={isLoading} onSend={sendMessage} placeholder={data.placeholder} textareaRef={textareaRef} onFileUpload={handleFileBtn} />
+            )}
           </div>
         </div>
       )}
