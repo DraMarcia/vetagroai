@@ -68,7 +68,7 @@ const Index = () => {
       {/* Hero — full bleed, NO white bar */}
       <section
         className="relative flex-shrink-0 flex flex-col items-center justify-center"
-        style={{ height: "clamp(280px, 56vh, 500px)" }}
+        style={{ height: "clamp(240px, 44vh, 460px)" }}
       >
         <div className="absolute inset-0">
           <img
