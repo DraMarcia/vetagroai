@@ -131,12 +131,12 @@ const Index = () => {
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
       {/* Profiles grid */}
-      <section className="flex-1 bg-muted/30 overflow-hidden flex flex-col">
-        <div className="container mx-auto px-3 py-2 max-w-4xl flex-1 flex flex-col overflow-hidden">
-          <h2 className="text-sm sm:text-base font-bold text-foreground text-center mb-2 flex-shrink-0">
+      <section className="flex-1 bg-muted/30 overflow-auto flex flex-col">
+        <div className="container mx-auto px-4 py-3 max-w-4xl flex-1 flex flex-col">
+          <h2 className="text-sm sm:text-base font-bold text-foreground text-center mb-3 flex-shrink-0">
             Explore as soluções
           </h2>
-          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-2.5 content-start pb-1">
+          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-3 content-start pb-4">
             {profiles.map((profile) => (
               <button
                 key={profile.id}
