@@ -101,7 +101,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
 
   const handleProfileClick = (id: UserProfile) => {
     setActiveProfile(id);
-    setExpandedProfile(expandedProfile === id ? null : id);
+    setExpandedProfile(id);
     navigate(`/chat/${id}`);
   };
 
