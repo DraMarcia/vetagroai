@@ -68,7 +68,7 @@ const Index = () => {
       {/* Hero — full bleed, NO white bar */}
       <section
         className="relative flex-shrink-0 flex flex-col items-center justify-center"
-        style={{ height: "clamp(240px, 44vh, 460px)" }}
+        style={{ height: "clamp(240px, 44vh, 500px)" }}
       >
         <div className="absolute inset-0">
           <img
@@ -84,9 +84,9 @@ const Index = () => {
         </div>
 
         {/* Central content — pushed down slightly, everything inside image */}
-        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-2xl mx-auto" style={{ marginTop: "clamp(-8px, 0vh, 8px)" }}>
+        <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-2xl mx-auto" style={{ marginTop: "clamp(-8px, -2vh, 0px)" }}>
           {/* Logo with glow — BIGGER */}
-          <div className="relative mb-2">
+          <div className="relative mb-1 md:mb-0">
             <div className="absolute inset-0 blur-3xl opacity-40 bg-white/30 rounded-full scale-150" />
             <img
               src={logoVeragro}
@@ -95,13 +95,13 @@ const Index = () => {
             />
           </div>
           <h1
-            className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-0.5"
+            className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-0 md:-mt-1"
             style={{ textShadow: "0 2px 16px rgba(0,0,0,0.5)", lineHeight: 1.1 }}
           >
             VetAgro IA
           </h1>
           <p
-            className="text-sm sm:text-sm text-white/90 max-w-[90vw] md:whitespace-nowrap mx-auto mb-3 leading-snug font-medium text-center"
+            className="text-sm sm:text-sm text-white/90 max-w-[90vw] md:whitespace-nowrap mx-auto mb-2 md:mb-3 leading-snug font-medium text-center"
             style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}
           >
             Suíte inteligente para análise ambiental, sustentabilidade e suporte técnico
