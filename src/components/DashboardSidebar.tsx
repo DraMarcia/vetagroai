@@ -100,9 +100,13 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
   };
 
   const handleProfileClick = (id: UserProfile) => {
-    setActiveProfile(id);
-    setExpandedProfile(id);
-    navigate(`/chat/${id}`);
+    if (activeProfile === id) {
+      setExpandedProfile(expandedProfile === id ? null : id);
+    } else {
+      setActiveProfile(id);
+      setExpandedProfile(id);
+      navigate(`/chat/${id}`);
+    }
   };
 
   const handleNewChat = async () => {
