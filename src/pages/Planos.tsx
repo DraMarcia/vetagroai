@@ -86,8 +86,8 @@ const Planos = () => {
         </div>
       )}
 
-      {/* Grid de planos — Mobile: Pro primeiro, stacked. Desktop: 4 colunas com Pro destacado */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+      {/* Grid de planos — Mobile: menor→maior. Desktop: 4 colunas com Pro destacado */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 auto-rows-auto">
 
         {/* ── PLANO PRO (aparece primeiro no mobile via order) ── */}
         <Card className={`relative overflow-hidden flex flex-col border-2 border-primary shadow-xl shadow-primary/10 order-first xl:order-3 ${currentPlan === "pro" ? "ring-2 ring-green-500" : ""}`}>
