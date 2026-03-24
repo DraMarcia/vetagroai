@@ -17,7 +17,7 @@ export function ChatbotAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Olá! 🐾 Sou o assistente do VetAgro. Posso ajudar você com:\n\n• Dicas de uso das ferramentas\n• Sugestões de prompts eficientes\n• Informações sobre planos\n• Dúvidas gerais sobre o app\n\nComo posso ajudar?",
+      content: "Olá! 🐾 Sou o assistente oficial da VetAgro IA. Posso ajudar você com:\n\n• Como usar a plataforma e escrever bons prompts\n• Entender os perfis de inteligência (veterinário, produtor, pesquisador...)\n• Gerar relatórios técnicos e baixar PDFs\n• Informações sobre créditos e planos\n\nTudo aqui funciona por conversa inteligente — é só perguntar! Como posso ajudar?",
     },
   ]);
   const [input, setInput] = useState("");
