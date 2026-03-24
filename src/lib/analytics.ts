@@ -9,24 +9,15 @@ declare global {
   }
 }
 
-// Initialize Google Analytics
+// Initialize Google Analytics (script already loaded in index.html <head>)
 export const initGA = (): void => {
-  // Create script element for gtag.js
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-  document.head.appendChild(script);
-
-  // Initialize dataLayer and gtag function
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer.push(args);
-  };
-
-  window.gtag('js', new Date());
-  window.gtag('config', GA_MEASUREMENT_ID, {
-    send_page_view: false, // We'll handle page views manually for SPA
-  });
+  // gtag is loaded globally via index.html — just ensure window.gtag is available
+  if (typeof window.gtag !== 'function') {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function gtag(...args: unknown[]) {
+      window.dataLayer.push(args);
+    };
+  }
 };
 
 // Track page views (for SPA navigation)
