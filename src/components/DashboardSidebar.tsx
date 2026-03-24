@@ -197,10 +197,10 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
       <div className="px-3 mb-1">
         <button
           onClick={() => navigate("/")}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors overflow-hidden"
         >
           <Home className="w-5 h-5 flex-shrink-0" />
-          <span>Início</span>
+          <span className="truncate">Início</span>
         </button>
       </div>
 
