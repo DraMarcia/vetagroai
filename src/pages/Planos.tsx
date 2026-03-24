@@ -158,7 +158,7 @@ const Planos = () => {
         </Card>
 
         {/* ── GRATUITO ── */}
-        <Card className={`relative overflow-hidden flex flex-col order-2 xl:order-1 ${currentPlan === "free" || !currentPlan ? "ring-2 ring-primary/40" : "border-border"}`}>
+        <Card className={`relative overflow-hidden flex flex-col order-1 xl:order-1 ${currentPlan === "free" || !currentPlan ? "ring-2 ring-primary/40" : "border-border"}`}>
           {(currentPlan === "free" || !currentPlan) && (
             <div className="absolute top-3 right-3">
               <Badge variant="secondary" className="text-[10px] font-semibold uppercase tracking-wide">Plano atual</Badge>
