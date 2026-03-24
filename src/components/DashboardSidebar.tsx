@@ -329,6 +329,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
             )}
           </div>
         )}
+        </div>
       </ScrollArea>
 
       {/* User Footer */}
