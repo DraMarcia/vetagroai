@@ -160,7 +160,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
       {/* Logo */}
       <div className="px-5 pt-5 pb-3 flex items-center gap-3">
         <button onClick={onToggle} className="hover:opacity-80 transition-opacity">
-          <img src={logoVeragro} alt="VetAgro IA" className="w-10 h-10 object-contain" />
+          <img src={logoVeragro} alt="VetAgro IA" className="w-14 h-14 object-contain" />
         </button>
         <span className="text-lg font-bold tracking-tight text-white">VetAgro IA</span>
       </div>
