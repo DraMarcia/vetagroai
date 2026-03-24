@@ -3,6 +3,7 @@ import {
   Search, Plus, Settings, CreditCard, LogOut,
   MessageSquare, ChevronDown, ChevronRight,
   MoreHorizontal, Star, Trash2, FileText, BookmarkCheck,
+  Home,
 } from "lucide-react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,7 +140,14 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
         <button onClick={onToggle} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
           <img src={logoVeragro} alt="VetAgro IA" className="w-10 h-10 object-contain" />
         </button>
-        <div className="flex-1 flex flex-col items-center gap-2 mt-4">
+        <button
+          onClick={() => navigate("/")}
+          className="w-12 h-12 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+          title="Início"
+        >
+          <Home className="w-5 h-5 text-white/80" />
+        </button>
+        <div className="flex-1 flex flex-col items-center gap-2 mt-2">
           {profileMenuItems.map((item) => (
             <button
               key={item.id}
@@ -167,6 +175,17 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
           <img src={logoVeragro} alt="VetAgro IA" className="w-14 h-14 object-contain" />
         </button>
         <span className="text-lg font-bold tracking-tight text-white">VetAgro IA</span>
+      </div>
+
+      {/* Home button */}
+      <div className="px-3 mb-1">
+        <button
+          onClick={() => navigate("/")}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+        >
+          <Home className="w-5 h-5 flex-shrink-0" />
+          <span>Início</span>
+        </button>
       </div>
 
       {/* Scrollable content area */}
