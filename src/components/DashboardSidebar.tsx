@@ -133,7 +133,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
     return (
       <div className="w-16 h-full bg-gradient-to-b from-[hsl(142,40%,22%)] to-[hsl(142,45%,15%)] flex flex-col items-center py-4 gap-3">
         <button onClick={onToggle} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
-          <img src={logoVeragro} alt="VetAgro IA" className="w-8 h-8 object-contain" />
+          <img src={logoVeragro} alt="VetAgro IA" className="w-10 h-10 object-contain" />
         </button>
         <div className="flex-1 flex flex-col items-center gap-2 mt-4">
           {profileMenuItems.map((item) => (
