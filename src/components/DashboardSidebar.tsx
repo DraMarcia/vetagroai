@@ -3,6 +3,7 @@ import {
   Search, Plus, Settings, CreditCard, LogOut,
   MessageSquare, ChevronDown, ChevronRight,
   MoreHorizontal, Star, Trash2, FileText, BookmarkCheck,
+  Home,
 } from "lucide-react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
