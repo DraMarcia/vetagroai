@@ -10,7 +10,7 @@ interface UpgradeModalProps {
 }
 
 const MERCADO_PAGO_CREDITS_LINK = "https://mpago.li/2RGcL8M";
-const MERCADO_PAGO_PRO_LINK = "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=71757e967b5049e5bfa5e88c022b357c";
+const MERCADO_PAGO_PRO_LINK = "https://mpago.li/25uChSe";
 
 export function UpgradeModal({ open, onOpenChange, reason }: UpgradeModalProps) {
   const handleClick = (planId: string, link: string) => {
