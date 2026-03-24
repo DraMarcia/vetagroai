@@ -170,6 +170,17 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
         <span className="text-lg font-bold tracking-tight text-white">VetAgro IA</span>
       </div>
 
+      {/* Home button */}
+      <div className="px-3 mb-1">
+        <button
+          onClick={() => navigate("/")}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+        >
+          <Home className="w-5 h-5 flex-shrink-0" />
+          <span>Início</span>
+        </button>
+      </div>
+
       {/* Scrollable content area */}
       <ScrollArea className="flex-1 min-h-0">
         {/* Profiles with workspace items */}
