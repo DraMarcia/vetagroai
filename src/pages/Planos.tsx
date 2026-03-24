@@ -354,6 +354,7 @@ const Planos = () => {
       </p>
 
       <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
+      </div>
     </div>
   );
 };
