@@ -61,6 +61,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
   const [, setSearchParams] = useSearchParams();
   const { activeProfile, setActiveProfile } = useProfile();
   const [user, setUser] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Conversation[] | null>(null);
   const [outrosOpen, setOutrosOpen] = useState(false);
