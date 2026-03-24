@@ -91,7 +91,7 @@ const Index = () => {
             <img
               src={logoVeragro}
               alt="VetAgro IA Logo"
-              className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 object-contain drop-shadow-xl"
+              className="relative w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 object-contain drop-shadow-xl"
             />
           </div>
           <h1
