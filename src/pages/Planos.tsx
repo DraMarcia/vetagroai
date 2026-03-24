@@ -95,7 +95,7 @@ const Planos = () => {
           {/* Selo MAIS ESCOLHIDO */}
           <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 py-1.5 text-center">
             <span className="text-[11px] font-bold uppercase tracking-widest text-white flex items-center justify-center gap-1.5">
-              <Star className="h-3.5 w-3.5 fill-white" /> Mais escolhido
+              <Star className="h-3.5 w-3.5 fill-white" /> Mais utilizado
               <Flame className="h-3.5 w-3.5" />
             </span>
           </div>
@@ -119,10 +119,7 @@ const Planos = () => {
             <p className="text-sm font-bold text-primary">300 créditos por mês</p>
             <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-3 py-2 space-y-1">
               <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                🔥 Melhor custo-benefício
-              </p>
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-500">
-                Economize até 60% em relação aos créditos avulsos
+                🔥 Melhor custo-benefício para uso frequente
               </p>
             </div>
             <ul className="space-y-2 flex-1">
@@ -150,7 +147,7 @@ const Planos = () => {
                 disabled={isLoading}
                 onClick={() => handlePlanClick("pro", MERCADO_PAGO_LINKS.pro)}
               >
-                Assinar agora
+                Comprar agora
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
             )}
@@ -226,7 +223,7 @@ const Planos = () => {
             </div>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-4">
-            <p className="text-xs font-medium text-primary">50 créditos permanentes</p>
+            <p className="text-xs font-medium text-primary">50 créditos — Ideal para uso rápido e testes</p>
             <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2">
               <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-400">
                 ⚡ Continue sua análise agora mesmo
@@ -251,7 +248,7 @@ const Planos = () => {
               variant="outline"
               onClick={() => handlePlanClick("credits", MERCADO_PAGO_CREDITS_LINK)}
             >
-              Comprar créditos
+              Comprar agora
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
             <p className="text-[10px] text-muted-foreground text-center">Ideal para uso imediato — sem esperar o próximo ciclo</p>
@@ -278,8 +275,9 @@ const Planos = () => {
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-4">
             <p className="text-xs font-medium text-muted-foreground">1000 créditos por mês</p>
+            <Badge variant="outline" className="text-[10px] border-primary/50 text-primary uppercase tracking-wide w-fit">Plano Profissional</Badge>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Ideal para clínicas, propriedades rurais estruturadas, consultorias e instituições de pesquisa.
+              Para uso profissional contínuo. Ideal para clínicas, propriedades rurais, consultorias e instituições de pesquisa.
             </p>
             <ul className="space-y-2 flex-1">
               {[
@@ -303,10 +301,10 @@ const Planos = () => {
                 className="w-full group uppercase font-semibold tracking-wide"
                 variant="outline"
                 disabled={isLoading}
-                onClick={() => handlePlanClick("enterprise", WHATSAPP_ENTERPRISE)}
+                onClick={() => handlePlanClick("enterprise", MERCADO_PAGO_LINKS.enterprise)}
               >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Falar com consultor
+                Assinar plano
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
             )}
             <p className="text-[10px] text-muted-foreground text-center">Proposta personalizada para sua operação</p>
