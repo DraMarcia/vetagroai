@@ -209,7 +209,7 @@ const Planos = () => {
         </Card>
 
         {/* ── CRÉDITOS AVULSOS ── */}
-        <Card className="relative overflow-hidden flex flex-col border-border order-3 xl:order-2">
+        <Card className="relative overflow-hidden flex flex-col border-border order-2 xl:order-2">
           <div className="absolute top-3 right-3">
             <Badge variant="outline" className="text-[10px] border-primary/50 text-primary uppercase tracking-wide">Pague por uso</Badge>
           </div>
