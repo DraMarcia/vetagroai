@@ -140,12 +140,12 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
             <button
               key={item.id}
               onClick={() => handleProfileClick(item.id)}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+              className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all ${
                 activeProfile === item.id ? "bg-white/20 ring-1 ring-white/30" : "hover:bg-white/10"
               }`}
               title={item.label}
             >
-              <img src={item.icon} alt={item.label} className="w-6 h-6 object-contain" />
+              <img src={item.icon} alt={item.label} className="w-8 h-8 object-contain" />
             </button>
           ))}
         </div>
