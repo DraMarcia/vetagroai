@@ -89,8 +89,8 @@ const Planos = () => {
       {/* Grid de planos — Mobile: menor→maior. Desktop: 4 colunas com Pro destacado */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 auto-rows-auto">
 
-        {/* ── PLANO PRO (aparece primeiro no mobile via order) ── */}
-        <Card className={`relative overflow-hidden flex flex-col border-2 border-primary shadow-xl shadow-primary/10 order-first xl:order-3 ${currentPlan === "pro" ? "ring-2 ring-green-500" : ""}`}>
+        {/* ── PLANO PRO ── */}
+        <Card className={`relative overflow-hidden flex flex-col border-2 border-primary shadow-xl shadow-primary/10 order-3 xl:order-3 ${currentPlan === "pro" ? "ring-2 ring-green-500" : ""}`}>
           {/* Selo MAIS ESCOLHIDO */}
           <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 py-1.5 text-center">
             <span className="text-[11px] font-bold uppercase tracking-widest text-white flex items-center justify-center gap-1.5">
