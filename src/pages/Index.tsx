@@ -68,7 +68,7 @@ const Index = () => {
       {/* Hero — full bleed, NO white bar */}
       <section
         className="relative flex-shrink-0 flex flex-col items-center justify-center"
-        style={{ height: "clamp(280px, 56vh, 500px)" }}
+        style={{ height: "clamp(240px, 44vh, 460px)" }}
       >
         <div className="absolute inset-0">
           <img
@@ -91,7 +91,7 @@ const Index = () => {
             <img
               src={logoVeragro}
               alt="VetAgro IA Logo"
-              className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 object-contain drop-shadow-xl"
+              className="relative w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 object-contain drop-shadow-xl"
             />
           </div>
           <h1
@@ -131,12 +131,12 @@ const Index = () => {
       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
 
       {/* Profiles grid */}
-      <section className="flex-1 bg-muted/30 overflow-hidden flex flex-col">
-        <div className="container mx-auto px-3 py-2 max-w-4xl flex-1 flex flex-col overflow-hidden">
-          <h2 className="text-sm sm:text-base font-bold text-foreground text-center mb-2 flex-shrink-0">
+      <section className="flex-1 bg-muted/30 overflow-auto flex flex-col">
+        <div className="container mx-auto px-4 py-3 max-w-4xl flex-1 flex flex-col">
+          <h2 className="text-sm sm:text-base font-bold text-foreground text-center mb-3 flex-shrink-0">
             Explore as soluções
           </h2>
-          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-2.5 content-start pb-1">
+          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-3 content-start pb-4">
             {profiles.map((profile) => (
               <button
                 key={profile.id}
