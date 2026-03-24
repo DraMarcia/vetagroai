@@ -165,114 +165,116 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
         <span className="text-lg font-bold tracking-tight text-white">VetAgro IA</span>
       </div>
 
-      {/* Profiles with workspace items */}
-      <nav className="px-3 space-y-0.5">
-        {profileMenuItems.map((item) => (
-          <div key={item.id}>
-            <button
-              onClick={() => handleProfileClick(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeProfile === item.id
-                  ? "bg-white/15 text-white shadow-sm"
-                  : "text-white/75 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <img src={item.icon} alt="" className="w-8 h-8 object-contain flex-shrink-0" />
-              <span className="flex-1 text-left">{item.label}</span>
-              {activeProfile === item.id && (
-                expandedProfile === item.id
-                  ? <ChevronDown className="w-3.5 h-3.5 text-white/50" />
-                  : <ChevronRight className="w-3.5 h-3.5 text-white/50" />
-              )}
-            </button>
+      {/* Scrollable content area */}
+      <ScrollArea className="flex-1 min-h-0">
+        {/* Profiles with workspace items */}
+        <nav className="px-3 space-y-0.5">
+          {profileMenuItems.map((item) => (
+            <div key={item.id}>
+              <button
+                onClick={() => handleProfileClick(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  activeProfile === item.id
+                    ? "bg-white/15 text-white shadow-sm"
+                    : "text-white/75 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <img src={item.icon} alt="" className="w-8 h-8 object-contain flex-shrink-0" />
+                <span className="flex-1 text-left">{item.label}</span>
+                {activeProfile === item.id && (
+                  expandedProfile === item.id
+                    ? <ChevronDown className="w-3.5 h-3.5 text-white/50" />
+                    : <ChevronRight className="w-3.5 h-3.5 text-white/50" />
+                )}
+              </button>
 
-            {/* Workspace items for active profile */}
-            {expandedProfile === item.id && activeProfile === item.id && (
-              <div className="ml-6 mt-1 space-y-0.5">
-                <button
-                  onClick={handleNewChat}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-white/80 hover:bg-white/10 hover:text-white transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Novo Chat VetAgro</span>
-                </button>
-                <button
-                  onClick={() => setActiveView("history")}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${activeView === "history" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Histórico</span>
-                </button>
-                <button
-                  onClick={() => setActiveView("favorites")}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${activeView === "favorites" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
-                >
-                  <Star className="w-3.5 h-3.5" />
-                  <span>Favoritos</span>
-                  {favorites.length > 0 && (
-                    <span className="ml-auto text-[10px] bg-white/20 px-1.5 rounded-full">{favorites.length}</span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveView("reports")}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${activeView === "reports" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>Relatórios</span>
-                </button>
+              {/* Workspace items for active profile */}
+              {expandedProfile === item.id && activeProfile === item.id && (
+                <div className="ml-6 mt-1 space-y-0.5">
+                  <button
+                    onClick={handleNewChat}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Novo Chat VetAgro</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveView("history")}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${activeView === "history" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Histórico</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveView("favorites")}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${activeView === "favorites" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                  >
+                    <Star className="w-3.5 h-3.5" />
+                    <span>Favoritos</span>
+                    {favorites.length > 0 && (
+                      <span className="ml-auto text-[10px] bg-white/20 px-1.5 rounded-full">{favorites.length}</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setActiveView("reports")}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs transition-colors ${activeView === "reports" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Relatórios</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Outros Recursos */}
+          <div>
+            <button
+              onClick={() => setOutrosOpen(!outrosOpen)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition-all"
+            >
+              <img src={iconOutrosRecursos} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
+              <span className="flex-1 text-left">Outros Recursos</span>
+              {outrosOpen ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
+            </button>
+            {outrosOpen && (
+              <div className="ml-8 mt-1 space-y-0.5">
+                {outrosRecursosItems.map((item) => (
+                  <button
+                    key={item.url}
+                    onClick={() => navigate(item.url)}
+                    className="w-full text-left px-3 py-2 rounded-md text-xs text-white/65 hover:bg-white/10 hover:text-white transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             )}
           </div>
-        ))}
+        </nav>
 
-        {/* Outros Recursos */}
-        <div>
-          <button
-            onClick={() => setOutrosOpen(!outrosOpen)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition-all"
-          >
-            <img src={iconOutrosRecursos} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
-            <span className="flex-1 text-left">Outros Recursos</span>
-            {outrosOpen ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
-          </button>
-          {outrosOpen && (
-            <div className="ml-8 mt-1 space-y-0.5">
-              {outrosRecursosItems.map((item) => (
-                <button
-                  key={item.url}
-                  onClick={() => navigate(item.url)}
-                  className="w-full text-left px-3 py-2 rounded-md text-xs text-white/65 hover:bg-white/10 hover:text-white transition-colors"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Divider */}
+        <div className="mx-5 my-3 border-t border-white/15" />
+
+        {/* Search */}
+        <div className="px-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+            <Input
+              placeholder="Buscar no histórico..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (!e.target.value.trim()) setSearchResults(null);
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+              className="pl-9 bg-white/10 border-white/15 text-white placeholder:text-white/40 text-sm h-9 focus-visible:ring-white/30"
+            />
+          </div>
         </div>
-      </nav>
 
-      {/* Divider */}
-      <div className="mx-5 my-3 border-t border-white/15" />
-
-      {/* Search */}
-      <div className="px-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-          <Input
-            placeholder="Buscar no histórico..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              if (!e.target.value.trim()) setSearchResults(null);
-            }}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-            className="pl-9 bg-white/10 border-white/15 text-white placeholder:text-white/40 text-sm h-9 focus-visible:ring-white/30"
-          />
-        </div>
-      </div>
-
-      {/* Content area based on active view */}
-      <ScrollArea className="flex-1 px-3 mt-3">
+        {/* Content area based on active view */}
+        <div className="px-3 mt-3 pb-3">
         {activeView === "search" && searchResults !== null ? (
           <div className="space-y-1">
             <p className="text-[10px] uppercase tracking-wider text-white/40 px-3 mb-2 font-medium">
@@ -327,6 +329,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
             )}
           </div>
         )}
+        </div>
       </ScrollArea>
 
       {/* User Footer */}
