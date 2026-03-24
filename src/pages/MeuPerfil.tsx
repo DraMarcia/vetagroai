@@ -228,18 +228,45 @@ const MeuPerfil = () => {
         {/* Profile Card */}
         <Card className="lg:col-span-1">
           <CardHeader className="text-center pb-4">
-            <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-primary/20">
-              <AvatarImage 
-                src={creatorPhoto} 
-                alt="Dra. Márcia Salgado"
-                className="object-cover"
-              />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground text-2xl">
-                MS
-              </AvatarFallback>
-            </Avatar>
-            <CardTitle className="text-xl">Dra. Márcia Salgado</CardTitle>
-            <p className="text-sm text-muted-foreground">Pesquisadora e Criadora</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadPhoto(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="relative group mx-auto block"
+              disabled={uploading}
+              title="Alterar foto de perfil"
+            >
+              <Avatar className="h-24 w-24 border-4 border-primary/20 group-hover:border-primary/40 transition-colors">
+                <AvatarImage 
+                  src={photoUrl || undefined} 
+                  alt={userProfile.full_name || userName}
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground text-2xl">
+                  {(userProfile.full_name || userName || "U").charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="w-6 h-6 text-white" />
+              </div>
+              {uploading && (
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                  <div className="w-6 h-6 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </button>
+            <p className="text-xs text-muted-foreground mt-2">Clique para alterar a foto</p>
+            <CardTitle className="text-xl">{userProfile.full_name || userName}</CardTitle>
+            <p className="text-sm text-muted-foreground">{preferences.role_description || "Usuário VetAgro IA"}</p>
             <div className="mt-2">{getPlanBadge()}</div>
           </CardHeader>
           <CardContent className="space-y-4">
