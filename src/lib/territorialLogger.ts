@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Log anonymized territorial scientific data from sustainability tools.
  * Fire-and-forget — never blocks the caller. No user data is stored.
+ * Uses SECURITY DEFINER RPC to prevent direct table manipulation.
  */
 export function logTerritorialMetric(params: {
   toolName: string;
@@ -17,19 +18,18 @@ export function logTerritorialMetric(params: {
 }): void {
   (async () => {
     try {
-      // Only log if we have at least some useful data
       if (!params.state && !params.municipality && !params.estimatedEmissionValue) return;
 
-      await (supabase.from("territorial_agro_metrics") as any).insert({
-        tool_name: params.toolName,
-        municipality: params.municipality || null,
-        state: params.state || null,
-        production_system: params.productionSystem || null,
-        estimated_emission_value: params.estimatedEmissionValue || null,
-        emission_type: params.emissionType || null,
-        herd_size_range: params.herdSizeRange || null,
-        calculation_method: params.calculationMethod || null,
-        metadata: params.metadata || null,
+      await (supabase.rpc as any)("insert_territorial_metric", {
+        _tool_name: params.toolName,
+        _municipality: params.municipality || null,
+        _state: params.state || null,
+        _production_system: params.productionSystem || null,
+        _estimated_emission_value: params.estimatedEmissionValue || null,
+        _emission_type: params.emissionType || null,
+        _herd_size_range: params.herdSizeRange || null,
+        _calculation_method: params.calculationMethod || null,
+        _metadata: params.metadata || {},
       });
     } catch (e) {
       console.warn("[TerritorialLogger] Failed to log:", e);

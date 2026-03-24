@@ -26,7 +26,6 @@ async function sha256(input: string): Promise<string> {
 function buildCacheSignature(toolName: string, body: Record<string, unknown>): string {
   const filtered: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(body)) {
-    // Skip images (too large / unique), timestamps, and user IDs
     if (
       key === "image" || key === "images" || key === "imageData" ||
       key === "image_data" || key === "pdf" || key === "pdfData" ||
@@ -61,7 +60,7 @@ export async function getCachedResponse(
 }
 
 /**
- * Store a response in cache.
+ * Store a response in cache via SECURITY DEFINER RPC (no direct table INSERT).
  */
 export async function setCachedResponse(
   toolName: string,
@@ -69,7 +68,6 @@ export async function setCachedResponse(
   responseText: string
 ): Promise<void> {
   try {
-    // Don't cache very short responses (likely errors)
     if (!responseText || responseText.length < 100) return;
 
     const signature = buildCacheSignature(toolName, body);
@@ -78,12 +76,12 @@ export async function setCachedResponse(
     const ttlHours = LONG_CACHE_TOOLS.has(toolName) ? 72 : 24;
     const expiresAt = new Date(Date.now() + ttlHours * 3600_000).toISOString();
 
-    await (supabase.from("ai_response_cache") as any).insert({
-      tool_name: toolName,
-      request_hash: hash,
-      request_signature: signature.slice(0, 500),
-      response_text: responseText,
-      expires_at: expiresAt,
+    await (supabase.rpc as any)("set_cached_response", {
+      _tool_name: toolName,
+      _request_hash: hash,
+      _request_signature: signature.slice(0, 500),
+      _response_text: responseText,
+      _expires_at: expiresAt,
     });
   } catch (e) {
     console.warn("[ResponseCache] Failed to cache:", e);
