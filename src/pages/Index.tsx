@@ -108,20 +108,20 @@ const Index = () => {
           </p>
           <div className="flex flex-row gap-3 w-full max-w-xs">
             <Button
-              size="default"
+              size="lg"
               onClick={() => { if (user) navigate("/chat/produtor"); else setAuthDialogOpen(true); }}
-              className="flex-1 gap-2 text-sm font-bold shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground border-0"
+              className="flex-1 gap-2 text-sm font-bold shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground border-0 rounded-lg h-12"
             >
               <img src={logoWhite} alt="" className="w-7 h-7 object-contain" />
               Entrar
             </Button>
             <Button
-              size="default"
+              size="lg"
               variant="outline"
               onClick={() => setAboutModalOpen(true)}
-              className="flex-1 gap-2 text-sm font-bold shadow-md bg-white/95 text-foreground hover:bg-white border-white/60"
+              className="flex-1 gap-2 text-sm font-bold shadow-md bg-white/95 text-foreground hover:bg-white border-white/60 rounded-lg h-12"
             >
-              <Info className="h-4 w-4" />
+              <Info className="h-5 w-5" />
               Sobre
             </Button>
           </div>

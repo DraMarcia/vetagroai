@@ -353,7 +353,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
           </div>
         )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* User Footer */}
       <div className="border-t border-white/15 p-3">
