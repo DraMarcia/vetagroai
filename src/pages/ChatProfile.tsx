@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChatResponseActions } from "@/components/ChatResponseActions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -390,29 +391,44 @@ export default function ChatProfile() {
           </div>
         ) : (
           <div className="max-w-3xl mx-auto py-4 space-y-4">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                {msg.role === "assistant" && (
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                    <Bot className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                )}
-                <div className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                  {msg.role === "assistant" ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+            {messages.map((msg, i) => {
+              const isLastAssistant = msg.role === "assistant" && !isLoading &&
+                (i === messages.length - 1 || messages.slice(i + 1).every(m => m.role === "user"));
+              return (
+                <div key={i}>
+                  <div className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    {msg.role === "assistant" && (
+                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                        <Bot className="w-3.5 h-3.5 text-primary" />
+                      </div>
+                    )}
+                    <div className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                      {msg.role === "assistant" ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-li:my-0.5 prose-headings:my-2">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      )}
+                      {msg.role === "assistant" && !isLoading && (
+                        <ChatResponseActions content={msg.content} profileTitle={data.title} />
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    {msg.role === "user" && (
+                      <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+                        <User className="w-3.5 h-3.5 text-primary-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  {/* Persistent skill chips after last assistant message */}
+                  {isLastAssistant && (
+                    <div className="mt-3 ml-10">
+                      <ChipsRow chips={data.chips} chipColor={data.chipColor} onChipClick={handleChipClick} />
+                    </div>
                   )}
                 </div>
-                {msg.role === "user" && (
-                  <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                    <User className="w-3.5 h-3.5 text-primary-foreground" />
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
             {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
               <div className="flex gap-3 justify-start">
                 <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
