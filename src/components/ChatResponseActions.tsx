@@ -3,50 +3,75 @@ import { FileText, Download, Share2, Check, Loader2, ChevronDown, ChevronUp } fr
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { exportToPDF } from "@/lib/reportExport";
-import { buildStructuredReport, type StructuredReport } from "@/lib/reportBuilder";
+import { parseAIReport, buildFallbackReport, type StructuredReport } from "@/lib/reportBuilder";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatResponseActionsProps {
   content: string;
   profileTitle: string;
+  userQuestion?: string;
 }
 
 const WEBSITE_URL = "www.vetagroai.com.br";
 
-export function ChatResponseActions({ content, profileTitle }: ChatResponseActionsProps) {
+export function ChatResponseActions({ content, profileTitle, userQuestion }: ChatResponseActionsProps) {
   const [copied, setCopied] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
   const [report, setReport] = useState<StructuredReport | null>(null);
   const [reportExpanded, setReportExpanded] = useState(true);
 
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     if (report) {
       setReportExpanded(!reportExpanded);
       return;
     }
+
     setGeneratingReport(true);
-    setTimeout(() => {
-      const result = buildStructuredReport(content, profileTitle);
-      setReport(result);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-report", {
+        body: {
+          userQuestion: userQuestion || "",
+          aiResponse: content,
+          profileTitle,
+        },
+      });
+
+      if (error || !data?.report) {
+        console.warn("AI report generation failed, using fallback:", error);
+        const fallback = buildFallbackReport(content, profileTitle);
+        setReport(fallback);
+        toast.success("Relatório técnico gerado!");
+      } else {
+        const parsed = parseAIReport(data.report);
+        // Validate: must have at least 3 sections and references
+        if (parsed.sections.length >= 3 && parsed.references.length > 0) {
+          setReport(parsed);
+          toast.success("Relatório técnico profissional gerado com sucesso!");
+        } else {
+          // AI returned insufficient structure, re-parse with fallback merge
+          const fallback = buildFallbackReport(data.report, profileTitle);
+          setReport(fallback);
+          toast.success("Relatório técnico gerado!");
+        }
+      }
+    } catch (err) {
+      console.error("Report generation error:", err);
+      const fallback = buildFallbackReport(content, profileTitle);
+      setReport(fallback);
+      toast.success("Relatório técnico gerado!");
+    } finally {
       setReportExpanded(true);
       setGeneratingReport(false);
-      toast.success("Relatório técnico gerado com sucesso!");
-    }, 2000);
+    }
   };
 
   const handleDownloadPDF = async () => {
     if (generatingPdf) return;
     setGeneratingPdf(true);
     try {
-      // If report was generated, use its references; otherwise auto-generate
-      let references: string[] | undefined;
-      if (report) {
-        references = report.references;
-      } else {
-        const auto = buildStructuredReport(content, profileTitle);
-        references = auto.references;
-      }
-
+      const references = report?.references || buildFallbackReport(content, profileTitle).references;
       await exportToPDF({
         title: `Relatorio ${profileTitle} - VetAgro IA`,
         content,
@@ -111,7 +136,7 @@ export function ChatResponseActions({ content, profileTitle }: ChatResponseActio
       {generatingReport && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
-          <span className="text-xs text-primary font-medium">Gerando relatório técnico estruturado...</span>
+          <span className="text-xs text-primary font-medium">Gerando relatório técnico com IA... Aguarde alguns segundos.</span>
         </div>
       )}
 
