@@ -133,19 +133,19 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
     return (
       <div className="w-16 h-full bg-gradient-to-b from-[hsl(142,40%,22%)] to-[hsl(142,45%,15%)] flex flex-col items-center py-4 gap-3">
         <button onClick={onToggle} className="p-2 rounded-lg hover:bg-white/10 transition-colors">
-          <img src={logoVeragro} alt="VetAgro IA" className="w-8 h-8 object-contain" />
+          <img src={logoVeragro} alt="VetAgro IA" className="w-10 h-10 object-contain" />
         </button>
         <div className="flex-1 flex flex-col items-center gap-2 mt-4">
           {profileMenuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleProfileClick(item.id)}
-              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
+              className={`w-12 h-12 rounded-lg flex items-center justify-center transition-all ${
                 activeProfile === item.id ? "bg-white/20 ring-1 ring-white/30" : "hover:bg-white/10"
               }`}
               title={item.label}
             >
-              <img src={item.icon} alt={item.label} className="w-6 h-6 object-contain" />
+              <img src={item.icon} alt={item.label} className="w-8 h-8 object-contain" />
             </button>
           ))}
         </div>
@@ -160,7 +160,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
       {/* Logo */}
       <div className="px-5 pt-5 pb-3 flex items-center gap-3">
         <button onClick={onToggle} className="hover:opacity-80 transition-opacity">
-          <img src={logoVeragro} alt="VetAgro IA" className="w-10 h-10 object-contain" />
+          <img src={logoVeragro} alt="VetAgro IA" className="w-14 h-14 object-contain" />
         </button>
         <span className="text-lg font-bold tracking-tight text-white">VetAgro IA</span>
       </div>
@@ -177,7 +177,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
                   : "text-white/75 hover:bg-white/10 hover:text-white"
               }`}
             >
-              <img src={item.icon} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+              <img src={item.icon} alt="" className="w-8 h-8 object-contain flex-shrink-0" />
               <span className="flex-1 text-left">{item.label}</span>
               {activeProfile === item.id && (
                 expandedProfile === item.id
@@ -231,7 +231,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
             onClick={() => setOutrosOpen(!outrosOpen)}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition-all"
           >
-            <img src={iconOutrosRecursos} alt="" className="w-5 h-5 object-contain flex-shrink-0" />
+            <img src={iconOutrosRecursos} alt="" className="w-7 h-7 object-contain flex-shrink-0" />
             <span className="flex-1 text-left">Outros Recursos</span>
             {outrosOpen ? <ChevronDown className="w-4 h-4 text-white/50" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
           </button>
