@@ -238,6 +238,7 @@ export default function ChatProfile() {
   const { profileId } = useParams<{ profileId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { credits, hasUnlimited } = useSubscription();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -249,6 +250,8 @@ export default function ChatProfile() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { createConversation, updateTitle, saveMessage, loadMessages, toggleFavorite } = useConversations(profileId);
+
+  const isOutOfCredits = !hasUnlimited && credits <= 0;
 
   const data = profileId ? profilesChatData[profileId] : null;
 
