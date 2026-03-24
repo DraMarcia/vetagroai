@@ -101,10 +101,20 @@ serve(async (req) => {
 PERGUNTA ORIGINAL DO USUARIO:
 ${userQuestion || "(Não disponível)"}
 
-RESPOSTA PRELIMINAR DA IA:
+RESPOSTA PRELIMINAR DA IA (use como base, mas NÃO copie - EXPANDA e APROF UNDE):
 ${aiResponse}
 
-Com base nas informações acima, gere um RELATÓRIO TÉCNICO PROFISSIONAL completo seguindo a estrutura obrigatória. O relatório deve ser significativamente mais aprofundado e técnico que a resposta preliminar.`;
+INSTRUCOES CRITICAS:
+1. NÃO reorganize o texto acima. Gere conteúdo NOVO e MAIS PROFUNDO.
+2. A seção "ANALISE TECNICA APROFUNDADA" é a mais importante - deve conter raciocínio técnico que NÃO estava na resposta original.
+3. Inclua diagnósticos diferenciais quando o caso permitir.
+4. Classifique riscos como: baixo, moderado, alto ou crítico.
+5. Estime impacto produtivo/econômico quando possível.
+6. As referências devem ser ESPECÍFICAS ao caso - NÃO use referências genéricas. Cite-as no corpo do texto com [1], [2], etc.
+7. Justifique tecnicamente CADA recomendação.
+8. O relatório final deve parecer material de consultoria profissional de alto nível.
+
+Gere o RELATÓRIO TÉCNICO PROFISSIONAL completo agora.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
