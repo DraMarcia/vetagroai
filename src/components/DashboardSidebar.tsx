@@ -189,7 +189,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
       </div>
 
       {/* Scrollable content area */}
-      <ScrollArea className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-y-auto sidebar-green-scroll">
         {/* Profiles with workspace items */}
         <nav className="px-3 space-y-0.5">
           {profileMenuItems.map((item) => (
