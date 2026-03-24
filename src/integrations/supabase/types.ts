@@ -17,6 +17,7 @@ export type Database = {
       ai_response_cache: {
         Row: {
           created_at: string
+          created_by: string | null
           expires_at: string
           id: string
           request_hash: string
@@ -26,6 +27,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           expires_at?: string
           id?: string
           request_hash: string
@@ -35,6 +37,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           expires_at?: string
           id?: string
           request_hash?: string
