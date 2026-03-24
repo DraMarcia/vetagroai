@@ -68,16 +68,16 @@ export function ChatResponseActions({ content, profileTitle, userQuestion }: Cha
   };
 
   const handleDownloadPDF = async () => {
-    if (generatingPdf) return;
+    if (generatingPdf || !report) return;
     setGeneratingPdf(true);
     try {
-      const references = report?.references || buildFallbackReport(content, profileTitle).references;
+      const reportContent = report.sections.map(s => `${s.section}\n\n${s.body}`).join("\n\n");
       await exportToPDF({
         title: `Relatorio ${profileTitle} - VetAgro IA`,
-        content,
+        content: reportContent,
         toolName: profileTitle,
         date: new Date(),
-        references,
+        references: report.references,
       });
       toast.success("PDF gerado com sucesso!");
     } catch (error) {
