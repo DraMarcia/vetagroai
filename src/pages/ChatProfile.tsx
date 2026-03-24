@@ -411,7 +411,16 @@ export default function ChatProfile() {
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                       )}
                       {msg.role === "assistant" && !isLoading && (
-                        <ChatResponseActions content={msg.content} profileTitle={data.title} />
+                        <ChatResponseActions
+                          content={msg.content}
+                          profileTitle={data.title}
+                          userQuestion={(() => {
+                            for (let j = i - 1; j >= 0; j--) {
+                              if (messages[j].role === "user") return messages[j].content;
+                            }
+                            return "";
+                          })()}
+                        />
                       )}
                     </div>
                     {msg.role === "user" && (
