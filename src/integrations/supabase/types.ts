@@ -610,6 +610,30 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_territorial_metric: {
+        Args: {
+          _calculation_method?: string
+          _emission_type?: string
+          _estimated_emission_value?: number
+          _herd_size_range?: string
+          _metadata?: Json
+          _municipality?: string
+          _production_system?: string
+          _state?: string
+          _tool_name: string
+        }
+        Returns: undefined
+      }
+      set_cached_response: {
+        Args: {
+          _expires_at: string
+          _request_hash: string
+          _request_signature: string
+          _response_text: string
+          _tool_name: string
+        }
+        Returns: undefined
+      }
       use_credit: { Args: never; Returns: boolean }
     }
     Enums: {
