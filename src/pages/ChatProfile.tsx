@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChatResponseActions } from "@/components/ChatResponseActions";
+import { AnalysisVisual } from "@/components/AnalysisVisual";
 import { LowCreditBanner, ZeroCreditBlock } from "@/components/CreditAlerts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -422,16 +423,19 @@ export default function ChatProfile() {
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                       )}
                       {msg.role === "assistant" && !isLoading && (
-                        <ChatResponseActions
-                          content={msg.content}
-                          profileTitle={data.title}
-                          userQuestion={(() => {
-                            for (let j = i - 1; j >= 0; j--) {
-                              if (messages[j].role === "user") return messages[j].content;
-                            }
-                            return "";
-                          })()}
-                        />
+                        <>
+                          <AnalysisVisual content={msg.content} profileId={profileId} />
+                          <ChatResponseActions
+                            content={msg.content}
+                            profileTitle={data.title}
+                            userQuestion={(() => {
+                              for (let j = i - 1; j >= 0; j--) {
+                                if (messages[j].role === "user") return messages[j].content;
+                              }
+                              return "";
+                            })()}
+                          />
+                        </>
                       )}
                     </div>
                     {msg.role === "user" && (
