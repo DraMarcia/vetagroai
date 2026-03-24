@@ -70,6 +70,8 @@ const MeuPerfil = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { photoUrl, uploading, uploadPhoto } = useProfilePhoto(user?.id);
 
+  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuário";
+
   useEffect(() => {
     if (user) {
       loadUserData();
