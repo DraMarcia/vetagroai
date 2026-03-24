@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChatResponseActions } from "@/components/ChatResponseActions";
+import { AnalysisVisual } from "@/components/AnalysisVisual";
 import { LowCreditBanner, ZeroCreditBlock } from "@/components/CreditAlerts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
