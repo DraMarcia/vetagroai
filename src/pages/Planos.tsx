@@ -86,11 +86,11 @@ const Planos = () => {
         </div>
       )}
 
-      {/* Grid de planos — Mobile: Pro primeiro, stacked. Desktop: 4 colunas com Pro destacado */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
+      {/* Grid de planos — Mobile: menor→maior. Desktop: 4 colunas com Pro destacado */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 auto-rows-auto">
 
-        {/* ── PLANO PRO (aparece primeiro no mobile via order) ── */}
-        <Card className={`relative overflow-hidden flex flex-col border-2 border-primary shadow-xl shadow-primary/10 order-first xl:order-3 ${currentPlan === "pro" ? "ring-2 ring-green-500" : ""}`}>
+        {/* ── PLANO PRO ── */}
+        <Card className={`relative overflow-hidden flex flex-col border-2 border-primary shadow-xl shadow-primary/10 order-3 xl:order-3 ${currentPlan === "pro" ? "ring-2 ring-green-500" : ""}`}>
           {/* Selo MAIS ESCOLHIDO */}
           <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 py-1.5 text-center">
             <span className="text-[11px] font-bold uppercase tracking-widest text-white flex items-center justify-center gap-1.5">
@@ -158,7 +158,7 @@ const Planos = () => {
         </Card>
 
         {/* ── GRATUITO ── */}
-        <Card className={`relative overflow-hidden flex flex-col order-2 xl:order-1 ${currentPlan === "free" || !currentPlan ? "ring-2 ring-primary/40" : "border-border"}`}>
+        <Card className={`relative overflow-hidden flex flex-col order-1 xl:order-1 ${currentPlan === "free" || !currentPlan ? "ring-2 ring-primary/40" : "border-border"}`}>
           {(currentPlan === "free" || !currentPlan) && (
             <div className="absolute top-3 right-3">
               <Badge variant="secondary" className="text-[10px] font-semibold uppercase tracking-wide">Plano atual</Badge>
@@ -209,7 +209,7 @@ const Planos = () => {
         </Card>
 
         {/* ── CRÉDITOS AVULSOS ── */}
-        <Card className="relative overflow-hidden flex flex-col border-border order-3 xl:order-2">
+        <Card className="relative overflow-hidden flex flex-col border-border order-2 xl:order-2">
           <div className="absolute top-3 right-3">
             <Badge variant="outline" className="text-[10px] border-primary/50 text-primary uppercase tracking-wide">Pague por uso</Badge>
           </div>
