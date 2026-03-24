@@ -373,34 +373,65 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
 
       {/* User Footer */}
       <div className="border-t border-white/15 p-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 transition-colors">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-semibold">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        <div className="flex items-center gap-3 px-3 py-2.5">
+          {/* Clickable avatar for photo upload */}
+          <button
+            onClick={handleAvatarClick}
+            className="relative group flex-shrink-0"
+            title="Alterar foto de perfil"
+            disabled={uploading}
+          >
+            <Avatar className="h-9 w-9 border-2 border-white/20 group-hover:border-white/50 transition-colors">
+              <AvatarImage src={photoUrl || undefined} alt={userName} className="object-cover" />
+              <AvatarFallback className="bg-white/20 text-white text-sm font-semibold">
                 {userName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Camera className="w-3.5 h-3.5 text-white" />
+            </div>
+            {uploading && (
+              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                <div className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
               </div>
-              <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-medium text-white truncate">{userName}</p>
-              </div>
-              <MoreHorizontal className="w-4 h-4 text-white/50" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => navigate("/meu-perfil")}>
-              <Settings className="w-4 h-4 mr-2" />
-              Configurações
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/planos")}>
-              <CreditCard className="w-4 h-4 mr-2" />
-              Plano
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut} className="text-destructive focus:text-destructive">
-              <LogOut className="w-4 h-4 mr-2" />
-              {isLoggingOut ? "Saindo..." : "Sair"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            )}
+          </button>
+
+          {/* User info + dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex-1 flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity">
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{userName}</p>
+                  <p className="text-[10px] text-white/50 truncate">{userEmail}</p>
+                </div>
+                <MoreHorizontal className="w-4 h-4 text-white/50 flex-shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => navigate("/meu-perfil")}>
+                <Settings className="w-4 h-4 mr-2" />
+                Configurações
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/planos")}>
+                <CreditCard className="w-4 h-4 mr-2" />
+                Plano
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut} className="text-destructive focus:text-destructive">
+                <LogOut className="w-4 h-4 mr-2" />
+                {isLoggingOut ? "Saindo..." : "Sair"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   );
