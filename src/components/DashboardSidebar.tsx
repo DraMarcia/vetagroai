@@ -67,7 +67,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
   const [outrosOpen, setOutrosOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [activeView, setActiveView] = useState<SidebarView>("history");
-  const [expandedProfile, setExpandedProfile] = useState<UserProfile | null>(activeProfile);
+  const [expandedProfile, setExpandedProfile] = useState<UserProfile | null>(null);
 
   const {
     conversations, groupedConversations, createConversation,
