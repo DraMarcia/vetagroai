@@ -46,8 +46,8 @@ const ProdutosServicos = () => {
         
         <div className="grid gap-6 md:grid-cols-2">
           {/* Orientação TCC */}
-          <Card className="group hover:shadow-xl transition-all duration-300 border-l-4 border-l-primary overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Card className="relative group hover:shadow-xl transition-all duration-300 border-l-4 border-l-primary overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -90,8 +90,8 @@ const ProdutosServicos = () => {
           </Card>
 
           {/* Palestras e Workshops */}
-          <Card className="group hover:shadow-xl transition-all duration-300 border-l-4 border-l-amber-500 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Card className="relative group hover:shadow-xl transition-all duration-300 border-l-4 border-l-amber-500 overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -133,8 +133,8 @@ const ProdutosServicos = () => {
           </Card>
 
           {/* Consultoria Sustentabilidade */}
-          <Card className="group hover:shadow-xl transition-all duration-300 border-l-4 border-l-emerald-500 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Card className="relative group hover:shadow-xl transition-all duration-300 border-l-4 border-l-emerald-500 overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -176,8 +176,8 @@ const ProdutosServicos = () => {
           </Card>
 
           {/* Qualidade de Produtos */}
-          <Card className="group hover:shadow-xl transition-all duration-300 border-l-4 border-l-blue-500 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Card className="relative group hover:shadow-xl transition-all duration-300 border-l-4 border-l-blue-500 overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <CardHeader className="relative">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
