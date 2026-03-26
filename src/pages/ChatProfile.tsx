@@ -86,8 +86,8 @@ const profilesChatData: Record<string, ProfileChatData> = {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/profile-chat`;
 
-async function streamChat({ messages, profileId, onDelta, onDone, onError }: {
-  messages: Msg[]; profileId: string; onDelta: (text: string) => void; onDone: () => void; onError: (err: string) => void;
+async function streamChat({ messages, profileId, conversationStage, userContext, onDelta, onDone, onError }: {
+  messages: Msg[]; profileId: string; conversationStage?: ConversationStage; userContext?: Record<string, string>; onDelta: (text: string) => void; onDone: () => void; onError: (err: string) => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { onError("Sessão expirada. Faça login novamente."); return; }
