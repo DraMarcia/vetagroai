@@ -298,7 +298,8 @@ export default function ChatProfile() {
     setTitleGenerated(false);
     setInputValue("");
     setIsLoading(false);
-    // Clear URL conv param when switching profiles
+    setConvStage("idle");
+    setUserCtx(createEmptyContext(profileId || "produtor"));
     if (searchParams.has("conv")) {
       setSearchParams({}, { replace: true });
     }
