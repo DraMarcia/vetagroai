@@ -23,7 +23,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   veterinario: {
     id: "veterinario",
     title: "Veterinários",
-    greeting: "Olá! Como posso te ajudar na prática clínica hoje?",
+    greeting: "Olá! 👋\n\nSou sua assistente em Medicina Veterinária.\n\nPosso te ajudar com:\n• Diagnóstico e conduta clínica\n• Sanidade e prevenção\n• Bem-estar animal\n• Protocolos e manejo\n\nDescreva o caso ou sintomas do animal.\nExemplo: 'Bovino com perda de peso e apatia, o que pode ser?'\n\nTambém avalio impactos produtivos e ambientais nas recomendações.\nVamos começar?",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva um caso clínico, sintomas ou envie exames...",
     disclaimer: "O VetAgro IA apoia suas decisões clínicas com base em dados. Sempre utilize seu julgamento profissional.",
