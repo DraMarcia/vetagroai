@@ -12,6 +12,11 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useConversations } from "@/hooks/useConversations";
+import {
+  type UserContext, type ConversationStage,
+  createEmptyContext, extractContextFromMessage,
+  isContextComplete, requiresConsultativeFlow, serializeContext,
+} from "@/lib/userContextExtractor";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
