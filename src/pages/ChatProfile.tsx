@@ -249,6 +249,7 @@ export default function ChatProfile() {
   const [titleGenerated, setTitleGenerated] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const sendingRef = useRef(false);
 
   const { createConversation, updateTitle, saveMessage, loadMessages, toggleFavorite } = useConversations(profileId);
 
