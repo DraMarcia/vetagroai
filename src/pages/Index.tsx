@@ -139,16 +139,16 @@ const Index = () => {
               <button
                 key={profile.id}
                 onClick={() => handleProfileClick(profile)}
-                className="relative rounded-2xl bg-card shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.08)] border border-[hsl(0,0%,90%)] hover:border-primary/40 active:scale-[0.96] active:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-200 flex flex-col items-center justify-center gap-1 p-2 sm:p-3 md:p-4 text-center group cursor-pointer"
+                className="relative rounded-2xl bg-card shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.08)] border border-[hsl(0,0%,90%)] hover:border-primary/40 active:scale-[0.96] active:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-200 flex flex-col items-center justify-center gap-1.5 p-3 sm:p-4 md:p-5 text-center group cursor-pointer"
                 style={{ background: "linear-gradient(to bottom, hsl(0,0%,100%), hsl(0,0%,97%))" }}
               >
-                <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                   <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain drop-shadow-md" />
                 </div>
-                <h3 className="text-xs sm:text-sm md:text-base font-extrabold text-foreground group-hover:text-primary transition-colors leading-tight tracking-tight" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+                <h3 className="text-sm sm:text-base md:text-lg font-extrabold text-foreground group-hover:text-primary transition-colors leading-tight tracking-tight" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
                   {profile.title}
                 </h3>
-                <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-snug line-clamp-2 hidden sm:block">
+                <p className="text-[10px] sm:text-xs text-muted-foreground leading-snug line-clamp-2 hidden sm:block">
                   {profile.description}
                 </p>
               </button>
