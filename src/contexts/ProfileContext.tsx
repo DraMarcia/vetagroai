@@ -23,7 +23,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   veterinario: {
     id: "veterinario",
     title: "Veterinários",
-    greeting: "Olá! Como posso te ajudar na prática clínica hoje?",
+    greeting: "Olá! 👋\n\nSou sua assistente em Medicina Veterinária.\n\nPosso te ajudar com:\n• Diagnóstico e conduta clínica\n• Sanidade e prevenção\n• Bem-estar animal\n• Protocolos e manejo\n\nDescreva o caso ou sintomas do animal.\nExemplo: 'Bovino com perda de peso e apatia, o que pode ser?'\n\nTambém avalio impactos produtivos e ambientais nas recomendações.\nVamos começar?",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva um caso clínico, sintomas ou envie exames...",
     disclaimer: "O VetAgro IA apoia suas decisões clínicas com base em dados. Sempre utilize seu julgamento profissional.",
@@ -46,7 +46,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   zootecnista: {
     id: "zootecnista",
     title: "Zootecnistas",
-    greeting: "Olá! Vamos otimizar seu sistema produtivo hoje?",
+    greeting: "Olá! 👋\n\nSou sua assistente em Zootecnia, focada em eficiência produtiva.\n\nPosso te ajudar com:\n• Formulação de dietas\n• Ganho de peso e desempenho\n• Conversão alimentar\n• Redução de custos\n• Sustentabilidade da produção\n\nPara começar, me diga:\n👉 espécie + fase produtiva\n👉 objetivo (ganho, custo, reprodução)\n\nExemplo: 'Suínos com 30 kg, quero melhorar desempenho.'\n\nTambém analiso impacto ambiental e eficiência do sistema.\nVamos começar? 🚀",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva o sistema produtivo, dieta ou dados do rebanho...",
     disclaimer: "O VetAgro IA fornece análises para apoio técnico. Avalie conforme a realidade do sistema produtivo.",
@@ -69,7 +69,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   agronomo: {
     id: "agronomo",
     title: "Agrônomos",
-    greeting: "Olá! Como posso ajudar na sua produção agrícola?",
+    greeting: "Olá! 👋\n\nSou sua assistente em Agronomia.\n\nPosso te ajudar com:\n• Manejo de culturas\n• Fertilidade do solo\n• Pragas e doenças\n• Planejamento produtivo\n\nDescreva sua cultura ou problema.\nExemplo: 'Milho com baixa produtividade, o que pode ser?'\n\nIncluo análise de sustentabilidade e uso eficiente de recursos.\nVamos começar?",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva a cultura, solo, região ou envie imagens...",
     disclaimer: "O VetAgro IA oferece recomendações baseadas em dados. Considere as condições locais antes de decidir.",
@@ -92,7 +92,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   produtor: {
     id: "produtor",
     title: "Produtor Rural",
-    greeting: "Olá! Vamos melhorar os resultados da sua propriedade hoje?",
+    greeting: "Olá! 👋\n\nSou sua assistente para gestão da produção rural.\n\nPosso te ajudar com:\n• Produção e rentabilidade\n• Manejo do sistema\n• Redução de custos\n• Tomada de decisão\n\nMe conte sobre sua propriedade ou desafio.\nExemplo: 'Quero melhorar a rentabilidade do meu sistema.'\n\nTambém avalio impactos ambientais e eficiência.\nVamos começar?",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva sua propriedade, rebanho ou dúvida...",
     disclaimer: "O VetAgro IA ajuda com análises e sugestões. Avalie o que faz mais sentido para sua realidade.",
@@ -115,7 +115,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   pesquisador: {
     id: "pesquisador",
     title: "Pesquisador",
-    greeting: "Olá! Vamos gerar análises científicas e insights avançados hoje?",
+    greeting: "Olá! 👋\n\nSou sua assistente para análise técnica e científica.\n\nPosso te ajudar com:\n• Interpretação de dados\n• Estruturação de análises\n• Discussões técnicas\n• Modelagem e indicadores\n\nDescreva seu estudo ou objetivo.\nExemplo: 'Analisar emissões de metano em confinamento.'\n\nIncluo análise crítica e relação com sustentabilidade.\nVamos começar?",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva o objetivo da pesquisa, variáveis ou envie dados...",
     disclaimer: "As análises são baseadas em modelos e dados disponíveis. Recomenda-se validação técnica e científica.",
