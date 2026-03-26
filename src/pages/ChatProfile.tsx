@@ -304,7 +304,8 @@ export default function ChatProfile() {
     : `Olá! ${data.greeting}`;
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || isLoading) return;
+    if (!text.trim() || isLoading || sendingRef.current) return;
+    sendingRef.current = true;
     const userMsg: Msg = { role: "user", content: text.trim() };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
