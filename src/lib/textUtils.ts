@@ -589,6 +589,9 @@ export function cleanTextForDisplay(text: string): string {
   // Step 5: Fix spaced numbers
   cleaned = fixSpacedNumbers(cleaned);
   
+  // Step 5.5: Remove fake numbered references [1], [2], [3], etc.
+  cleaned = cleaned.replace(/\[\d+\]/g, '');
+
   // Step 6: Remove markdown formatting
   cleaned = cleaned.replace(/^#{1,6}\s*/gm, '');
   cleaned = cleaned.replace(/\*\*\*([^*]+)\*\*\*/g, '$1');
