@@ -8,7 +8,7 @@ import {
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useProfile, type UserProfile } from "@/contexts/ProfileContext";
+import { useProfile, type UserProfile, type ActiveProfile } from "@/contexts/ProfileContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -72,7 +72,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
   const {
     conversations, groupedConversations, createConversation,
     toggleFavorite, deleteConversation, searchConversations,
-  } = useConversations(activeProfile);
+  } = useConversations(activeProfile ?? undefined);
 
   const favorites = conversations.filter(c => c.is_favorite);
 
