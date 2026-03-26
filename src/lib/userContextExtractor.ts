@@ -48,7 +48,8 @@ export function createEmptyContext(profileId: string): UserContext {
 }
 
 // Patterns for extracting context from user messages
-const EXTRACTION_RULES: { field: keyof UserContext; patterns: RegExp[] }[] = [
+type StringFields = Exclude<keyof UserContext, "dados_completos">;
+const EXTRACTION_RULES: { field: StringFields; patterns: RegExp[] }[] = [
   {
     field: "area_ha",
     patterns: [
