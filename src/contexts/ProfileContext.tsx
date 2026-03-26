@@ -7,6 +7,8 @@ export type UserProfile =
   | "produtor" 
   | "pesquisador";
 
+export type ActiveProfile = UserProfile | null;
+
 interface ProfileData {
   id: UserProfile;
   title: string;
@@ -138,23 +140,23 @@ const profilesData: Record<UserProfile, ProfileData> = {
 };
 
 interface ProfileContextType {
-  activeProfile: UserProfile;
+  activeProfile: ActiveProfile;
   setActiveProfile: (profile: UserProfile) => void;
-  profileData: ProfileData;
+  profileData: ProfileData | null;
   allProfiles: typeof profilesData;
 }
 
 const ProfileContext = createContext<ProfileContextType | null>(null);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [activeProfile, setActiveProfile] = useState<UserProfile>("produtor");
+  const [activeProfile, setActiveProfile] = useState<ActiveProfile>(null);
 
   return (
     <ProfileContext.Provider
       value={{
         activeProfile,
         setActiveProfile,
-        profileData: profilesData[activeProfile],
+        profileData: activeProfile ? profilesData[activeProfile] : null,
         allProfiles: profilesData,
       }}
     >
