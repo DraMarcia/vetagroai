@@ -249,6 +249,7 @@ export default function ChatProfile() {
   const [titleGenerated, setTitleGenerated] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const sendingRef = useRef(false);
 
   const { createConversation, updateTitle, saveMessage, loadMessages, toggleFavorite } = useConversations(profileId);
 
@@ -303,7 +304,8 @@ export default function ChatProfile() {
     : `Olá! ${data.greeting}`;
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || isLoading) return;
+    if (!text.trim() || isLoading || sendingRef.current) return;
+    sendingRef.current = true;
     const userMsg: Msg = { role: "user", content: text.trim() };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
@@ -353,12 +355,13 @@ export default function ChatProfile() {
           await saveMessage(finalConvId, "assistant", assistantSoFar);
         }
         setIsLoading(false);
+        sendingRef.current = false;
         // Update title after first exchange if not yet done
         if (updatedMessages.length === 1) {
           await updateTitle(finalConvId, generateTitle(text.trim()));
         }
       },
-      onError: (err) => { toast.error(err); setIsLoading(false); },
+      onError: (err) => { toast.error(err); setIsLoading(false); sendingRef.current = false; },
     });
   };
 
