@@ -12,7 +12,7 @@ export function DashboardChat() {
     setInputValue(suggestion);
   };
 
-  const groupedActions = profileData.actions.reduce<Record<string, string[]>>((acc, action) => {
+  const groupedActions = (profileData?.actions ?? []).reduce<Record<string, string[]>>((acc, action) => {
     if (!acc[action.category]) acc[action.category] = [];
     acc[action.category].push(action.label);
     return acc;
