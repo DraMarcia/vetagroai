@@ -12,6 +12,11 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { useConversations } from "@/hooks/useConversations";
+import {
+  type UserContext, type ConversationStage,
+  createEmptyContext, extractContextFromMessage,
+  isContextComplete, requiresConsultativeFlow, serializeContext,
+} from "@/lib/userContextExtractor";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -81,8 +86,8 @@ const profilesChatData: Record<string, ProfileChatData> = {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/profile-chat`;
 
-async function streamChat({ messages, profileId, onDelta, onDone, onError }: {
-  messages: Msg[]; profileId: string; onDelta: (text: string) => void; onDone: () => void; onError: (err: string) => void;
+async function streamChat({ messages, profileId, conversationStage, userContext, onDelta, onDone, onError }: {
+  messages: Msg[]; profileId: string; conversationStage?: ConversationStage; userContext?: Record<string, string>; onDelta: (text: string) => void; onDone: () => void; onError: (err: string) => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) { onError("Sessão expirada. Faça login novamente."); return; }
@@ -95,7 +100,7 @@ async function streamChat({ messages, profileId, onDelta, onDone, onError }: {
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ messages, profileId }),
+      body: JSON.stringify({ messages, profileId, conversationStage, userContext }),
       signal: controller.signal,
     });
 
@@ -262,6 +267,8 @@ export default function ChatProfile() {
   const [userName, setUserName] = useState("");
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [titleGenerated, setTitleGenerated] = useState(false);
+  const [convStage, setConvStage] = useState<ConversationStage>("idle");
+  const [userCtx, setUserCtx] = useState<UserContext>(() => createEmptyContext(profileId || "produtor"));
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
@@ -291,7 +298,8 @@ export default function ChatProfile() {
     setTitleGenerated(false);
     setInputValue("");
     setIsLoading(false);
-    // Clear URL conv param when switching profiles
+    setConvStage("idle");
+    setUserCtx(createEmptyContext(profileId || "produtor"));
     if (searchParams.has("conv")) {
       setSearchParams({}, { replace: true });
     }
@@ -327,6 +335,24 @@ export default function ChatProfile() {
     setInputValue("");
     setIsLoading(true);
 
+    // ── Stage + context management ──
+    let currentCtx = extractContextFromMessage(text.trim(), userCtx);
+    let currentStage = convStage;
+
+    // Determine stage transitions
+    if (currentStage === "idle" || currentStage === "final") {
+      if (requiresConsultativeFlow(text.trim())) {
+        currentStage = "diagnostico";
+      }
+    }
+
+    if (currentStage === "diagnostico" && isContextComplete(currentCtx)) {
+      currentStage = "analise";
+    }
+
+    setUserCtx(currentCtx);
+    setConvStage(currentStage);
+
     // Create conversation if needed
     let convId = activeConversationId;
     if (!convId) {
@@ -334,6 +360,7 @@ export default function ChatProfile() {
       if (!convId) {
         toast.error("Erro ao criar conversa");
         setIsLoading(false);
+        sendingRef.current = false;
         return;
       }
       setActiveConversationId(convId);
@@ -357,21 +384,31 @@ export default function ChatProfile() {
     const REPORT_CTA = `\n\n---\n\nSe você quiser uma análise mais aprofundada e estruturada deste caso, posso gerar um **relatório técnico completo** com:\n\n• Diagnóstico detalhado e causas prováveis\n• Estratégias recomendadas com base científica\n• Protocolo de ação passo a passo\n• Avaliação de riscos e impacto produtivo\n• Referências técnicas confiáveis\n\nBasta clicar em **"Gerar relatório"**.\n\nApós isso, você poderá baixar um PDF profissional ou compartilhar o conteúdo.\n\nCaso seus créditos acabem, você pode adquirir mais créditos para continuar utilizando a plataforma.`;
 
     const finalConvId = convId;
+    const stageForRequest = currentStage;
+
     await streamChat({
-      messages: updatedMessages, profileId: profileId!,
+      messages: updatedMessages,
+      profileId: profileId!,
+      conversationStage: stageForRequest,
+      userContext: serializeContext(currentCtx),
       onDelta: (chunk) => upsertAssistant(chunk),
       onDone: async () => {
-        // Append report CTA to the final message
         if (assistantSoFar) {
-          assistantSoFar += REPORT_CTA;
+          // Only append report CTA after full analysis (analise stage)
+          if (stageForRequest === "analise") {
+            assistantSoFar += REPORT_CTA;
+            setConvStage("final");
+          }
           setMessages((prev) =>
             prev.map((m, i) => i === prev.length - 1 && m.role === "assistant" ? { ...m, content: assistantSoFar } : m)
           );
           await saveMessage(finalConvId, "assistant", assistantSoFar);
+
+          // After assistant responds in diagnostico, extract any context it asked about
+          // (stage stays diagnostico until user provides enough data)
         }
         setIsLoading(false);
         sendingRef.current = false;
-        // Update title after first exchange if not yet done
         if (updatedMessages.length === 1) {
           await updateTitle(finalConvId, generateTitle(text.trim()));
         }
@@ -395,6 +432,8 @@ export default function ChatProfile() {
     setMessages([]);
     setActiveConversationId(null);
     setTitleGenerated(false);
+    setConvStage("idle");
+    setUserCtx(createEmptyContext(profileId || "produtor"));
     setSearchParams({}, { replace: true });
   };
 
