@@ -115,7 +115,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   pesquisador: {
     id: "pesquisador",
     title: "Pesquisador",
-    greeting: "Olá! Vamos gerar análises científicas e insights avançados hoje?",
+    greeting: "Olá! 👋\n\nSou sua assistente para análise técnica e científica.\n\nPosso te ajudar com:\n• Interpretação de dados\n• Estruturação de análises\n• Discussões técnicas\n• Modelagem e indicadores\n\nDescreva seu estudo ou objetivo.\nExemplo: 'Analisar emissões de metano em confinamento.'\n\nIncluo análise crítica e relação com sustentabilidade.\nVamos começar?",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva o objetivo da pesquisa, variáveis ou envie dados...",
     disclaimer: "As análises são baseadas em modelos e dados disponíveis. Recomenda-se validação técnica e científica.",
