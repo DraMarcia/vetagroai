@@ -268,6 +268,19 @@ export default function ChatProfile() {
     });
   }, [navigate]);
 
+  // Reset chat completely when profileId changes
+  useEffect(() => {
+    setMessages([]);
+    setActiveConversationId(null);
+    setTitleGenerated(false);
+    setInputValue("");
+    setIsLoading(false);
+    // Clear URL conv param when switching profiles
+    if (searchParams.has("conv")) {
+      setSearchParams({}, { replace: true });
+    }
+  }, [profileId]);
+
   // Load existing conversation
   useEffect(() => {
     if (conversationIdFromUrl && conversationIdFromUrl !== activeConversationId) {
