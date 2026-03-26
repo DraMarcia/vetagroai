@@ -654,6 +654,9 @@ export function cleanTextForPDF(text: string): string {
     cleaned = convertHtmlToText(cleaned);
   }
   
+  // Step 5.5: Remove fake numbered references [1], [2], [3], etc.
+  cleaned = cleaned.replace(/\[\d+\]/g, '');
+
   // Step 6: Convert markdown tables to aligned lists
   cleaned = convertMarkdownTableToList(cleaned);
   
