@@ -125,3 +125,13 @@ All colors MUST be HSL.
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Hero section responsive height */
+.hero-section {
+  height: clamp(180px, 32vh, 380px);
+}
+@media (min-width: 768px) {
+  .hero-section {
+    height: clamp(280px, 45vh, 480px);
+  }
+}
