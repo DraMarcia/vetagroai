@@ -40,8 +40,8 @@ const titleMap: Record<string, string> = {
 
 export function DashboardInsights() {
   const { activeProfile } = useProfile();
-  const indicators = indicatorsMap[activeProfile] || indicatorsMap.produtor;
-  const title = titleMap[activeProfile] || "Resumo";
+  const indicators = (activeProfile && indicatorsMap[activeProfile]) || indicatorsMap.produtor;
+  const title = (activeProfile && titleMap[activeProfile]) || "Resumo";
 
   return (
     <div className="w-72 h-full border-l border-border bg-muted/30 flex flex-col">
