@@ -92,7 +92,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   produtor: {
     id: "produtor",
     title: "Produtor Rural",
-    greeting: "Olá! Vamos melhorar os resultados da sua propriedade hoje?",
+    greeting: "Olá! 👋\n\nSou sua assistente para gestão da produção rural.\n\nPosso te ajudar com:\n• Produção e rentabilidade\n• Manejo do sistema\n• Redução de custos\n• Tomada de decisão\n\nMe conte sobre sua propriedade ou desafio.\nExemplo: 'Quero melhorar a rentabilidade do meu sistema.'\n\nTambém avalio impactos ambientais e eficiência.\nVamos começar?",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva sua propriedade, rebanho ou dúvida...",
     disclaimer: "O VetAgro IA ajuda com análises e sugestões. Avalie o que faz mais sentido para sua realidade.",
