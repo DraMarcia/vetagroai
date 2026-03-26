@@ -355,12 +355,13 @@ export default function ChatProfile() {
           await saveMessage(finalConvId, "assistant", assistantSoFar);
         }
         setIsLoading(false);
+        sendingRef.current = false;
         // Update title after first exchange if not yet done
         if (updatedMessages.length === 1) {
           await updateTitle(finalConvId, generateTitle(text.trim()));
         }
       },
-      onError: (err) => { toast.error(err); setIsLoading(false); },
+      onError: (err) => { toast.error(err); setIsLoading(false); sendingRef.current = false; },
     });
   };
 
