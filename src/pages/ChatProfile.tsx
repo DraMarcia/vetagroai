@@ -432,6 +432,8 @@ export default function ChatProfile() {
     setMessages([]);
     setActiveConversationId(null);
     setTitleGenerated(false);
+    setConvStage("idle");
+    setUserCtx(createEmptyContext(profileId || "produtor"));
     setSearchParams({}, { replace: true });
   };
 
