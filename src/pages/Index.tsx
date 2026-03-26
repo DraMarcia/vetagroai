@@ -69,6 +69,7 @@ const Index = () => {
       <section
         className="relative flex-shrink-0 flex flex-col items-center justify-center"
         style={{ height: "clamp(180px, 32vh, 380px)" }}
+        id="hero-section"
       >
         <div className="absolute inset-0">
           <img
