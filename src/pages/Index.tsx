@@ -12,12 +12,12 @@ import logoVeragro from "@/assets/logo-vetagro.png";
 import logoWhite from "@/assets/logo-vetagro-white.png";
 import bgFloresta from "@/assets/bg-floresta.jpeg";
 
-import iconVeterinarios from "@/assets/icon-veterinarios.png";
-import iconZootecnistas from "@/assets/icon-zootecnistas.png";
-import iconAgronomos from "@/assets/icon-agronomos.png";
-import iconProdutorRural from "@/assets/icon-produtor-rural.png";
-import iconPesquisador from "@/assets/icon-pesquisador.png";
-import iconOutrosRecursos from "@/assets/icon-outros-recursos.png";
+import iconVeterinarios from "@/assets/profile-veterinarios.png";
+import iconZootecnistas from "@/assets/profile-zootecnistas.png";
+import iconAgronomos from "@/assets/profile-agronomos.png";
+import iconProdutorRural from "@/assets/profile-produtor-rural.png";
+import iconPesquisador from "@/assets/profile-pesquisador.png";
+import iconOutrosRecursos from "@/assets/profile-outros-recursos.png";
 
 const profiles = [
   { id: "veterinario", title: "Veterinários", description: "Otimize diagnósticos e protocolos de saúde", icon: iconVeterinarios, route: "/chat/veterinario" },
@@ -133,23 +133,24 @@ const Index = () => {
       {/* Profiles grid */}
       <section className="flex-1 bg-muted/30 overflow-auto flex flex-col">
         <div className="container mx-auto px-4 py-3 max-w-4xl flex-1 flex flex-col">
-          <h2 className="text-sm sm:text-base font-bold text-foreground text-center mb-3 flex-shrink-0">
+          <h2 className="text-base sm:text-lg md:text-xl font-extrabold text-primary text-center mb-4 flex-shrink-0 tracking-tight" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
             Explore as soluções
           </h2>
-          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-3 content-start pb-4">
+          <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 content-start pb-4">
             {profiles.map((profile) => (
               <button
                 key={profile.id}
                 onClick={() => handleProfileClick(profile)}
-                className="rounded-xl bg-card border-2 border-[hsl(142,30%,75%)] shadow-sm hover:shadow-lg hover:border-primary/50 active:scale-[0.97] transition-all duration-200 flex flex-col items-center gap-1 p-3 text-center group cursor-pointer"
+                className="relative rounded-2xl bg-card shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.08)] border border-[hsl(0,0%,90%)] hover:border-primary/40 active:scale-[0.96] active:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-200 flex flex-col items-center gap-1.5 p-4 sm:p-5 text-center group cursor-pointer"
+                style={{ background: "linear-gradient(to bottom, hsl(0,0%,100%), hsl(0,0%,97%))" }}
               >
-                <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 flex items-center justify-center">
-                  <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain" />
+                <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                  <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain drop-shadow-md" />
                 </div>
-                <h3 className="text-xs sm:text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+                <h3 className="text-sm sm:text-base font-extrabold text-foreground group-hover:text-primary transition-colors leading-tight tracking-tight" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
                   {profile.title}
                 </h3>
-                <p className="text-[10px] sm:text-xs text-muted-foreground leading-snug line-clamp-2">
+                <p className="text-[11px] sm:text-xs text-muted-foreground leading-snug line-clamp-2">
                   {profile.description}
                 </p>
               </button>
