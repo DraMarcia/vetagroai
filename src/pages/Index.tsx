@@ -139,18 +139,20 @@ const Index = () => {
               <button
                 key={profile.id}
                 onClick={() => handleProfileClick(profile)}
-                className="relative rounded-2xl bg-card shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.08)] border border-[hsl(0,0%,90%)] hover:border-primary/40 active:scale-[0.96] active:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-200 flex flex-col items-center justify-center gap-1.5 p-3 sm:p-4 md:p-5 text-center group cursor-pointer"
+                className="relative rounded-2xl bg-card shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.08)] border border-[hsl(0,0%,90%)] hover:border-primary/40 active:scale-[0.96] active:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-200 flex flex-col md:flex-row items-center md:items-center gap-1.5 md:gap-3 p-3 sm:p-4 md:px-5 md:py-4 text-center md:text-left group cursor-pointer"
                 style={{ background: "linear-gradient(to bottom, hsl(0,0%,100%), hsl(0,0%,97%))" }}
               >
-                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-16 md:h-16 flex-shrink-0 flex items-center justify-center group-hover:scale-105 transition-transform duration-200">
                   <img src={profile.icon} alt={profile.title} className="w-full h-full object-contain drop-shadow-md" />
                 </div>
-                <h3 className="text-sm sm:text-base md:text-lg font-extrabold text-foreground group-hover:text-primary transition-colors leading-tight tracking-tight" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
-                  {profile.title}
-                </h3>
-                <p className="text-[10px] sm:text-xs text-muted-foreground leading-snug line-clamp-2 hidden sm:block">
-                  {profile.description}
-                </p>
+                <div className="flex flex-col md:flex-1">
+                  <h3 className="text-sm sm:text-base md:text-base font-extrabold text-foreground group-hover:text-primary transition-colors leading-tight tracking-tight" style={{ fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+                    {profile.title}
+                  </h3>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground leading-snug line-clamp-2">
+                    {profile.description}
+                  </p>
+                </div>
               </button>
             ))}
           </div>
