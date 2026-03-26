@@ -335,6 +335,24 @@ export default function ChatProfile() {
     setInputValue("");
     setIsLoading(true);
 
+    // ── Stage + context management ──
+    let currentCtx = extractContextFromMessage(text.trim(), userCtx);
+    let currentStage = convStage;
+
+    // Determine stage transitions
+    if (currentStage === "idle" || currentStage === "final") {
+      if (requiresConsultativeFlow(text.trim())) {
+        currentStage = "diagnostico";
+      }
+    }
+
+    if (currentStage === "diagnostico" && isContextComplete(currentCtx)) {
+      currentStage = "analise";
+    }
+
+    setUserCtx(currentCtx);
+    setConvStage(currentStage);
+
     // Create conversation if needed
     let convId = activeConversationId;
     if (!convId) {
@@ -342,6 +360,7 @@ export default function ChatProfile() {
       if (!convId) {
         toast.error("Erro ao criar conversa");
         setIsLoading(false);
+        sendingRef.current = false;
         return;
       }
       setActiveConversationId(convId);
@@ -365,21 +384,31 @@ export default function ChatProfile() {
     const REPORT_CTA = `\n\n---\n\nSe você quiser uma análise mais aprofundada e estruturada deste caso, posso gerar um **relatório técnico completo** com:\n\n• Diagnóstico detalhado e causas prováveis\n• Estratégias recomendadas com base científica\n• Protocolo de ação passo a passo\n• Avaliação de riscos e impacto produtivo\n• Referências técnicas confiáveis\n\nBasta clicar em **"Gerar relatório"**.\n\nApós isso, você poderá baixar um PDF profissional ou compartilhar o conteúdo.\n\nCaso seus créditos acabem, você pode adquirir mais créditos para continuar utilizando a plataforma.`;
 
     const finalConvId = convId;
+    const stageForRequest = currentStage;
+
     await streamChat({
-      messages: updatedMessages, profileId: profileId!,
+      messages: updatedMessages,
+      profileId: profileId!,
+      conversationStage: stageForRequest,
+      userContext: serializeContext(currentCtx),
       onDelta: (chunk) => upsertAssistant(chunk),
       onDone: async () => {
-        // Append report CTA to the final message
         if (assistantSoFar) {
-          assistantSoFar += REPORT_CTA;
+          // Only append report CTA after full analysis (analise stage)
+          if (stageForRequest === "analise") {
+            assistantSoFar += REPORT_CTA;
+            setConvStage("final");
+          }
           setMessages((prev) =>
             prev.map((m, i) => i === prev.length - 1 && m.role === "assistant" ? { ...m, content: assistantSoFar } : m)
           );
           await saveMessage(finalConvId, "assistant", assistantSoFar);
+
+          // After assistant responds in diagnostico, extract any context it asked about
+          // (stage stays diagnostico until user provides enough data)
         }
         setIsLoading(false);
         sendingRef.current = false;
-        // Update title after first exchange if not yet done
         if (updatedMessages.length === 1) {
           await updateTitle(finalConvId, generateTitle(text.trim()));
         }
