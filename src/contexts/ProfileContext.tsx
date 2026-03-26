@@ -46,7 +46,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   zootecnista: {
     id: "zootecnista",
     title: "Zootecnistas",
-    greeting: "Olá! Vamos otimizar seu sistema produtivo hoje?",
+    greeting: "Olá! 👋\n\nSou sua assistente em Zootecnia, focada em eficiência produtiva.\n\nPosso te ajudar com:\n• Formulação de dietas\n• Ganho de peso e desempenho\n• Conversão alimentar\n• Redução de custos\n• Sustentabilidade da produção\n\nPara começar, me diga:\n👉 espécie + fase produtiva\n👉 objetivo (ganho, custo, reprodução)\n\nExemplo: 'Suínos com 30 kg, quero melhorar desempenho.'\n\nTambém analiso impacto ambiental e eficiência do sistema.\nVamos começar? 🚀",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva o sistema produtivo, dieta ou dados do rebanho...",
     disclaimer: "O VetAgro IA fornece análises para apoio técnico. Avalie conforme a realidade do sistema produtivo.",
