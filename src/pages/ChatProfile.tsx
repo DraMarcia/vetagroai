@@ -100,7 +100,7 @@ async function streamChat({ messages, profileId, conversationStage, userContext,
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ messages, profileId }),
+      body: JSON.stringify({ messages, profileId, conversationStage, userContext }),
       signal: controller.signal,
     });
 
