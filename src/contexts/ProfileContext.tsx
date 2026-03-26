@@ -69,7 +69,7 @@ const profilesData: Record<UserProfile, ProfileData> = {
   agronomo: {
     id: "agronomo",
     title: "Agrônomos",
-    greeting: "Olá! Como posso ajudar na sua produção agrícola?",
+    greeting: "Olá! 👋\n\nSou sua assistente em Agronomia.\n\nPosso te ajudar com:\n• Manejo de culturas\n• Fertilidade do solo\n• Pragas e doenças\n• Planejamento produtivo\n\nDescreva sua cultura ou problema.\nExemplo: 'Milho com baixa produtividade, o que pode ser?'\n\nIncluo análise de sustentabilidade e uso eficiente de recursos.\nVamos começar?",
     subtitle: "Descreva sua realidade, objetivos ou envie dados. Eu te ajudo com análise e recomendações.",
     placeholder: "Descreva a cultura, solo, região ou envie imagens...",
     disclaimer: "O VetAgro IA oferece recomendações baseadas em dados. Considere as condições locais antes de decidir.",
