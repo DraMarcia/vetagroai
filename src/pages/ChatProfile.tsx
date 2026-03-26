@@ -267,6 +267,8 @@ export default function ChatProfile() {
   const [userName, setUserName] = useState("");
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [titleGenerated, setTitleGenerated] = useState(false);
+  const [convStage, setConvStage] = useState<ConversationStage>("idle");
+  const [userCtx, setUserCtx] = useState<UserContext>(() => createEmptyContext(profileId || "produtor"));
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
