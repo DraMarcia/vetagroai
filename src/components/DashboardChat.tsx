@@ -27,21 +27,21 @@ export function DashboardChat() {
           <div className="inline-flex items-center gap-2 mb-4">
             <Sparkles className="w-5 h-5 text-primary" />
             <Badge variant="secondary" className="text-xs font-medium">
-              {profileData.chipLabel}
+              {profileData?.chipLabel ?? "VetAgro IA"}
             </Badge>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-            {profileData.greeting}
+            {profileData?.greeting ?? "Selecione um perfil para começar"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {profileData.subtitle}
+            {profileData?.subtitle ?? ""}
           </p>
         </div>
 
         {/* Action Cards - max 6 */}
         <div className="max-w-2xl w-full mb-8">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {profileData.actions.slice(0, 6).map((action, i) => (
+            {(profileData?.actions ?? []).slice(0, 6).map((action, i) => (
               <button
                 key={i}
                 onClick={() => setInputValue(action.label)}
@@ -61,7 +61,7 @@ export function DashboardChat() {
         {/* Smart Suggestions */}
         <div className="max-w-2xl w-full">
           <div className="flex flex-wrap gap-2 justify-center">
-            {profileData.suggestions.map((suggestion, i) => (
+            {(profileData?.suggestions ?? []).map((suggestion, i) => (
               <button
                 key={i}
                 onClick={() => handleSuggestionClick(suggestion)}
@@ -89,7 +89,7 @@ export function DashboardChat() {
             <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder={profileData.placeholder}
+              placeholder={profileData?.placeholder ?? "Digite sua mensagem..."}
               rows={1}
               className="flex-1 resize-none bg-transparent border-0 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none min-h-[36px] max-h-[120px] py-2"
               style={{ fieldSizing: "content" } as any}
@@ -120,7 +120,7 @@ export function DashboardChat() {
 
           {/* Disclaimer */}
           <p className="text-[10px] text-muted-foreground text-center mt-3 leading-relaxed">
-            {profileData.disclaimer}
+            {profileData?.disclaimer ?? ""}
           </p>
         </div>
       </div>
