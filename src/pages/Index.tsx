@@ -67,8 +67,7 @@ const Index = () => {
 
       {/* Hero — compact to fit everything in viewport */}
       <section
-        className="relative flex-shrink-0 flex flex-col items-center justify-center"
-        style={{ height: "clamp(180px, 32vh, 380px)" }}
+        className="relative flex-shrink-0 flex flex-col items-center justify-center hero-section"
       >
         <div className="absolute inset-0">
           <img
