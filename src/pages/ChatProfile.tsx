@@ -273,7 +273,7 @@ export default function ChatProfile() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
 
-  const { createConversation, updateTitle, saveMessage, loadMessages, toggleFavorite } = useConversations(profileId);
+  const { conversations, createConversation, updateTitle, saveMessage, loadMessages, toggleFavorite } = useConversations(profileId);
 
   const isOutOfCredits = !hasUnlimited && credits <= 0;
 
@@ -281,6 +281,7 @@ export default function ChatProfile() {
 
   // Load conversation from URL param
   const conversationIdFromUrl = searchParams.get("conv");
+  const autoLoadAttemptedRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -300,21 +301,40 @@ export default function ChatProfile() {
     setIsLoading(false);
     setConvStage("idle");
     setUserCtx(createEmptyContext(profileId || "produtor"));
+    autoLoadAttemptedRef.current = null;
     if (searchParams.has("conv")) {
       setSearchParams({}, { replace: true });
     }
   }, [profileId]);
 
-  // Load existing conversation
+  // Load existing conversation from URL param
   useEffect(() => {
     if (conversationIdFromUrl && conversationIdFromUrl !== activeConversationId) {
       setActiveConversationId(conversationIdFromUrl);
       setTitleGenerated(true);
+      autoLoadAttemptedRef.current = profileId || null;
       loadMessages(conversationIdFromUrl).then((msgs) => {
         setMessages(msgs.map(m => ({ role: m.role as "user" | "assistant", content: m.content })));
       });
     }
   }, [conversationIdFromUrl, activeConversationId, loadMessages]);
+
+  // Auto-load last conversation when arriving without ?conv= param
+  useEffect(() => {
+    if (conversationIdFromUrl) return; // already loading from URL
+    if (activeConversationId) return; // already have active conv
+    if (autoLoadAttemptedRef.current === profileId) return; // already attempted for this profile
+    if (!conversations.length) return; // no conversations yet
+
+    const lastConv = conversations[0]; // already sorted by updated_at desc
+    autoLoadAttemptedRef.current = profileId || null;
+    setActiveConversationId(lastConv.id);
+    setTitleGenerated(true);
+    setSearchParams({ conv: lastConv.id }, { replace: true });
+    loadMessages(lastConv.id).then((msgs) => {
+      setMessages(msgs.map(m => ({ role: m.role as "user" | "assistant", content: m.content })));
+    });
+  }, [conversations, conversationIdFromUrl, activeConversationId, profileId, loadMessages, setSearchParams]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
