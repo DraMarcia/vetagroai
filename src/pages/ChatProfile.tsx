@@ -283,6 +283,7 @@ export default function ChatProfile() {
   const conversationIdFromUrl = searchParams.get("conv");
   const isNewChat = searchParams.get("new") === "1";
   const autoLoadAttemptedRef = useRef<string | null>(null);
+  const skipAutoLoadProfileRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -293,7 +294,7 @@ export default function ChatProfile() {
     });
   }, [navigate]);
 
-  // Reset chat completely when profileId changes or new chat requested
+  // Reset chat completely when profileId changes
   useEffect(() => {
     setMessages([]);
     setActiveConversationId(null);
@@ -303,20 +304,31 @@ export default function ChatProfile() {
     setConvStage("idle");
     setUserCtx(createEmptyContext(profileId || "produtor"));
     autoLoadAttemptedRef.current = null;
-    // If ?new=1, mark auto-load as already attempted so it won't load last conv
-    if (isNewChat) {
-      autoLoadAttemptedRef.current = profileId || null;
-      setSearchParams({}, { replace: true });
-    } else if (searchParams.has("conv")) {
-      // keep conv param
-    } else {
-      autoLoadAttemptedRef.current = null;
-    }
-  }, [profileId, isNewChat]);
+  }, [profileId]);
+
+  // Explicit "new chat" mode: keep blank state and block immediate auto-restore
+  useEffect(() => {
+    if (!isNewChat) return;
+
+    setMessages([]);
+    setActiveConversationId(null);
+    setTitleGenerated(false);
+    setInputValue("");
+    setIsLoading(false);
+    setConvStage("idle");
+    setUserCtx(createEmptyContext(profileId || "produtor"));
+
+    autoLoadAttemptedRef.current = profileId || null;
+    skipAutoLoadProfileRef.current = profileId || null;
+
+    // Clean URL but keep blank-state lock for this profile
+    setSearchParams({}, { replace: true });
+  }, [isNewChat, profileId, setSearchParams]);
 
   // Load existing conversation from URL param
   useEffect(() => {
     if (conversationIdFromUrl && conversationIdFromUrl !== activeConversationId) {
+      skipAutoLoadProfileRef.current = null;
       setActiveConversationId(conversationIdFromUrl);
       setTitleGenerated(true);
       autoLoadAttemptedRef.current = profileId || null;
@@ -324,12 +336,13 @@ export default function ChatProfile() {
         setMessages(msgs.map(m => ({ role: m.role as "user" | "assistant", content: m.content })));
       });
     }
-  }, [conversationIdFromUrl, activeConversationId, loadMessages]);
+  }, [conversationIdFromUrl, activeConversationId, loadMessages, profileId]);
 
   // Auto-load last conversation when arriving without ?conv= param
   useEffect(() => {
     if (conversationIdFromUrl) return; // already loading from URL
     if (activeConversationId) return; // already have active conv
+    if (skipAutoLoadProfileRef.current === profileId) return; // explicit new chat state
     if (autoLoadAttemptedRef.current === profileId) return; // already attempted for this profile
     if (!conversations.length) return; // no conversations yet
 
@@ -392,6 +405,7 @@ export default function ChatProfile() {
       }
       setActiveConversationId(convId);
       setTitleGenerated(true);
+      skipAutoLoadProfileRef.current = null;
       setSearchParams({ conv: convId }, { replace: true });
     }
 
@@ -461,6 +475,8 @@ export default function ChatProfile() {
     setTitleGenerated(false);
     setConvStage("idle");
     setUserCtx(createEmptyContext(profileId || "produtor"));
+    autoLoadAttemptedRef.current = profileId || null;
+    skipAutoLoadProfileRef.current = profileId || null;
     setSearchParams({}, { replace: true });
   };
 
