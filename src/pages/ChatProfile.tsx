@@ -281,6 +281,7 @@ export default function ChatProfile() {
 
   // Load conversation from URL param
   const conversationIdFromUrl = searchParams.get("conv");
+  const isNewChat = searchParams.get("new") === "1";
   const autoLoadAttemptedRef = useRef<string | null>(null);
 
   useEffect(() => {
