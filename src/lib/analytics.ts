@@ -63,12 +63,49 @@ export const trackFeatureUsed = (featureName: string): void => {
   trackEvent('feature_used', { feature_name: featureName });
 };
 
-// Track subscription click
-export const trackSubscriptionClick = (planId: string): void => {
-  trackEvent('subscription_click', { plan_id: planId });
+// === FUNNEL EVENTS ===
+
+// 1. Track profile selection on Index page
+export const trackSelectProfile = (profileName: string): void => {
+  trackEvent('select_profile', { profile_name: profileName });
 };
 
-// Track subscription success (Mercado Pago return)
+// 2. Track chat opened
+export const trackStartChat = (profileName?: string): void => {
+  trackEvent('start_chat', { profile_name: profileName });
+};
+
+// 3. Track message sent to AI
+export const trackSendMessage = (profileName?: string): void => {
+  trackEvent('send_message', { profile_name: profileName });
+};
+
+// 4. Track report generation click
+export const trackGenerateReport = (format?: string): void => {
+  trackEvent('generate_report', { format });
+};
+
+// 5. Track PDF download
+export const trackDownloadPdf = (): void => {
+  trackEvent('download_pdf');
+};
+
+// 6. Track plans page view
+export const trackViewPlans = (): void => {
+  trackEvent('view_plans');
+};
+
+// 7. Track subscription/credits click
+export const trackSubscriptionClick = (planId: string): void => {
+  trackEvent('click_subscribe', { plan_id: planId });
+};
+
+// 8. Track begin checkout (redirect to Mercado Pago)
+export const trackBeginCheckout = (planId: string, value?: number): void => {
+  trackEvent('begin_checkout', { plan_id: planId, value, currency: 'BRL' });
+};
+
+// 9. Track purchase completion (Mercado Pago return)
 export const trackSubscriptionSuccess = (planId: string): void => {
-  trackEvent('subscription_success', { plan_id: planId });
+  trackEvent('purchase', { plan_id: planId, currency: 'BRL' });
 };
