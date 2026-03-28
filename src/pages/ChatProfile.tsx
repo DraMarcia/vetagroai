@@ -293,7 +293,7 @@ export default function ChatProfile() {
     });
   }, [navigate]);
 
-  // Reset chat completely when profileId changes
+  // Reset chat completely when profileId changes or new chat requested
   useEffect(() => {
     setMessages([]);
     setActiveConversationId(null);
@@ -303,10 +303,16 @@ export default function ChatProfile() {
     setConvStage("idle");
     setUserCtx(createEmptyContext(profileId || "produtor"));
     autoLoadAttemptedRef.current = null;
-    if (searchParams.has("conv")) {
+    // If ?new=1, mark auto-load as already attempted so it won't load last conv
+    if (isNewChat) {
+      autoLoadAttemptedRef.current = profileId || null;
       setSearchParams({}, { replace: true });
+    } else if (searchParams.has("conv")) {
+      // keep conv param
+    } else {
+      autoLoadAttemptedRef.current = null;
     }
-  }, [profileId]);
+  }, [profileId, isNewChat]);
 
   // Load existing conversation from URL param
   useEffect(() => {
