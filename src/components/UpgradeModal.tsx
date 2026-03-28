@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Zap, Crown, ArrowRight } from "lucide-react";
-import { trackSubscriptionClick } from "@/lib/analytics";
+import { trackSubscriptionClick, trackBeginCheckout } from "@/lib/analytics";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -15,6 +15,7 @@ const MERCADO_PAGO_PRO_LINK = "https://mpago.li/25uChSe";
 export function UpgradeModal({ open, onOpenChange, reason }: UpgradeModalProps) {
   const handleClick = (planId: string, link: string) => {
     trackSubscriptionClick(planId);
+    trackBeginCheckout(planId);
     window.open(link, "_blank");
     onOpenChange(false);
   };

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trackGenerateReport, trackDownloadPdf } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -60,6 +61,9 @@ export function ReportExporter({
       toast.error("Nenhum conteúdo para exportar");
       return;
     }
+
+    trackGenerateReport(format);
+    if (format === "pdf") trackDownloadPdf();
 
     setIsExporting(format);
 
