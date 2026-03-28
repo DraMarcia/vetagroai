@@ -475,6 +475,8 @@ export default function ChatProfile() {
     setTitleGenerated(false);
     setConvStage("idle");
     setUserCtx(createEmptyContext(profileId || "produtor"));
+    autoLoadAttemptedRef.current = profileId || null;
+    skipAutoLoadProfileRef.current = profileId || null;
     setSearchParams({}, { replace: true });
   };
 
