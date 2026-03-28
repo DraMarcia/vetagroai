@@ -5,6 +5,7 @@ import { Info } from "lucide-react";
 import { AuthDialog } from "@/components/AuthDialog";
 import { AboutModal, useFirstVisitModal } from "@/components/AboutModal";
 import { supabase } from "@/integrations/supabase/client";
+import { trackSelectProfile } from "@/lib/analytics";
 import { toast } from "sonner";
 import type { User } from "@supabase/supabase-js";
 
@@ -52,6 +53,7 @@ const Index = () => {
       });
       return;
     }
+    trackSelectProfile(profile.id);
     if (!user) {
       toast.error("Cadastre-se para acessar esta funcionalidade.");
       setAuthDialogOpen(true);
