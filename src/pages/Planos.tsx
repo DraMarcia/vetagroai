@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Check, X, ArrowRight, Sparkles, Zap, Gift, Crown, Users, Star, MessageSquare, Flame } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthDialog } from "@/components/AuthDialog";
-import { trackSubscriptionClick } from "@/lib/analytics";
+import { trackSubscriptionClick, trackBeginCheckout, trackViewPlans } from "@/lib/analytics";
 
 const MERCADO_PAGO_CREDITS_LINK = "https://mpago.li/2RGcL8M";
 const MERCADO_PAGO_LINKS = {
@@ -20,8 +20,13 @@ const Planos = () => {
 
   const planLabel: Record<string, string> = { free: "Gratuito", pro: "Profissional", enterprise: "Empresarial" };
 
+  useEffect(() => {
+    trackViewPlans();
+  }, []);
+
   const handlePlanClick = (planId: string, link: string) => {
     trackSubscriptionClick(planId);
+    trackBeginCheckout(planId);
     if (!user) {
       setShowAuthDialog(true);
       return;

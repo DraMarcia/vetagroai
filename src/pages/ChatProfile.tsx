@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { trackStartChat, trackSendMessage } from "@/lib/analytics";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChatResponseActions } from "@/components/ChatResponseActions";
@@ -360,6 +361,11 @@ export default function ChatProfile() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Track start_chat on mount
+  useEffect(() => {
+    trackStartChat(profileId);
+  }, [profileId]);
+
   if (!data) { navigate("/"); return null; }
 
   const personalGreeting = userName
@@ -368,6 +374,7 @@ export default function ChatProfile() {
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading || sendingRef.current) return;
+    trackSendMessage(profileId);
     sendingRef.current = true;
     const userMsg: Msg = { role: "user", content: text.trim() };
     const updatedMessages = [...messages, userMsg];
