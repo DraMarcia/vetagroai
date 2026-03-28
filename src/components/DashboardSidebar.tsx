@@ -119,10 +119,7 @@ export function DashboardSidebar({ collapsed, onToggle }: DashboardSidebarProps)
   };
 
   const handleNewChat = async () => {
-    navigate(`/chat/${activeProfile}`);
-    // Clear conv param to start fresh
-    window.history.replaceState({}, "", `/chat/${activeProfile}`);
-    window.location.reload();
+    navigate(`/chat/${activeProfile}?new=1`);
   };
 
   const handleOpenConversation = (conv: Conversation) => {
