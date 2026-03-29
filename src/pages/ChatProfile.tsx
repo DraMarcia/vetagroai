@@ -4,7 +4,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Send, Plus, Sparkles, Loader2, User, Bot, Mic, ChevronLeft, ChevronRight } from "lucide-react";
 import { ChatResponseActions } from "@/components/ChatResponseActions";
 import { AnalysisVisual } from "@/components/AnalysisVisual";
-import { LowCreditBanner, ZeroCreditBlock } from "@/components/CreditAlerts";
+import { LowCreditBanner, ZeroCreditBlock, CreditAlertMessage } from "@/components/CreditAlerts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -260,7 +260,7 @@ export default function ChatProfile() {
   const { profileId } = useParams<{ profileId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { credits, hasUnlimited } = useSubscription();
+  const { credits, hasUnlimited, useCredit, refreshSubscription } = useSubscription();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -374,8 +374,32 @@ export default function ChatProfile() {
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading || sendingRef.current) return;
+
+    // ── Credit check before sending ──
+    if (!hasUnlimited) {
+      console.log("[credits] before send:", credits);
+      if (credits <= 0) {
+        console.log("[credits] BLOCKED — no credits remaining");
+        toast.error("Seus créditos acabaram. Adquira mais para continuar.");
+        return;
+      }
+    }
+
     trackSendMessage(profileId);
     sendingRef.current = true;
+
+    // ── Consume credit ──
+    if (!hasUnlimited) {
+      const success = await useCredit();
+      if (!success) {
+        console.log("[credits] use_credit returned false — blocking");
+        toast.error("Não foi possível consumir crédito. Tente novamente.");
+        sendingRef.current = false;
+        return;
+      }
+      await refreshSubscription();
+      console.log("[credits] after consumption, refreshed");
+    }
     const userMsg: Msg = { role: "user", content: text.trim() };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
