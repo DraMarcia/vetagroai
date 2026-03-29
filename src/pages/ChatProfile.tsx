@@ -594,6 +594,12 @@ export default function ChatProfile() {
                       <ChipsRow chips={data.chips} chipColor={data.chipColor} onChipClick={handleChipClick} />
                     </div>
                   )}
+                  {/* In-chat credit alert after last assistant message */}
+                  {isLastAssistant && !hasUnlimited && (
+                    <div className="mt-3">
+                      <CreditAlertMessage credits={credits} />
+                    </div>
+                  )}
                 </div>
               );
             })}
