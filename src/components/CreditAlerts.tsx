@@ -90,7 +90,8 @@ interface CreditAlertMessageProps {
 export function CreditAlertMessage({ credits }: CreditAlertMessageProps) {
   const navigate = useNavigate();
 
-  if (credits > 3) return null;
+  // Only show alerts when 2 or fewer credits remain
+  if (credits > 2) return null;
 
   if (credits === 0) {
     return (
@@ -147,7 +148,7 @@ export function CreditAlertMessage({ credits }: CreditAlertMessageProps) {
     );
   }
 
-  // credits <= 3
+  // credits === 2 or credits === 1 (but not last credit which is handled above)
   return (
     <div className="flex gap-3 justify-start">
       <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mt-1">
@@ -155,7 +156,7 @@ export function CreditAlertMessage({ credits }: CreditAlertMessageProps) {
       </div>
       <div className="max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30">
         <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
-          🟡 Você está aproveitando a VetAgro IA! Seus créditos gratuitos estão acabando ({credits} restantes).
+          ⚠️ Seus créditos gratuitos estão acabando ({credits} restantes).
         </p>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" className="h-8 text-xs font-semibold gap-1.5" onClick={() => navigate("/planos")}>
