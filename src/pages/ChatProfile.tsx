@@ -465,10 +465,11 @@ export default function ChatProfile() {
 
         // ── Consume credit AFTER response is delivered ──
         if (!hasUnlimited) {
+          console.log("[credits] about to consume credit, current:", credits);
           const success = await useCredit();
-          console.log("[credits] use_credit after response:", success);
+          console.log("[credits] use_credit result:", success);
           await refreshSubscription();
-          console.log("[credits] credits after response refreshed");
+          console.log("[credits] after refresh — subscription updated");
         }
 
         setIsLoading(false);
