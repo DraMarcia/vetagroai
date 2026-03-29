@@ -375,31 +375,18 @@ export default function ChatProfile() {
   const sendMessage = async (text: string) => {
     if (!text.trim() || isLoading || sendingRef.current) return;
 
-    // ── Credit check before sending ──
+    // ── Credit check before sending (block only at 0) ──
     if (!hasUnlimited) {
       console.log("[credits] before send:", credits);
       if (credits <= 0) {
         console.log("[credits] BLOCKED — no credits remaining");
-        toast.error("Seus créditos acabaram. Adquira mais para continuar.");
+        // Don't use toast — the ZeroCreditBlock UI handles this
         return;
       }
     }
 
     trackSendMessage(profileId);
     sendingRef.current = true;
-
-    // ── Consume credit ──
-    if (!hasUnlimited) {
-      const success = await useCredit();
-      if (!success) {
-        console.log("[credits] use_credit returned false — blocking");
-        toast.error("Não foi possível consumir crédito. Tente novamente.");
-        sendingRef.current = false;
-        return;
-      }
-      await refreshSubscription();
-      console.log("[credits] after consumption, refreshed");
-    }
     const userMsg: Msg = { role: "user", content: text.trim() };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
@@ -466,7 +453,6 @@ export default function ChatProfile() {
       onDelta: (chunk) => upsertAssistant(chunk),
       onDone: async () => {
         if (assistantSoFar) {
-          // Only append report CTA after full analysis (analise stage)
           if (stageForRequest === "analise") {
             assistantSoFar += REPORT_CTA;
             setConvStage("final");
@@ -475,10 +461,16 @@ export default function ChatProfile() {
             prev.map((m, i) => i === prev.length - 1 && m.role === "assistant" ? { ...m, content: assistantSoFar } : m)
           );
           await saveMessage(finalConvId, "assistant", assistantSoFar);
-
-          // After assistant responds in diagnostico, extract any context it asked about
-          // (stage stays diagnostico until user provides enough data)
         }
+
+        // ── Consume credit AFTER response is delivered ──
+        if (!hasUnlimited) {
+          const success = await useCredit();
+          console.log("[credits] use_credit after response:", success);
+          await refreshSubscription();
+          console.log("[credits] credits after response refreshed");
+        }
+
         setIsLoading(false);
         sendingRef.current = false;
         if (updatedMessages.length === 1) {
