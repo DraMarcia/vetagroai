@@ -60,15 +60,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
       if (data && typeof data === "object" && !Array.isArray(data)) {
         const result = data as Record<string, unknown>;
+        const parsedCredits =
+          typeof result.credits === "number"
+            ? result.credits
+            : Number(result.credits);
+
         setState({
-          plan: (result.plan as SubscriptionPlan) || "free",
-          credits: (result.credits as number) || 10,
-          creditsResetAt: (result.credits_reset_at as string) || null,
-          isAdmin: (result.is_admin as boolean) || false,
-          isProfessional: (result.is_professional as boolean) || false,
-          hasUnlimited: (result.has_unlimited as boolean) || false,
+          plan: (result.plan as SubscriptionPlan) ?? "free",
+          credits: Number.isFinite(parsedCredits) ? Math.max(0, parsedCredits) : 5,
+          creditsResetAt: (result.credits_reset_at as string) ?? null,
+          isAdmin: Boolean(result.is_admin),
+          isProfessional: Boolean(result.is_professional),
+          hasUnlimited: Boolean(result.has_unlimited),
           isLoading: false,
         });
+      } else {
+        setState((prev) => ({ ...prev, isLoading: false }));
       }
     } catch (error) {
       console.error("Error fetching subscription:", error);
