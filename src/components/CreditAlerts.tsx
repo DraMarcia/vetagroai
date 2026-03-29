@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, X, Zap, CreditCard } from "lucide-react";
+import { AlertTriangle, X, Zap, CreditCard, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -58,7 +58,7 @@ export function ZeroCreditBlock() {
       <div className="text-center space-y-1">
         <h3 className="text-sm font-bold text-foreground">Seus créditos acabaram</h3>
         <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
-          Para continuar utilizando o VetAgro IA e gerar análises técnicas completas, adquira mais créditos.
+          Você atingiu o limite de créditos gratuitos. Para continuar usando a VetAgro IA, adquira mais créditos.
         </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -67,7 +67,7 @@ export function ZeroCreditBlock() {
           onClick={handleBuyCredits}
         >
           <CreditCard className="h-4 w-4" />
-          Comprar créditos
+          Comprar 50 créditos
         </Button>
         <Button
           variant="outline"
@@ -76,6 +76,92 @@ export function ZeroCreditBlock() {
         >
           Ver planos
         </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── In-chat credit alert messages ── */
+
+interface CreditAlertMessageProps {
+  credits: number;
+}
+
+export function CreditAlertMessage({ credits }: CreditAlertMessageProps) {
+  const navigate = useNavigate();
+
+  if (credits > 3) return null;
+
+  if (credits === 0) {
+    return (
+      <div className="flex gap-3 justify-start">
+        <div className="w-7 h-7 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0 mt-1">
+          <Zap className="w-3.5 h-3.5 text-destructive" />
+        </div>
+        <div className="max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 bg-destructive/5 border border-destructive/20">
+          <p className="text-sm font-semibold text-destructive mb-2">
+            🔴 Seus créditos gratuitos acabaram.
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            Para continuar utilizando o VetAgro IA e gerar análises técnicas completas, adquira mais créditos.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" className="h-8 text-xs font-semibold gap-1.5" onClick={handleBuyCredits}>
+              <CreditCard className="h-3.5 w-3.5" />
+              Comprar 50 créditos
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs font-semibold gap-1.5" onClick={() => navigate("/planos")}>
+              <ArrowRight className="h-3.5 w-3.5" />
+              Ver planos
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (credits === 1) {
+    return (
+      <div className="flex gap-3 justify-start">
+        <div className="w-7 h-7 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0 mt-1">
+          <AlertTriangle className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+        </div>
+        <div className="max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/30">
+          <p className="text-sm font-semibold text-orange-700 dark:text-orange-300 mb-2">
+            🟠 Este é seu último crédito gratuito.
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            Após esta mensagem, você precisará adquirir créditos para continuar.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" className="h-8 text-xs font-semibold gap-1.5" onClick={handleBuyCredits}>
+              <CreditCard className="h-3.5 w-3.5" />
+              Comprar créditos
+            </Button>
+            <Button size="sm" variant="outline" className="h-8 text-xs font-semibold gap-1.5" onClick={() => navigate("/planos")}>
+              Ver planos
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // credits <= 3
+  return (
+    <div className="flex gap-3 justify-start">
+      <div className="w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mt-1">
+        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+      </div>
+      <div className="max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30">
+        <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">
+          🟡 Você está aproveitando a VetAgro IA! Seus créditos gratuitos estão acabando ({credits} restantes).
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" className="h-8 text-xs font-semibold gap-1.5" onClick={() => navigate("/planos")}>
+            Ver planos
+          </Button>
+        </div>
       </div>
     </div>
   );
