@@ -475,7 +475,7 @@ export default function ChatProfile() {
             console.error("[credits] failed to read post-response credits:", creditsSnapshotError);
           } else if (creditsSnapshot && typeof creditsSnapshot === "object" && !Array.isArray(creditsSnapshot)) {
             const currentCredits = Number((creditsSnapshot as Record<string, unknown>).credits);
-            console.log("[credits] after response:", Number.isFinite(currentCredits) ? currentCredits : "indisponível");
+            console.log("[credits] after consumption:", Number.isFinite(currentCredits) ? currentCredits : "indisponível");
           }
         }
 
