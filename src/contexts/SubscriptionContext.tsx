@@ -43,7 +43,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [state, setState] = useState<SubscriptionState>({
     plan: "free",
-    credits: 10,
+    credits: 5,
     creditsResetAt: null,
     isAdmin: false,
     isProfessional: false,
@@ -117,7 +117,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         } else {
           setState({
             plan: "free",
-            credits: 10,
+            credits: 5,
             creditsResetAt: null,
             isAdmin: false,
             isProfessional: false,
