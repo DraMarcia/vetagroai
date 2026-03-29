@@ -465,11 +465,18 @@ export default function ChatProfile() {
 
         // ── Consume credit AFTER response is delivered ──
         if (!hasUnlimited) {
-          console.log("[credits] about to consume credit, current:", credits);
+          console.log("[credits] before consumption:", credits);
           const success = await useCredit();
           console.log("[credits] use_credit result:", success);
           await refreshSubscription();
-          console.log("[credits] after refresh — subscription updated");
+
+          const { data: creditsSnapshot, error: creditsSnapshotError } = await supabase.rpc("check_credits");
+          if (creditsSnapshotError) {
+            console.error("[credits] failed to read post-response credits:", creditsSnapshotError);
+          } else if (creditsSnapshot && typeof creditsSnapshot === "object" && !Array.isArray(creditsSnapshot)) {
+            const currentCredits = Number((creditsSnapshot as Record<string, unknown>).credits);
+            console.log("[credits] after response:", Number.isFinite(currentCredits) ? currentCredits : "indisponível");
+          }
         }
 
         setIsLoading(false);
